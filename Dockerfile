@@ -13,6 +13,8 @@ COPY . .
 EXPOSE 5000
 
 ENV FLASK_APP=app.py
+ENV FLASK_DEBUG=0
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "app.py"]
+# Run with Gunicorn WSGI server in production mode
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]

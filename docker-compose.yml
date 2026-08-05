@@ -5,9 +5,12 @@ services:
     build: .
     container_name: proyecciones_web
     ports:
-      - "5077:5000"  # Puerto personalizado: http://IP_VPS:5077
+      - "${PORT:-5077}:5000"  # Acceso web vía http://IP_VPS:${PORT}
     environment:
-      - DATABASE_URL=postgresql://postgres:proyecciones_secret_2026@db:5432/proyecciones
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:proyecciones_secret_2026@db:5432/proyecciones}
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+    env_file:
+      - .env
     volumes:
       - ./siembras_podas:/app/siembras_podas
     depends_on:
@@ -18,21 +21,25 @@ services:
     image: postgres:15-alpine
     container_name: proyecciones_db
     environment:
-      - POSTGRES_DB=proyecciones
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=proyecciones_secret_2026
+      - POSTGRES_DB=${POSTGRES_DB:-proyecciones}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-proyecciones_secret_2026}
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5477:5432"  # Puerto personalizado PostgreSQL host: 5477
+    # En producción, PostgreSQL NO expone puertos a internet por seguridad (solo comunicación interna de la red de Docker)
+    # ports:
+    #   - "5477:5432"
     restart: always
 
-  adminer:
-    image: adminer
-    container_name: proyecciones_adminer
-    ports:
-      - "8099:8080"  # Gestor web de BD opcional: http://IP_VPS:8099
-    restart: always
+  # Servicio Adminer desactivado por seguridad en producción (descomentar solo para mantenimiento)
+  # adminer:
+  #   image: adminer
+  #   container_name: proyecciones_adminer
+  #   ports:
+  #     - "8099:8080"
+  #   restart: always
 
 volumes:
   postgres_data:
