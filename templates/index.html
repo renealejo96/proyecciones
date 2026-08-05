@@ -866,10 +866,10 @@
                                     <td class="sticky-col sticky-7 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
                                     <td class="sticky-col sticky-8 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
                                     <td class="sticky-col sticky-9 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
-                                    <td class="sticky-col sticky-10 param-col"><input class="edit-input input-stems" type="number" min="0" step="1" inputmode="numeric" value="{{ row.stems_per_plant|round|int }}"></td>
+                                    <td class="sticky-col sticky-10 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ row.stems_per_plant }}"></td>
                                     
                                     <td class="param-col">{{ '%.2f'|format(row.ideal_waste_rate * 100) }}</td>
-                                    <td class="param-col"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="numeric" value="{{ (row.waste_rate * 100)|round|int }}"></td>
+                                    <td class="param-col"><input class="edit-input input-waste" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round(1) }}"></td>
                                     <td class="param-col cell-program-total">{{ row.program_total }}</td>
                                     <td class="param-col cell-real-stems">{{ '%.2f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
@@ -982,8 +982,8 @@
 
         function recalcRow(row) {
             const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell').textContent) || 0));
-            const stemsPerPlant = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-stems').value) || 0));
-            const wastePercent = Math.min(100, Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-waste').value) || 0)));
+            const stemsPerPlant = Math.max(0, Number.parseFloat(row.querySelector('.input-stems').value) || 0);
+            const wastePercent = Math.min(100, Math.max(0, Number.parseFloat(row.querySelector('.input-waste').value) || 0));
             const wasteRate = wastePercent / 100;
             const desiredCycle = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-cycle').value) || 0));
             const sourceWeek = Math.round(Number.parseFloat(row.dataset.sourceWeek) || 0);
