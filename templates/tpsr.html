@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de Plantaciones (TPSR)</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+
+            --navy-brand: #1e3a8a;
+            --navy-dark: #0f172a;
+
+            --emerald-600: #059669;
+            --emerald-500: #10b981;
+            --emerald-50: #ecfdf5;
+
+            --amber-600: #d97706;
+            --amber-500: #f59e0b;
+            --amber-50: #fffbeb;
+
+            --rose-600: #dc2626;
+            --rose-500: #ef4444;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--slate-900);
+            background: radial-gradient(circle at top left, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 1550px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .main-menu {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .menu-link {
+            text-decoration: none;
+            border: 1px solid var(--slate-300);
+            border-radius: 9999px;
+            padding: 5px 13px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            background: #ffffff;
+            transition: all 0.15s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .menu-link:hover {
+            background: var(--slate-100);
+            color: var(--slate-900);
+        }
+
+        .menu-link.active {
+            background: var(--navy-brand);
+            color: #ffffff;
+            border-color: var(--navy-brand);
+            box-shadow: 0 3px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            font-weight: 800;
+            color: var(--navy-brand);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin: 6px 0 16px;
+            color: var(--slate-600);
+            font-size: 0.85rem;
+        }
+
+        /* Upload Card Widget */
+        .upload-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            border: 2px dashed var(--slate-300);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .upload-card.dragover {
+            border-color: var(--navy-brand);
+            background: #eff6ff;
+        }
+
+        .upload-flex {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn-main {
+            background: var(--emerald-600);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s ease, transform 0.1s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-btn-main:hover {
+            background: var(--emerald-500);
+            transform: translateY(-1px);
+        }
+
+        .upload-info {
+            font-size: 0.8rem;
+            color: var(--slate-600);
+        }
+
+        /* Upload Results Box */
+        .upload-results {
+            margin-top: 12px;
+            padding: 12px;
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .stat-box {
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .stat-box .num { font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; }
+        .stat-box .lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .stat-new { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .stat-updated { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .stat-skipped { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .stat-invalid { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .mismatches-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            margin-top: 8px;
+        }
+        .mismatches-table th, .mismatches-table td {
+            padding: 6px 8px;
+            border: 1px solid var(--slate-200);
+            text-align: left;
+        }
+        .mismatches-table th { background: var(--amber-50); color: #78350f; }
+
+        /* Table & Controls */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--slate-50);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+        }
+
+        .filter-bar input {
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 0.82rem;
+            outline: none;
+            background: #ffffff;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 65vh;
+            border: 1px solid var(--slate-300);
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: var(--shadow-sm);
+        }
+
+        table.tpsr-grid {
+            width: 100%;
+            min-width: 1000px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.8rem;
+            background: #fff;
+        }
+
+        table.tpsr-grid th, table.tpsr-grid td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--slate-200);
+            border-right: 1px solid var(--slate-200);
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        table.tpsr-grid th {
+            background: var(--navy-brand);
+            color: #ffffff;
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:nth-child(even) td { background-color: var(--slate-50); }
+        tr:hover td { background-color: var(--slate-100); }
+
+        .edit-input {
+            width: 85px;
+            border: 1px solid var(--slate-300);
+            border-radius: 5px;
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .edit-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: #ffffff;
+        }
+
+        .badge-ac {
+            display: inline-block;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .badge-s { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .badge-p { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        .save-btn {
+            border: none;
+            border-radius: 6px;
+            background: var(--emerald-600);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 5px 10px;
+            font-size: 0.74rem;
+            cursor: pointer;
+        }
+        .save-btn:hover { background: var(--emerald-500); }
+
+        .del-btn {
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--rose-600);
+            font-weight: 700;
+            padding: 5px 9px;
+            font-size: 0.74rem;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        .del-btn:hover { background: var(--rose-600); color: #ffffff; }
+
+        .save-status {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--slate-500);
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .page-btn {
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--slate-700);
+        }
+        .page-btn:hover { background: var(--slate-100); }
+        .page-btn.disabled { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <nav class="main-menu">
+            <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
+            <a class="menu-link" href="/reales">📊 Datos Reales</a>
+            <a class="menu-link active" href="/tpsr">🌱 Plantaciones (TPSR)</a>
+            <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
+        </nav>
+
+        <section class="panel">
+            <div class="header-flex">
+                <div>
+                    <h1>🌱 Gestión de Plantaciones TPSR (PostgreSQL)</h1>
+                    <p>Base de Datos Postgres | Carga semanal sin duplicados, validación automática de correcciones y edición en tiempo real.</p>
+                </div>
+            </div>
+
+            <!-- Upload Widget -->
+            <div class="upload-card" id="upload-zone">
+                <div class="upload-flex">
+                    <input type="file" id="tpsr-file-input" accept=".xlsx" style="display: none;">
+                    <button class="upload-btn-main" type="button" onclick="document.getElementById('tpsr-file-input').click()">
+                        📤 Adjuntar Excel TPSR (.xlsx)
+                    </button>
+                    <div class="upload-info">
+                        <strong>Carga semanal automatizada:</strong> Las siembras/podas repetidas se omitirán automáticamente. Si se detectan cambios en el reporte de plantas, se actualizarán en PostgreSQL.
+                    </div>
+                </div>
+
+                <div class="upload-results" id="upload-results">
+                    <div class="stats-grid">
+                        <div class="stat-box stat-new">
+                            <div class="num" id="res-new">0</div>
+                            <div class="lbl">Nuevos</div>
+                        </div>
+                        <div class="stat-box stat-updated">
+                            <div class="num" id="res-updated">0</div>
+                            <div class="lbl">Plantas Corregidas</div>
+                        </div>
+                        <div class="stat-box stat-skipped">
+                            <div class="num" id="res-skipped">0</div>
+                            <div class="lbl">Duplicados Omitidos</div>
+                        </div>
+                        <div class="stat-box stat-invalid">
+                            <div class="num" id="res-invalid">0</div>
+                            <div class="lbl">Inválidos</div>
+                        </div>
+                    </div>
+
+                    <div id="mismatches-container" style="display: none;">
+                        <strong style="font-size: 0.8rem; color: #78350f;">⚠️ Detalle de Correcciones de Plantas Detectadas:</strong>
+                        <table class="mismatches-table">
+                            <thead>
+                                <tr>
+                                    <th>Semana</th>
+                                    <th>Actividad</th>
+                                    <th>Variedad</th>
+                                    <th>Bloque</th>
+                                    <th>Anterior</th>
+                                    <th>Nuevo Reporte</th>
+                                    <th>Diferencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mismatches-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Bar -->
+            <form class="filter-bar" method="GET" action="/tpsr">
+                <label>🔍 Buscar:</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Variedad, bloque, producto..." style="width: 250px;">
+                <button class="save-btn" type="submit">Filtrar</button>
+                {% if search_query %}
+                    <a class="page-btn" href="/tpsr">Limpiar</a>
+                {% endif %}
+                <span style="font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-left: auto;">
+                    Registros Totales en DB: {{ total_records }}
+                </span>
+            </form>
+
+            <div class="table-wrap">
+                <table class="tpsr-grid">
+                    <thead>
+                        <tr>
+                            <th>ID DB</th>
+                            <th>Actividad</th>
+                            <th>Semana Origen</th>
+                            <th>Producto Maestro</th>
+                            <th>Variedad</th>
+                            <th>Bloque (Editable)</th>
+                            <th>Ubicación Cama</th>
+                            <th>Plantas (Editable)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tpsr_rows %}
+                            <tr class="tpsr-row"
+                                data-row-index="{{ row.row_index }}"
+                                data-activity="{{ row.activity }}"
+                                data-product-master="{{ row.product_master }}"
+                                data-variety="{{ row.variety }}"
+                                data-source-week="{{ row.source_week }}">
+                                <td><code>#{{ row.row_index }}</code></td>
+                                <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
+                                <td><strong>{{ row.source_week_short }}</strong></td>
+                                <td>{{ row.product_master }}</td>
+                                <td><strong>{{ row.variety }}</strong></td>
+                                <td><input class="edit-input input-block" type="text" value="{{ row.block }}" style="width: 90px; text-align: left;"></td>
+                                <td>{{ row.bed_location }}</td>
+                                <td><input class="edit-input input-plants" type="number" min="0" step="1" inputmode="numeric" value="{{ row.plants }}"></td>
+                                <td>
+                                    <button class="save-btn" type="button">💾 Guardar</button>
+                                    <button class="del-btn" type="button">🗑️ Eliminar</button>
+                                    <span class="save-status"></span>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 20px; color: var(--slate-500);">
+                                    No se encontraron registros de plantaciones en la base de datos.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination controls -->
+            <div class="pagination-bar">
+                <div>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></div>
+                <div style="display: flex; gap: 4px;">
+                    {% if page > 1 %}
+                        <a class="page-btn" href="/tpsr?page={{ page - 1 }}&search={{ search_query }}">◀ Anterior</a>
+                    {% endif %}
+                    {% if page < total_pages %}
+                        <a class="page-btn" href="/tpsr?page={{ page + 1 }}&search={{ search_query }}">Siguiente ▶</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function parseApiResponse(response) {
+            const text = await response.text();
+            try { return JSON.parse(text); } catch (e) { throw new Error('Respuesta inválida del servidor.'); }
+        }
+
+        // Upload File Handler
+        const fileInput = document.getElementById('tpsr-file-input');
+        const uploadZone = document.getElementById('upload-zone');
+        const resultsBox = document.getElementById('upload-results');
+
+        ['dragenter', 'dragover'].forEach(name => {
+            uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+            uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); });
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                uploadFile();
+            }
+        });
+
+        fileInput.addEventListener('change', uploadFile);
+
+        async function uploadFile() {
+            if (!fileInput.files.length) return;
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadBtn = document.querySelector('.upload-btn-main');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '⏳ Procesando en PostgreSQL...';
+            uploadBtn.style.opacity = '0.7';
+
+            resultsBox.style.display = 'block';
+            resultsBox.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: var(--navy-brand); font-weight: 700;">
+                    <div style="font-size: 1.2rem; margin-bottom: 6px;">⏳ Procesando archivo Excel "${file.name}"...</div>
+                    <div style="font-size: 0.82rem; color: var(--slate-600); font-weight: 500;">
+                        Validando registros en PostgreSQL, identificando duplicados y detectando correcciones de plantas. Por favor espera unas milésimas de segundo...
+                    </div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/tpsr-cargar', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await parseApiResponse(res);
+                if (!res.ok || !data.ok) {
+                    throw new Error(data.message || 'Error al procesar archivo.');
+                }
+
+                resultsBox.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-box stat-new">
+                            <div class="num" id="res-new">${data.new_count}</div>
+                            <div class="lbl">Nuevos</div>
+                        </div>
+                        <div class="stat-box stat-updated">
+                            <div class="num" id="res-updated">${data.updated_count}</div>
+                            <div class="lbl">Plantas Corregidas</div>
+                        </div>
+                        <div class="stat-box stat-skipped">
+                            <div class="num" id="res-skipped">${data.skipped_count}</div>
+                            <div class="lbl">Duplicados Omitidos</div>
+                        </div>
+                        <div class="stat-box stat-invalid">
+                            <div class="num" id="res-invalid">${data.invalid_count}</div>
+                            <div class="lbl">Inválidos</div>
+                        </div>
+                    </div>
+
+                    <div id="mismatches-container" style="${data.plant_adjustments && data.plant_adjustments.length > 0 ? '' : 'display: none;'}">
+                        <strong style="font-size: 0.8rem; color: #78350f;">⚠️ Detalle de Correcciones de Plantas Detectadas:</strong>
+                        <table class="mismatches-table">
+                            <thead>
+                                <tr>
+                                    <th>Semana</th>
+                                    <th>Actividad</th>
+                                    <th>Variedad</th>
+                                    <th>Bloque</th>
+                                    <th>Anterior</th>
+                                    <th>Nuevo Reporte</th>
+                                    <th>Diferencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mismatches-body"></tbody>
+                        </table>
+                    </div>
+                `;
+
+                if (data.plant_adjustments && data.plant_adjustments.length > 0) {
+                    const body = document.getElementById('mismatches-body');
+                    body.innerHTML = '';
+                    data.plant_adjustments.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${item.source_week_short}</strong></td>
+                            <td>${item.activity}</td>
+                            <td>${item.variety}</td>
+                            <td>${item.block}</td>
+                            <td>${item.old_plants.toLocaleString()}</td>
+                            <td style="color: #059669; font-weight: 700;">${item.new_plants.toLocaleString()}</td>
+                            <td style="font-weight: 700; color: ${item.difference > 0 ? '#059669' : '#dc2626'}">
+                                ${item.difference > 0 ? '+' : ''}${item.difference.toLocaleString()}
+                            </td>
+                        `;
+                        body.appendChild(tr);
+                    });
+                }
+
+                uploadBtn.innerHTML = '✅ Carga Completada';
+                uploadBtn.style.background = '#059669';
+
+                setTimeout(() => {
+                    alert(`✅ Carga procesada correctamente:\n- ${data.new_count} nuevos registros\n- ${data.updated_count} correcciones de plantas actualizadas\n- ${data.skipped_count} duplicados omitidos`);
+                    window.location.reload();
+                }, 800);
+            } catch (err) {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '📤 Adjuntar Excel TPSR (.xlsx)';
+                uploadBtn.style.opacity = '1';
+                resultsBox.innerHTML = `<div style="padding: 12px; color: #dc2626; font-weight: 700;">❌ Error: ${err.message}</div>`;
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        async function saveTpsrRow(tr) {
+            const status = tr.querySelector('.save-status');
+            const body = {
+                row_index: Number.parseInt(tr.dataset.rowIndex),
+                block: tr.querySelector('.input-block').value.trim(),
+                plants: Number.parseInt(tr.querySelector('.input-plants').value) || 0,
+            };
+
+            status.textContent = 'Guardando...';
+            try {
+                const response = await fetch('/api/tpsr-actualizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const result = await parseApiResponse(response);
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo guardar.');
+                }
+                status.textContent = '✅ Guardado';
+                setTimeout(() => { status.textContent = ''; }, 2000);
+            } catch (error) {
+                status.textContent = '❌ ' + error.message;
+            }
+        }
+
+        async function deleteTpsrRow(tr) {
+            const status = tr.querySelector('.save-status');
+            const variety = tr.dataset.variety;
+            const block = tr.querySelector('.input-block').value;
+            const week = tr.dataset.sourceWeek;
+
+            if (!confirm(`¿Estás seguro de eliminar el registro de ${variety} (Bloque ${block}, Sem ${week}) de la base de datos PostgreSQL?`)) {
+                return;
+            }
+
+            status.textContent = 'Eliminando...';
+            try {
+                const response = await fetch('/api/tpsr-eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ row_index: Number.parseInt(tr.dataset.rowIndex) }),
+                });
+                const result = await parseApiResponse(response);
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo eliminar.');
+                }
+                tr.remove();
+            } catch (error) {
+                status.textContent = '❌ ' + error.message;
+            }
+        }
+
+        document.querySelectorAll('.tpsr-row').forEach((tr) => {
+            tr.querySelector('.save-btn').addEventListener('click', () => saveTpsrRow(tr));
+            tr.querySelector('.del-btn').addEventListener('click', () => deleteTpsrRow(tr));
+
+            tr.querySelectorAll('.edit-input').forEach((inp) => {
+                inp.addEventListener('focus', () => inp.select());
+                inp.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveTpsrRow(tr);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

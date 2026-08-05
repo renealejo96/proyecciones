@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Proyecciones de Cosecha</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+
+            --header-bg: #1e3a8a;      /* Royal Navy for headers */
+            --totals-bg: #0f172a;      /* Slate Dark Navy for totals row */
+            --header-text: #ffffff;    /* Crisp White header text */
+            --totals-text: #fbbf24;    /* Gold text for totals */
+            
+            --emerald-600: #059669;
+            --emerald-500: #10b981;
+            --emerald-100: #d1fae5;
+            --emerald-50: #ecfdf5;
+
+            --amber-600: #d97706;
+            --amber-500: #f59e0b;
+            --amber-100: #fef3c7;
+            --amber-50: #fffbeb;
+
+            --blue-600: #2563eb;
+            --blue-500: #3b82f6;
+            --blue-100: #dbeafe;
+            --blue-50: #eff6ff;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-sticky: 4px 0 10px -2px rgba(15, 23, 42, 0.25);
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--slate-900);
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow-x: visible;
+        }
+
+        .main-menu {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .menu-link {
+            text-decoration: none;
+            border: 1px solid var(--slate-300);
+            border-radius: 9999px;
+            padding: 4px 11px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            background: #ffffff;
+            transition: all 0.15s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .menu-link:hover {
+            background: var(--slate-100);
+            color: var(--slate-900);
+        }
+
+        .menu-link.active {
+            background: var(--header-bg);
+            color: #ffffff;
+            border-color: var(--header-bg);
+            box-shadow: 0 3px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        .hero,
+        .summary-panels-card,
+        .master-matrix-card,
+        .warnings {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            box-shadow: var(--shadow-md);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 8px;
+        }
+
+        .hero { 
+            padding: 8px 12px; 
+            position: relative;
+            z-index: 50;
+            overflow: visible !important;
+        }
+        .hero h1 { margin: 0; font-size: clamp(1.05rem, 2.2vw, 1.3rem); font-weight: 800; color: var(--slate-900); letter-spacing: -0.02em; }
+        .hero p { margin: 2px 0 0; color: var(--slate-600); font-size: 0.76rem; }
+
+        .toolbar {
+            margin-top: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: flex-end;
+            background: var(--slate-50);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+            position: relative;
+            z-index: 60;
+            overflow: visible !important;
+        }
+
+        .field { display: grid; gap: 2px; }
+        .field label { font-size: 0.62rem; text-transform: uppercase; color: var(--slate-600); font-weight: 700; letter-spacing: 0.04em; }
+
+        .field input,
+        .field select {
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            color: var(--slate-900);
+            border-radius: 5px;
+            padding: 3px 5px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .field-metric {
+            background: #e0f2fe;
+            border: 1px solid #7dd3fc;
+            border-radius: 6px;
+            padding: 3px 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 100px;
+        }
+        .field-metric label { color: #0369a1; font-size: 0.6rem; }
+        .field-metric strong { font-size: 0.95rem; color: #0284c7; font-family: 'JetBrains Mono', monospace; font-weight: 800; }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+            margin-left: auto;
+            position: relative;
+            z-index: 100;
+        }
+
+        .actions button,
+        .actions a {
+            text-decoration: none;
+            border: none;
+            border-radius: 9999px;
+            padding: 5px 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .actions button { background: var(--header-bg); color: #fff; }
+        .actions a { background: var(--slate-100); color: var(--header-bg); border: 1px solid var(--slate-300); }
+
+        .dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+            z-index: 200;
+        }
+
+        .dropdown-btn {
+            background: var(--emerald-600) !important;
+            color: #ffffff !important;
+            border: none;
+            border-radius: 9999px;
+            padding: 5px 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(5, 150, 105, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            border-radius: 8px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+            min-width: 210px;
+            z-index: 9999;
+            padding: 4px 0;
+        }
+
+        .dropdown-menu.show { display: block; }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--slate-800);
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover { background: var(--slate-100); color: var(--header-bg); }
+        .dropdown-divider { height: 1px; background: var(--slate-200); margin: 3px 0; }
+
+        /* SUMMARY TABULAR CARD - COLLAPSED BY DEFAULT */
+        .summary-panels-card { padding: 8px 10px; }
+        .summary-panels-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .summary-panels-header h2 { margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--slate-900); }
+
+        .toggle-summary-btn {
+            border: 1px solid var(--slate-300);
+            background: var(--slate-100);
+            color: var(--header-bg);
+            border-radius: 9999px;
+            padding: 3px 9px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-panels-card.collapsed .summary-table-wrap,
+        .summary-panels-card.collapsed .table-note { display: none !important; }
+
+        .summary-table-wrap {
+            margin-top: 6px;
+            overflow-x: auto;
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            background: #ffffff;
+        }
+
+        .summary-table {
+            width: 100%;
+            min-width: 850px;
+            border-collapse: collapse;
+            font-size: 0.72rem;
+        }
+        .summary-table th, .summary-table td {
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--slate-200);
+            border-right: 1px solid var(--slate-200);
+            text-align: right;
+        }
+        .summary-table th {
+            background: var(--header-bg);
+            color: #ffffff;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.66rem;
+        }
+        .summary-table td.col-name { text-align: left; font-weight: 700; background: var(--slate-50); }
+        .summary-table tr.row-subtotal { background: #e0f2fe; font-weight: 800; color: #0369a1; }
+        .summary-table tr.row-grandtotal { background: var(--totals-bg); color: var(--totals-text); font-weight: 800; font-size: 0.78rem; }
+        .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; }
+
+        /* MASTER MATRIX CARD & INLINE HEADER FILTERS */
+        .master-matrix-card { padding: 10px; overflow: hidden; }
+
+        .header-filter-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .h-filter-ctrl {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            padding: 2px 3px;
+            font-size: 0.68rem;
+            background: #ffffff;
+            color: var(--slate-900);
+            font-family: inherit;
+            font-weight: 600;
+            outline: none;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .h-filter-ctrl:focus {
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.6);
+        }
+
+        /* IN-TABLE VARIETY SUBTOTAL ROW */
+        tr.variety-subtotal-row td {
+            background: #e0f2fe !important;
+            color: #0369a1 !important;
+            font-weight: 800;
+            font-size: 0.76rem;
+            border-top: 2px solid #0284c7 !important;
+            border-bottom: 2px solid #0284c7 !important;
+        }
+
+        tr.variety-subtotal-row td.sticky-col {
+            background: #e0f2fe !important;
+        }
+
+        .reset-filters-btn {
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            color: var(--slate-700);
+            border-radius: 9999px;
+            padding: 3px 9px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+        .reset-filters-btn:hover { background: var(--slate-100); }
+
+        .week-edit-panel {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .mode-tab {
+            border: 1px solid var(--slate-300);
+            background: var(--slate-50);
+            color: var(--slate-700);
+            border-radius: 9999px;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .mode-tab.active {
+            background: var(--header-bg);
+            color: #fff;
+            border-color: var(--header-bg);
+        }
+
+        .sync-btn, .toggle-params-btn {
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            color: var(--header-bg);
+            border-radius: 9999px;
+            padding: 3px 9px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .legend { display: flex; gap: 5px; flex-wrap: wrap; margin-left: auto; }
+        .legend span { border-radius: 9999px; padding: 2px 6px; font-size: 0.66rem; font-weight: 700; }
+        .legend .lg-model { background: var(--blue-50); color: var(--blue-600); border: 1px solid var(--blue-100); }
+        .legend .lg-agro { background: var(--emerald-50); color: var(--emerald-600); border: 1px solid var(--emerald-100); }
+        .legend .lg-real { background: var(--amber-50); color: var(--amber-600); border: 1px solid var(--amber-100); }
+
+        .variety-header { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .variety-header h2 { margin: 0; font-size: 0.92rem; font-weight: 800; color: var(--slate-900); }
+
+        .chips { display: flex; gap: 4px; flex-wrap: wrap; }
+        .chip { background: var(--slate-100); border: 1px solid var(--slate-200); border-radius: 9999px; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; color: var(--slate-700); }
+        .chip span { font-weight: 800; color: var(--slate-900); }
+
+        .badge-ac {
+            display: inline-block;
+            border-radius: 4px;
+            padding: 1px 4px;
+            font-size: 0.66rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+        }
+        .badge-s { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .badge-p { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        .table-note { margin: 2px 0 6px; font-size: 0.72rem; color: var(--slate-500); }
+
+        /* ISOLATED SCROLLABLE TABLE CONTAINER (.table-wrap) */
+        .table-wrap {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 68vh;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--slate-300);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.04);
+            position: relative;
+        }
+
+        table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: #fff;
+            font-size: 0.74rem;
+        }
+
+        th, td {
+            padding: 4px 5px;
+            border-bottom: 1px solid var(--slate-200);
+            border-right: 1px solid var(--slate-200);
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* HIGH-CONTRAST FROZEN HEADERS */
+        tr.totals-row th {
+            position: sticky;
+            top: 0;
+            z-index: 18;
+            background: var(--totals-bg) !important;
+            color: var(--totals-text) !important;
+            font-weight: 800;
+            font-size: 0.7rem;
+            border-bottom: 2px solid #f59e0b !important;
+        }
+
+        tr.header-row th {
+            position: sticky;
+            top: 26px;
+            z-index: 16;
+            background: var(--header-bg) !important;
+            color: var(--header-text) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.68rem;
+            font-weight: 700;
+            border-bottom: 2px solid #1d4ed8 !important;
+        }
+
+        /* STICKY FROZEN LEFT COLUMNS 1 THROUGH 10 */
+        .sticky-col {
+            position: sticky;
+            z-index: 10;
+            background: #ffffff !important;
+        }
+
+        tr.header-row th.sticky-col {
+            z-index: 28 !important;
+            background: var(--header-bg) !important;
+            color: var(--header-text) !important;
+        }
+
+        tr.totals-row th.sticky-col {
+            z-index: 30 !important;
+            background: var(--totals-bg) !important;
+            color: var(--totals-text) !important;
+        }
+
+        /* OFFSETS FOR STICKY COLUMNS 1 TO 10 */
+        .sticky-1 { left: 0px; width: 34px; min-width: 34px; max-width: 34px; }
+        .sticky-2 { left: 34px; width: 38px; min-width: 38px; max-width: 38px; }
+        .sticky-3 { left: 72px; width: 56px; min-width: 56px; max-width: 56px; font-family: 'JetBrains Mono', monospace; }
+        .sticky-4 { left: 128px; width: 66px; min-width: 66px; max-width: 66px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
+        .sticky-5 { left: 194px; width: 88px; min-width: 88px; max-width: 88px; }
+        .sticky-6 { left: 282px; width: 62px; min-width: 62px; max-width: 62px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .sticky-7 { left: 344px; width: 54px; min-width: 54px; max-width: 54px; }
+        .sticky-8 { left: 398px; width: 64px; min-width: 64px; max-width: 64px; }
+        .sticky-9 { left: 462px; width: 56px; min-width: 56px; max-width: 56px; }
+        
+        /* COLUMN 10 (T/pl Ajust.) IS THE FROZEN BOUNDARY WHEN PARAMS ARE VISIBLE */
+        .sticky-10 { 
+            left: 518px; 
+            width: 64px; 
+            min-width: 64px; 
+            max-width: 64px;
+            box-shadow: var(--shadow-sticky);
+            border-right: 2px solid #64748b !important;
+        }
+
+        .param-col { background: var(--slate-50); }
+        .cell-real-stems { font-weight: 800; color: var(--emerald-600); font-family: 'JetBrains Mono', monospace; }
+
+        /* WHEN PARAMETERS ARE HIDDEN (.hide-params):
+           ALL columns right of Plantas (columns 7..14) hide!
+           Column 6 (Plantas) becomes the frozen boundary!
+        */
+        .hide-params .param-col { display: none !important; }
+        .hide-params .sticky-6 {
+            box-shadow: var(--shadow-sticky) !important;
+            border-right: 2px solid #64748b !important;
+        }
+        .hide-params .sticky-10 {
+            box-shadow: none !important;
+            border-right: 1px solid var(--slate-200) !important;
+        }
+
+        tbody tr:nth-child(even) td { background-color: #f8fafc; }
+        tbody tr:nth-child(even) td.sticky-col { background-color: #f8fafc !important; }
+
+        tbody tr:hover td { background-color: var(--blue-50) !important; }
+        tbody tr:hover td.sticky-col { background-color: var(--blue-50) !important; }
+
+        .edit-input,
+        .week-input {
+            width: 54px;
+            border: 1px solid var(--slate-300);
+            border-radius: 5px;
+            background: #ffffff;
+            padding: 2px 3px;
+            font-size: 0.74rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            outline: none;
+        }
+
+        .edit-input:focus,
+        .week-input:focus {
+            border-color: var(--blue-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            background: #ffffff !important;
+        }
+
+        .week-input:disabled {
+            background: var(--slate-100);
+            color: var(--slate-400);
+            cursor: not-allowed;
+            border-color: var(--slate-200);
+        }
+
+        /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA */
+        .week-cell.status-model { background: var(--blue-50); }
+        .week-cell.status-agronomo { background: var(--emerald-50); }
+        .week-cell.status-real { background: var(--amber-50); }
+
+        .week-cell.status-model .week-input { background: #ffffff; border-color: var(--blue-100); color: var(--slate-600); }
+        .week-cell.status-agronomo .week-input { background: var(--emerald-50); border-color: var(--emerald-500); color: var(--emerald-600); font-weight: 700; }
+        .week-cell.status-real .week-input { background: var(--amber-50); border-color: var(--amber-500); color: var(--amber-600); font-weight: 700; }
+
+        .cell-window-total { font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--header-bg); }
+
+        .edit-meta-btn {
+            border: none;
+            background: transparent;
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 0 2px;
+            opacity: 0.6;
+            transition: opacity 0.15s ease;
+        }
+        .edit-meta-btn:hover { opacity: 1; transform: scale(1.1); }
+
+        /* MODAL STYLES FOR EDITING BLOCK & PLANTS METADATA */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-card h3 { margin: 0 0 4px; font-size: 1.1rem; font-weight: 800; color: var(--header-bg); }
+        .modal-sub { margin: 0 0 14px; font-size: 0.76rem; color: var(--slate-600); }
+
+        .modal-actions button {
+            border: none;
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-cancel { background: var(--slate-100); color: var(--slate-700); border: 1px solid var(--slate-300) !important; }
+        .btn-save { background: var(--emerald-600); color: #ffffff; }
+
+        .empty, .warnings { margin-top: 10px; padding: 10px; color: var(--slate-600); font-size: 0.8rem; }
+        .warnings { background: #fffbe6; border-color: #ffe58f; }
+        .warnings h3 { margin: 0 0 4px; color: #d48806; font-size: 0.86rem; }
+
+        @media (max-width: 900px) {
+            .page { padding: 4px; }
+            .hero { padding: 6px 8px; }
+            .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 4px; }
+            .actions { grid-column: 1 / -1; margin-left: 0; }
+
+            th, td { padding: 3px 4px; font-size: 0.68rem; }
+            .edit-input, .week-input { width: 46px; padding: 2px 2px; font-size: 0.68rem; }
+        }
+    </style>
+</head>
+<body class="{{ 'page-real' if page_mode == 'REAL' else 'page-agronomo' }}">
+    <!-- DATALISTS FOR NATIVE HYBRID SEARCH/SELECT -->
+    <datalist id="block-datalist"></datalist>
+    <datalist id="week-datalist"></datalist>
+
+    <main class="page">
+        <nav class="main-menu">
+            <a class="menu-link {{ 'active' if page_mode == 'AGRONOMO' else '' }}" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">🌾 Llenado Agrónomo</a>
+            <a class="menu-link {{ 'active' if page_mode == 'REAL' else '' }}" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">📊 Datos Reales</a>
+            <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">🌱 Plantaciones (TPSR)</a>
+            <a class="menu-link" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración Ciclos</a>
+        </nav>
+
+        <section class="hero">
+            <h1>{{ page_title }}</h1>
+            <p>Vista operativa de campo. Ingreso directo por celda con auto-guardado en Enter / Blur.</p>
+
+            <form method="get" class="toolbar" id="filters-form">
+                <div class="field">
+                    <label for="semana">Semana corte</label>
+                    <select id="semana" name="semana">
+                        {% for item in week_options %}
+                            <option value="{{ item.week_code }}" {{ 'selected' if item.week_code == weekly_view.selected_week else '' }}>{{ item.week_short }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="producto">Producto</label>
+                    <select id="producto" name="producto">
+                        <option value="">Todos</option>
+                        {% for product in product_options %}
+                            <option value="{{ product }}" {{ 'selected' if product == weekly_view.selected_product_master else '' }}>{{ product }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="horizonte_atras">Atrás</label>
+                    <input id="horizonte_atras" name="horizonte_atras" value="{{ weekly_view.horizon_weeks_back }}" type="number" min="0" max="20" step="1" style="width: 48px;">
+                </div>
+                <div class="field">
+                    <label for="horizonte_adelante">Adelante</label>
+                    <input id="horizonte_adelante" name="horizonte_adelante" value="{{ weekly_view.horizon_weeks_forward }}" type="number" min="1" max="20" step="1" style="width: 48px;">
+                </div>
+
+                <!-- EXPORTABLE SEMANA CUTOFF METRIC COMPONENT IN TOOLBAR -->
+                <div class="field field-metric">
+                    <label>Export. Sem {{ weekly_view.selected_week_short }}</label>
+                    <strong id="metric-grand-total">{{ weekly_view.selected_week_total }}</strong>
+                </div>
+
+                <div class="actions">
+                    <button type="submit">Actualizar</button>
+                    <a href="{{ '/reales' if page_mode == 'REAL' else '/' }}?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}&refresh=1">Recargar</a>
+
+                    <!-- DROPDOWN OPERACIONES MENU -->
+                    <div class="dropdown-wrapper">
+                        <button type="button" class="dropdown-btn" id="ops-menu-btn">⚡ Opciones ▼</button>
+                        <div class="dropdown-menu" id="ops-dropdown-menu">
+                            <button type="button" class="dropdown-item" id="menu-save-all">💾 Guardar Todo en Excel</button>
+                            <button type="button" class="dropdown-item" onclick="location.href='/?sync_db=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">🗄️ Sincronizar PostgreSQL</button>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">🌾 Vista Llenado Agrónomo</a>
+                            <a class="dropdown-item" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">📊 Vista Datos Reales</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración de Ciclos</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            {% if db_status %}
+                <div class="status {{ 'ok' if db_status[0] else 'error' }}">{{ db_status[1] }}</div>
+            {% endif %}
+        </section>
+
+        <!-- CONTEXT-AWARE SUMMARY TOTALS CARD - COLLAPSED BY DEFAULT -->
+        <section class="summary-panels-card collapsed">
+            <div class="summary-panels-header">
+                <h2>
+                    {% if page_mode == 'REAL' %}
+                        📊 Resumen de Totales Cierre Real (con Subtotales por Variedad)
+                    {% else %}
+                        🌾 Resumen de Totales Estimado Agrónomo (con Subtotales por Variedad)
+                    {% endif %}
+                </h2>
+                <button type="button" id="toggle-summary-btn" class="toggle-summary-btn">▶️ Desplegar Resumen de Totales</button>
+            </div>
+            <span class="table-note">💡 Totales dinámicos por producto y variedad con subtotales específicos por variedad. Se actualizan automáticamente en tiempo real.</span>
+
+            <div class="summary-table-wrap">
+                <table class="summary-table" id="table-summary-main">
+                    <!-- Populated dynamically by JS -->
+                </table>
+            </div>
+        </section>
+
+        <section class="week-edit-panel">
+            <label><strong>Modo Vista:</strong></label>
+            <div class="mode-tabs">
+                <button type="button" class="mode-tab active">{{ 'Pestaña Real (amarillo al guardar)' if page_mode == 'REAL' else 'Pestaña Agrónomo (verde al estimar)' }}</button>
+            </div>
+
+            <button type="button" id="reset-filters-btn" class="reset-filters-btn">🔄 Limpiar Filtros Columna</button>
+            <button type="button" id="toggle-params-btn" class="toggle-params-btn">👁️ Ocultar Parámetros</button>
+            <button type="button" id="sync-params-btn" class="sync-btn">⚡ Auto-Guardado Activo (Enter / Blur)</button>
+            
+            <div class="legend">
+                <span class="lg-model">Modelo</span>
+                <span class="lg-agro">Agrónomo</span>
+                <span class="lg-real">Real</span>
+            </div>
+        </section>
+
+        <!-- SINGLE UNIFIED MASTER MATRIX CARD ACROSS ALL VARIETIES WITH INLINE EXCEL HEADER FILTERS -->
+        <section class="master-matrix-card">
+            <div class="variety-header">
+                <h2>📋 Matriz Única Principal de Proyecciones</h2>
+                <div class="chips">
+                    <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
+                    <div class="chip">Siembras: <span id="chip-total-siembras">0</span></div>
+                    <div class="chip">Podas: <span id="chip-total-podas">0</span></div>
+                    <div class="chip">Total Selección: <span id="chip-total-general">0</span></div>
+                </div>
+            </div>
+
+            <div class="table-note">💡 <i>Tip: Escribe el dato y presiona Enter o cambia de celda. Haz clic en ✏️ para editar el bloque o número de plantas.</i></div>
+
+            <div class="table-wrap">
+                <table class="projection-table master-table">
+                    <thead>
+                        <tr class="totals-row">
+                            <th colspan="10" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
+                            <th colspan="4" class="param-col">Parámetros Fila</th>
+                            {% for week in weekly_view.week_columns %}
+                                <th class="js-week-total" data-week-label="{{ week.label }}">0</th>
+                            {% endfor %}
+                            <th class="js-master-total">0</th>
+                        </tr>
+                        <tr class="header-row">
+                            <th class="sticky-col sticky-1">Cierre</th>
+                            <th class="sticky-col sticky-2" title="Actividad: S = Siembra, P = Poda">
+                                <div class="header-filter-cell">
+                                    <span>AC</span>
+                                    <select id="h-filter-ac" class="h-filter-ctrl" style="width: 32px;">
+                                        <option value="">(T)</option>
+                                        <option value="SIEMBRA">S</option>
+                                        <option value="PODA">P</option>
+                                    </select>
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-3">
+                                <div class="header-filter-cell">
+                                    <span>Sem.</span>
+                                    <input type="text" id="h-filter-week" list="week-datalist" class="h-filter-ctrl" placeholder="🔍" style="width: 38px;">
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-4">
+                                <div class="header-filter-cell">
+                                    <span>Bloque</span>
+                                    <input type="text" id="h-filter-block" list="block-datalist" class="h-filter-ctrl" placeholder="🔍 86..." style="width: 44px;">
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-5">
+                                <div class="header-filter-cell">
+                                    <span>Variedad</span>
+                                    <select id="h-filter-variety" class="h-filter-ctrl" style="width: 72px;">
+                                        <option value="">(Todas)</option>
+                                        {% for v in weekly_view.varieties %}
+                                            <option value="{{ v.variety }}">{{ v.variety }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-6">Plantas</th>
+                            <th class="sticky-col sticky-7 param-col">Ciclo Ideal</th>
+                            <th class="sticky-col sticky-8 param-col">Ciclo Ajust.</th>
+                            <th class="sticky-col sticky-9 param-col">T/pl Ideal</th>
+                            <th class="sticky-col sticky-10 param-col">T/pl Ajust.</th>
+                            
+                            <th class="param-col">Desp. Ideal %</th>
+                            <th class="param-col">Desp. Ajust. %</th>
+                            <th class="param-col">Total Export.</th>
+                            <th class="param-col">Real T/pl</th>
+                            
+                            {% for week in weekly_view.week_columns %}
+                                <th>{{ week.label }}</th>
+                            {% endfor %}
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variety in weekly_view.varieties %}
+                            {% set all_rows = variety.siembras + variety.podas %}
+                            {% for row in all_rows %}
+                                <tr class="projection-row"
+                                    data-activity="{{ row.activity }}"
+                                    data-source-week="{{ row.source_week }}"
+                                    data-source-week-short="{{ row.source_week_short }}"
+                                    data-product-master="{{ row.product_master }}"
+                                    data-variety="{{ variety.variety }}"
+                                    data-block="{{ row.block }}"
+                                    data-curve="{{ row.curve_csv }}">
+                                    <td class="sticky-col sticky-1"><input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }}></td>
+                                    <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
+                                    <td class="sticky-col sticky-3">{{ row.source_week_short }}</td>
+                                    <td class="sticky-col sticky-4 block-col">{{ row.block }}</td>
+                                    <td class="sticky-col sticky-5">{{ variety.variety }}</td>
+                                    <td class="sticky-col sticky-6 plants-cell">{{ row.plants }}</td>
+                                    <td class="sticky-col sticky-7 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
+                                    <td class="sticky-col sticky-8 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
+                                    <td class="sticky-col sticky-9 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
+                                    <td class="sticky-col sticky-10 param-col"><input class="edit-input input-stems" type="number" min="0" step="1" inputmode="numeric" value="{{ row.stems_per_plant|round|int }}"></td>
+                                    
+                                    <td class="param-col">{{ '%.2f'|format(row.ideal_waste_rate * 100) }}</td>
+                                    <td class="param-col"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="numeric" value="{{ (row.waste_rate * 100)|round|int }}"></td>
+                                    <td class="param-col cell-program-total">{{ row.program_total }}</td>
+                                    <td class="param-col cell-real-stems">{{ '%.2f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
+                                    
+                                    {% for week in weekly_view.week_columns %}
+                                        {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
+                                        <td class="week-cell {{ 'status-real' if status == 'REAL' else ('status-agronomo' if status == 'AGRONOMO' else 'status-model') }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ status }}">
+                                            <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
+                                        </td>
+                                    {% endfor %}
+                                    <td class="cell-window-total">{{ row.window_total }}</td>
+                                </tr>
+                            {% endfor %}
+
+                            <!-- IN-TABLE VARIETY SUBTOTAL ROW -->
+                            <tr class="variety-subtotal-row" data-variety="{{ variety.variety }}">
+                                <td colspan="10" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
+                                    <strong>📊 Subtotal {{ variety.variety }}</strong>
+                                </td>
+                                <td colspan="4" class="param-col"></td>
+                                {% for week in weekly_view.week_columns %}
+                                    <td class="subtotal-week-val" data-week-label="{{ week.label }}">0</td>
+                                {% endfor %}
+                                <td class="subtotal-variety-window-val">0</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
+    </main>
+
+    <script>
+        const weekColumns = {{ weekly_view.week_columns | tojson }};
+        const selectedWeekLabel = {{ weekly_view.selected_week_short | tojson }};
+        const pageMode = {{ page_mode | tojson }};
+        const labelByWeekCode = Object.fromEntries(weekColumns.map((w) => [w.week_code, w.label]));
+        const activeWeekMode = pageMode === 'REAL' ? 'REAL' : 'AGRONOMO';
+
+        function weekCodeToDate(weekCode) {
+            const year = Math.floor(weekCode / 100);
+            const week = weekCode % 100;
+            const jan4 = new Date(Date.UTC(year, 0, 4));
+            const jan4Day = jan4.getUTCDay() || 7;
+            const week1Monday = new Date(jan4);
+            week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+            const date = new Date(week1Monday);
+            date.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+            return date;
+        }
+
+        function dateToWeekCode(date) {
+            const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const isoYear = d.getUTCFullYear();
+            const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return isoYear * 100 + weekNo;
+        }
+
+        function shiftWeek(weekCode, deltaWeeks) {
+            const date = weekCodeToDate(weekCode);
+            date.setUTCDate(date.getUTCDate() + deltaWeeks * 7);
+            return dateToWeekCode(date);
+        }
+
+        function parseCurve(curveCsv) {
+            if (!curveCsv) return [1];
+            return curveCsv.split(',').map((v) => Number.parseFloat(v)).filter((v) => Number.isFinite(v) && v > 0);
+        }
+
+        async function parseApiResponse(response) {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                const compact = (text || '').replace(/\s+/g, ' ').trim();
+                throw new Error(compact || 'Respuesta inválida del servidor.');
+            }
+        }
+
+        function normalizeWeeklyCellClass(cell) {
+            cell.classList.remove('status-model', 'status-agronomo', 'status-real');
+            const mode = cell.dataset.status;
+            if (mode === 'REAL') {
+                cell.classList.add('status-real');
+                return;
+            }
+            if (mode === 'AGRONOMO') {
+                cell.classList.add('status-agronomo');
+                return;
+            }
+            cell.classList.add('status-model');
+        }
+
+        function applyWeekCellEditLocks() {
+            document.querySelectorAll('.week-cell').forEach((cell) => {
+                const input = cell.querySelector('.week-input');
+                if (!input) return;
+                const status = cell.dataset.status;
+                if (pageMode === 'REAL') {
+                    input.disabled = status === 'MODELO';
+                } else {
+                    input.disabled = status === 'AGRONOMO' || status === 'REAL';
+                }
+            });
+        }
+
+        function recalcRow(row) {
+            const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell').textContent) || 0));
+            const stemsPerPlant = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-stems').value) || 0));
+            const wastePercent = Math.min(100, Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-waste').value) || 0)));
+            const wasteRate = wastePercent / 100;
+            const desiredCycle = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-cycle').value) || 0));
+            const sourceWeek = Math.round(Number.parseFloat(row.dataset.sourceWeek) || 0);
+            const curve = parseCurve(row.dataset.curve);
+
+            const baseExportable = Math.round(plants * stemsPerPlant * (1 - wasteRate));
+            row.querySelector('.cell-program-total').textContent = String(baseExportable);
+
+            const modelByWeek = Object.fromEntries(weekColumns.map((week) => [week.label, 0]));
+            curve.forEach((pct, index) => {
+                const harvestWeek = shiftWeek(sourceWeek, desiredCycle + index);
+                const weekLabel = labelByWeekCode[harvestWeek];
+                if (weekLabel) {
+                    modelByWeek[weekLabel] += Math.round(baseExportable * pct);
+                }
+            });
+
+            let windowTotal = 0;
+            row.querySelectorAll('.week-cell').forEach((cell) => {
+                const label = cell.dataset.weekLabel;
+                const input = cell.querySelector('.week-input');
+                if (cell.dataset.status === 'MODELO') {
+                    input.value = String(modelByWeek[label] || 0);
+                }
+                const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
+                input.value = String(value);
+                windowTotal += value;
+                normalizeWeeklyCellClass(cell);
+            });
+
+            row.querySelector('.cell-window-total').textContent = String(windowTotal);
+
+            const realStemsCell = row.querySelector('.cell-real-stems');
+            if (realStemsCell) {
+                if (plants > 0 && windowTotal > 0) {
+                    realStemsCell.textContent = (windowTotal / plants).toFixed(2);
+                } else if (plants === 0) {
+                    realStemsCell.textContent = '0.00';
+                }
+            }
+
+            return {
+                activity: row.dataset.activity,
+                windowTotal,
+                weekly: Object.fromEntries(Array.from(row.querySelectorAll('.week-cell')).map((cell) => {
+                    const input = cell.querySelector('.week-input');
+                    return [cell.dataset.weekLabel, Math.max(0, Math.round(Number.parseFloat(input.value) || 0))];
+                })),
+                modelByWeek,
+            };
+        }
+
+        async function saveBlockClosure(row, isClosed) {
+            const body = {
+                activity: row.dataset.activity,
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                block: row.dataset.block,
+                source_week: String(row.dataset.sourceWeek),
+                is_closed: Boolean(isClosed),
+            };
+
+            const response = await fetch('/api/cierre-bloque', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const result = await parseApiResponse(response);
+            if (!response.ok || !result.ok) {
+                throw new Error(result.message || 'No se pudo actualizar cierre de bloque.');
+            }
+        }
+
+        // SUMMARY TABLE WITH VARIETY SUBTOTALS
+        function renderSummaryPanels(summaryData) {
+            const weekLabels = weekColumns.map(w => w.label);
+            const targetTable = document.getElementById('table-summary-main');
+            if (!targetTable) return;
+
+            const mode = pageMode === 'REAL' ? 'real' : 'agronomo';
+
+            let html = `<thead><tr><th class="col-name">Producto / Variedad</th><th>Actividad</th>`;
+            weekLabels.forEach(lbl => { html += `<th>${lbl}</th>`; });
+            html += `<th>Total Ventana</th></tr></thead><tbody>`;
+
+            let grandTotalsByWeek = Object.fromEntries(weekLabels.map(l => [l, 0]));
+            let grandWindowTotal = 0;
+
+            Object.values(summaryData).forEach(item => {
+                let varietyWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                let varietyWindowTotal = 0;
+
+                ['SIEMBRA', 'PODA'].forEach(act => {
+                    const weekVals = item[mode][act];
+                    const actSum = Object.values(weekVals).reduce((a, b) => a + b, 0);
+
+                    html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td>${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
+                    weekLabels.forEach(lbl => {
+                        const val = weekVals[lbl] || 0;
+                        html += `<td>${val.toLocaleString()}</td>`;
+                        varietyWeekSums[lbl] += val;
+                        grandTotalsByWeek[lbl] += val;
+                    });
+                    html += `<td><strong>${actSum.toLocaleString()}</strong></td></tr>`;
+                    varietyWindowTotal += actSum;
+                    grandWindowTotal += actSum;
+                });
+
+                // Subtotal Row per Variety in Summary Table
+                html += `<tr class="row-subtotal"><td class="col-name" colspan="2">Subtotal ${item.variety}</td>`;
+                weekLabels.forEach(lbl => {
+                    html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
+                });
+                html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+            });
+
+            html += `<tr class="row-grandtotal"><td class="col-name" colspan="2">TOTALES GENERALES</td>`;
+            weekLabels.forEach(lbl => {
+                html += `<td>${grandTotalsByWeek[lbl].toLocaleString()}</td>`;
+            });
+            html += `<td>${grandWindowTotal.toLocaleString()}</td></tr></tbody>`;
+
+            targetTable.innerHTML = html;
+        }
+
+        function populateFilterDatalists() {
+            const availableBlocks = new Set();
+            const availableWeeks = new Set();
+
+            document.querySelectorAll('.projection-row').forEach(row => {
+                if (row.dataset.block) availableBlocks.add(row.dataset.block);
+                if (row.dataset.sourceWeekShort) availableWeeks.add(row.dataset.sourceWeekShort);
+                else if (row.dataset.sourceWeek) availableWeeks.add(row.dataset.sourceWeek);
+            });
+
+            const blockDl = document.getElementById('block-datalist');
+            if (blockDl) {
+                blockDl.innerHTML = Array.from(availableBlocks).sort().map(b => `<option value="${b}">`).join('');
+            }
+            const weekDl = document.getElementById('week-datalist');
+            if (weekDl) {
+                weekDl.innerHTML = Array.from(availableWeeks).sort().map(w => `<option value="${w}">`).join('');
+            }
+        }
+
+        function recalcAll() {
+            const globalTotalsByActivity = { SIEMBRA: 0, PODA: 0 };
+            const globalTotalsByWeek = Object.fromEntries(weekColumns.map((week) => [week.label, 0]));
+
+            // Interactive Column Header Filters Values
+            const filterBlockVal = (document.getElementById('h-filter-block')?.value || '').toLowerCase().trim();
+            const filterVarietyVal = (document.getElementById('h-filter-variety')?.value || '').trim();
+            const filterAcVal = (document.getElementById('h-filter-ac')?.value || '').trim();
+            const filterWeekVal = (document.getElementById('h-filter-week')?.value || '').toLowerCase().trim();
+
+            const summaryData = {};
+            let visibleRowsCount = 0;
+            let masterSiembraTotal = 0;
+            let masterPodaTotal = 0;
+            let masterGrandTotal = 0;
+
+            const masterTable = document.querySelector('.master-table');
+            if (!masterTable) return;
+
+            const masterWeekTotals = Object.fromEntries(weekColumns.map((week) => [week.label, 0]));
+            const varietyTotalsMap = {};
+
+            masterTable.querySelectorAll('.projection-row').forEach((row) => {
+                const blockName = (row.dataset.block || '').toLowerCase();
+                const varietyName = row.dataset.variety || '';
+                const activityName = row.dataset.activity || '';
+                const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase();
+
+                // Multi-Column Filter Matching
+                const matchBlock = !filterBlockVal || blockName.includes(filterBlockVal);
+                const matchVariety = !filterVarietyVal || varietyName === filterVarietyVal;
+                const matchAc = !filterAcVal || activityName === filterAcVal;
+                const matchWeek = !filterWeekVal || weekShort.includes(filterWeekVal);
+
+                const isVisible = matchBlock && matchVariety && matchAc && matchWeek;
+                row.style.display = isVisible ? '' : 'none';
+
+                if (!isVisible) return;
+
+                visibleRowsCount++;
+                const rowResult = recalcRow(row);
+                const product = row.dataset.productMaster;
+                const variety = row.dataset.variety;
+                const activity = row.dataset.activity;
+                const key = `${product}__${variety}`;
+
+                if (!varietyTotalsMap[variety]) {
+                    varietyTotalsMap[variety] = {
+                        weeks: Object.fromEntries(weekColumns.map(w => [w.label, 0])),
+                        windowTotal: 0,
+                        count: 0
+                    };
+                }
+
+                varietyTotalsMap[variety].count++;
+                varietyTotalsMap[variety].windowTotal += rowResult.windowTotal;
+
+                if (!summaryData[key]) {
+                    summaryData[key] = {
+                        product,
+                        variety,
+                        proyectado: { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
+                        agronomo:   { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
+                        real:       { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
+                    };
+                }
+
+                row.querySelectorAll('.week-cell').forEach((cell) => {
+                    const label = cell.dataset.weekLabel;
+                    const input = cell.querySelector('.week-input');
+                    const val = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
+                    const status = cell.dataset.status;
+
+                    masterWeekTotals[label] += val;
+                    varietyTotalsMap[variety].weeks[label] += val;
+                    masterGrandTotal += val;
+
+                    const modelVal = rowResult.modelByWeek[label] || 0;
+                    summaryData[key].proyectado[activity][label] += modelVal;
+
+                    if (status === 'AGRONOMO' || status === 'REAL') {
+                        summaryData[key].agronomo[activity][label] += val;
+                    } else {
+                        summaryData[key].agronomo[activity][label] += modelVal;
+                    }
+
+                    if (status === 'REAL') {
+                        summaryData[key].real[activity][label] += val;
+                    }
+                });
+
+                if (activity === 'SIEMBRA') masterSiembraTotal += rowResult.windowTotal;
+                else masterPodaTotal += rowResult.windowTotal;
+
+                globalTotalsByActivity[activity] += rowResult.windowTotal;
+            });
+
+            // UPDATE IN-TABLE VARIETY SUBTOTAL ROWS
+            masterTable.querySelectorAll('.variety-subtotal-row').forEach((subRow) => {
+                const varietyName = subRow.dataset.variety;
+                const vData = varietyTotalsMap[varietyName];
+
+                if (!vData || vData.count === 0) {
+                    subRow.style.display = 'none';
+                } else {
+                    subRow.style.display = '';
+                    subRow.querySelectorAll('.subtotal-week-val').forEach((td) => {
+                        const label = td.dataset.weekLabel;
+                        td.textContent = String(vData.weeks[label] || 0);
+                    });
+                    const windowTd = subRow.querySelector('.subtotal-variety-window-val');
+                    if (windowTd) {
+                        windowTd.textContent = String(vData.windowTotal || 0);
+                    }
+                }
+            });
+
+            // UPDATE MASTER TABLE HEADER TOTALS
+            masterTable.querySelectorAll('.js-week-total').forEach((th) => {
+                const label = th.dataset.weekLabel;
+                th.textContent = String(masterWeekTotals[label] || 0);
+                globalTotalsByWeek[label] += (masterWeekTotals[label] || 0);
+            });
+
+            const masterTotalTh = masterTable.querySelector('.js-master-total');
+            if (masterTotalTh) {
+                masterTotalTh.textContent = String(masterGrandTotal);
+            }
+
+            // Update Master Card Chips
+            const chipVisible = document.getElementById('chip-visible-rows');
+            const chipSiembra = document.getElementById('chip-total-siembras');
+            const chipPoda = document.getElementById('chip-total-podas');
+            const chipTotal = document.getElementById('chip-total-general');
+            if (chipVisible) chipVisible.textContent = String(visibleRowsCount);
+            if (chipSiembra) chipSiembra.textContent = String(masterSiembraTotal);
+            if (chipPoda) chipPoda.textContent = String(masterPodaTotal);
+            if (chipTotal) chipTotal.textContent = String(masterGrandTotal);
+
+            const metricGrandTotal = document.getElementById('metric-grand-total');
+            if (metricGrandTotal) {
+                metricGrandTotal.textContent = String(globalTotalsByWeek[selectedWeekLabel] || 0);
+            }
+
+            renderSummaryPanels(summaryData);
+        }
+
+        async function saveRowAdjustment(row) {
+            const body = {
+                activity: row.dataset.activity,
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                block: row.dataset.block,
+                source_week: String(row.dataset.sourceWeek),
+                cycle_weeks: row.querySelector('.input-cycle').value,
+                stems_per_plant: row.querySelector('.input-stems').value,
+                waste_rate_pct: row.querySelector('.input-waste').value,
+            };
+            try {
+                await fetch('/api/ajustes-fila', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+            } catch (error) {
+                console.error("Error auto-saving row parameters:", error);
+            }
+        }
+
+        async function saveWeekCell(row, cell) {
+            const input = cell.querySelector('.week-input');
+            const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
+            input.value = String(value);
+            const mode = activeWeekMode;
+
+            const body = {
+                activity: row.dataset.activity,
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                block: row.dataset.block,
+                source_week: String(row.dataset.sourceWeek),
+                harvest_week: String(cell.dataset.weekCode),
+                value,
+                mode,
+            };
+
+            try {
+                const response = await fetch('/api/ajustes-semana', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const result = await parseApiResponse(response);
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo guardar semana.');
+                }
+                cell.dataset.status = mode;
+                normalizeWeeklyCellClass(cell);
+                applyWeekCellEditLocks();
+            } catch (error) {
+                console.error("Error saving week cell:", error);
+            }
+        }
+
+        // Dropdown Menu Operations Handler
+        const opsBtn = document.getElementById('ops-menu-btn');
+        const opsMenu = document.getElementById('ops-dropdown-menu');
+        if (opsBtn && opsMenu) {
+            opsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                opsMenu.classList.toggle('show');
+            });
+            document.addEventListener('click', () => opsMenu.classList.remove('show'));
+        }
+
+        const menuSaveAll = document.getElementById('menu-save-all');
+        if (menuSaveAll) {
+            menuSaveAll.addEventListener('click', async () => {
+                recalcAll();
+                menuSaveAll.textContent = '⏳ Guardando...';
+                const rows = Array.from(document.querySelectorAll('.projection-row'));
+                for (const row of rows) {
+                    await saveRowAdjustment(row);
+                }
+                menuSaveAll.textContent = '✅ Guardado!';
+                setTimeout(() => { menuSaveAll.textContent = '💾 Guardar Todo en Excel'; }, 2000);
+            });
+        }
+
+        // Summary Card Collapsing Toggle
+        const toggleSummaryBtn = document.getElementById('toggle-summary-btn');
+        const summaryCard = document.querySelector('.summary-panels-card');
+        if (toggleSummaryBtn && summaryCard) {
+            toggleSummaryBtn.addEventListener('click', () => {
+                summaryCard.classList.toggle('collapsed');
+                toggleSummaryBtn.textContent = summaryCard.classList.contains('collapsed')
+                    ? '▶️ Desplegar Resumen de Totales'
+                    : '▼ Ocultar Resumen de Totales';
+            });
+        }
+
+        // Interactive Column Header Filters Event Listeners
+        ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week'].forEach(id => {
+            const ctrl = document.getElementById(id);
+            if (ctrl) {
+                ctrl.addEventListener('input', recalcAll);
+                ctrl.addEventListener('change', recalcAll);
+            }
+        });
+
+        const resetFiltersBtn = document.getElementById('reset-filters-btn');
+        if (resetFiltersBtn) {
+            resetFiltersBtn.addEventListener('click', () => {
+                ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week'].forEach(id => {
+                    const ctrl = document.getElementById(id);
+                    if (ctrl) ctrl.value = '';
+                });
+                recalcAll();
+            });
+        }
+
+        // Auto-hide parameter columns on smaller screens by default (< 900px)
+        let paramsVisible = window.innerWidth >= 900;
+        const toggleParamsBtn = document.getElementById('toggle-params-btn');
+        
+        function updateParamsVisibility() {
+            document.querySelectorAll('.table-wrap').forEach((wrap) => {
+                wrap.classList.toggle('hide-params', !paramsVisible);
+            });
+            document.querySelectorAll('.totals-title-col').forEach((th) => {
+                th.colSpan = paramsVisible ? 10 : 6;
+            });
+            if (toggleParamsBtn) {
+                toggleParamsBtn.textContent = paramsVisible ? '👁️ Ocultar Parámetros' : '👁️ Mostrar Parámetros';
+            }
+        }
+
+        if (toggleParamsBtn) {
+            toggleParamsBtn.addEventListener('click', () => {
+                paramsVisible = !paramsVisible;
+                updateParamsVisibility();
+            });
+        }
+        updateParamsVisibility();
+
+        // Enhanced Auto-Select on Focus & Keyboard Navigation
+        document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
+            input.addEventListener('focus', () => {
+                input.select();
+            });
+
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const cell = input.closest('td');
+                    const row = input.closest('.projection-row');
+                    if (input.classList.contains('week-input') && cell && row && !input.disabled) {
+                        cell.dataset.status = activeWeekMode;
+                        normalizeWeeklyCellClass(cell);
+                        await saveWeekCell(row, cell);
+                        recalcAll();
+                    } else if (input.classList.contains('edit-input') && row) {
+                        await saveRowAdjustment(row);
+                        recalcAll();
+                    }
+
+                    // Move focus down on Enter
+                    const tr = input.closest('tr');
+                    const colIndex = Array.from(tr.children).indexOf(cell);
+                    const targetTr = tr.nextElementSibling;
+                    if (targetTr) {
+                        const targetInput = targetTr.children[colIndex]?.querySelector('input:not([disabled])');
+                        if (targetInput) {
+                            targetInput.focus();
+                            targetInput.select();
+                        }
+                    }
+                } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    e.preventDefault();
+                    const cell = input.closest('td');
+                    const tr = input.closest('tr');
+                    const colIndex = Array.from(tr.children).indexOf(cell);
+                    const targetTr = e.key === 'ArrowUp' ? tr.previousElementSibling : tr.nextElementSibling;
+                    if (targetTr) {
+                        const targetInput = targetTr.children[colIndex]?.querySelector('input:not([disabled])');
+                        if (targetInput) {
+                            targetInput.focus();
+                            targetInput.select();
+                        }
+                    }
+                }
+            });
+        });
+
+        // AUTO-SAVE ON BLUR / CHANGE FOR ROW PARAMETERS
+        document.querySelectorAll('.projection-row .edit-input').forEach((input) => {
+            input.addEventListener('input', recalcAll);
+            input.addEventListener('change', async () => {
+                const row = input.closest('.projection-row');
+                if (row) {
+                    await saveRowAdjustment(row);
+                    recalcAll();
+                }
+            });
+        });
+
+        document.querySelectorAll('.week-input').forEach((input) => {
+            input.addEventListener('input', () => {
+                const cell = input.closest('.week-cell');
+                if (!cell || input.disabled) return;
+                cell.dataset.status = activeWeekMode;
+                normalizeWeeklyCellClass(cell);
+            });
+
+            input.addEventListener('change', async () => {
+                const cell = input.closest('.week-cell');
+                const row = input.closest('.projection-row');
+                if (cell && row && !input.disabled) {
+                    await saveWeekCell(row, cell);
+                    recalcAll();
+                }
+            });
+        });
+
+        applyWeekCellEditLocks();
+
+        document.querySelectorAll('.block-close-checkbox').forEach((checkbox) => {
+            checkbox.addEventListener('change', async () => {
+                const row = checkbox.closest('.projection-row');
+                if (!row) return;
+                const confirmMessage = checkbox.checked
+                    ? 'Vas a cerrar este bloque. Confirma que ya guardaste los cambios y deseas cerrarlo.'
+                    : 'Vas a reabrir este bloque. Confirma que deseas quitar el cierre.';
+                if (!window.confirm(confirmMessage)) {
+                    checkbox.checked = !checkbox.checked;
+                    return;
+                }
+                try {
+                    await saveBlockClosure(row, checkbox.checked);
+                    recalcAll();
+                } catch (error) {
+                    checkbox.checked = !checkbox.checked;
+                    alert(error.message);
+                }
+            });
+        });
+
+        const filtersForm = document.getElementById('filters-form');
+        ['semana', 'producto'].forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (field && filtersForm) {
+                field.addEventListener('change', () => filtersForm.submit());
+            }
+        });
+
+        populateFilterDatalists();
+        recalcAll();
+    </script>
+</body>
+</html>

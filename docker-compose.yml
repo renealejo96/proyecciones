@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: proyecciones_web
+    ports:
+      - "5077:5000"  # Puerto personalizado: http://IP_VPS:5077
+    environment:
+      - DATABASE_URL=postgresql://postgres:proyecciones_secret_2026@db:5432/proyecciones
+    volumes:
+      - ./siembras_podas:/app/siembras_podas
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    container_name: proyecciones_db
+    environment:
+      - POSTGRES_DB=proyecciones
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=proyecciones_secret_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5477:5432"  # Puerto personalizado PostgreSQL host: 5477
+    restart: always
+
+  adminer:
+    image: adminer
+    container_name: proyecciones_adminer
+    ports:
+      - "8099:8080"  # Gestor web de BD opcional: http://IP_VPS:8099
+    restart: always
+
+volumes:
+  postgres_data:

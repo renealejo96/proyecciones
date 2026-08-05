@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Parámetros de Ciclos - Proyecciones</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+
+            --navy-brand: #1e3a8a;
+            --navy-dark: #0f172a;
+
+            --emerald-700: #047857;
+            --emerald-600: #059669;
+            --emerald-500: #10b981;
+            --emerald-100: #d1fae5;
+            --emerald-50: #ecfdf5;
+
+            --rose-700: #b91c1c;
+            --rose-600: #dc2626;
+            --rose-100: #fee2e2;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--slate-900);
+            background: radial-gradient(circle at top left, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 1550px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            font-weight: 800;
+            color: var(--navy-brand);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin: 6px 0 16px;
+            color: var(--slate-600);
+            font-size: 0.85rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--slate-300);
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: var(--shadow-sm);
+        }
+
+        table {
+            width: 100%;
+            min-width: 1100px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.8rem;
+            background: #fff;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--slate-200);
+            border-right: 1px solid var(--slate-200);
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--navy-brand);
+            color: #ffffff;
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:nth-child(even) td { background-color: var(--slate-50); }
+        tr:hover td { background-color: var(--slate-100); }
+
+        .edit-input {
+            width: 72px;
+            border: 1px solid var(--slate-300);
+            border-radius: 5px;
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .edit-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: #ffffff;
+        }
+
+        /* INTERACTIVE CURVE EDITOR STYLES */
+        .curve-editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 320px;
+        }
+
+        .curve-weeks-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .curve-week-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: var(--slate-100);
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            padding: 2px 4px;
+        }
+
+        .curve-week-box label {
+            font-size: 0.64rem;
+            font-weight: 700;
+            color: var(--slate-600);
+            text-transform: uppercase;
+        }
+
+        .curve-week-box input {
+            width: 44px;
+            border: 1px solid var(--slate-300);
+            border-radius: 4px;
+            padding: 2px 3px;
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            outline: none;
+            background: #ffffff;
+        }
+
+        .curve-week-box input:focus {
+            border-color: var(--navy-brand);
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.25);
+        }
+
+        .curve-week-box .pct-symbol {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--slate-500);
+        }
+
+        .del-week-btn {
+            border: none;
+            background: transparent;
+            color: var(--rose-600);
+            font-weight: 800;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 0 2px;
+            line-height: 1;
+        }
+        .del-week-btn:hover { color: var(--rose-700); }
+
+        .add-week-btn {
+            border: 1px dashed var(--slate-400);
+            background: #ffffff;
+            color: var(--navy-brand);
+            border-radius: 6px;
+            padding: 3px 7px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .add-week-btn:hover {
+            background: var(--slate-100);
+            border-color: var(--navy-brand);
+        }
+
+        .curve-sum-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            width: max-content;
+        }
+
+        .sum-ok {
+            background: var(--emerald-100);
+            color: var(--emerald-700);
+            border: 1px solid #a7f3d0;
+        }
+
+        .sum-err {
+            background: var(--rose-100);
+            color: var(--rose-700);
+            border: 1px solid #fca5a5;
+        }
+
+        .save-btn {
+            border: none;
+            border-radius: 6px;
+            background: var(--emerald-600);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 7px 12px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .save-btn:hover { background: var(--emerald-500); }
+        .save-btn:disabled {
+            background: var(--slate-300);
+            color: var(--slate-500);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .save-status {
+            display: block;
+            margin-top: 4px;
+            min-height: 1em;
+            font-size: 0.72rem;
+            color: var(--slate-500);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <nav class="main-menu" style="display: flex; gap: 6px; margin-bottom: 12px;">
+            <a class="menu-link" href="/" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌾 Llenado Agrónomo</a>
+            <a class="menu-link" href="/reales" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">📊 Datos Reales</a>
+            <a class="menu-link" href="/tpsr" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌱 Plantaciones (TPSR)</a>
+            <a class="menu-link active" href="/parametros" style="text-decoration: none; border: 1px solid var(--navy-brand); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: #ffffff; background: var(--navy-brand);">⚙️ Configuración Ciclos</a>
+        </nav>
+
+        <section class="panel">
+            <h1>⚙️ Ajuste de Parámetros de Ciclos y Curvas de Cosecha</h1>
+            <p>Origen: <code>{{ workbook_path }}</code> (hoja CICLOS). Configura el ciclo, desperdicio, tallos por planta y las <strong>cajas independientes por semana de la curva de cosecha</strong>. La curva debe sumar exactamente <strong>100%</strong> para permitir guardar en PostgreSQL.</p>
+
+        {% if missing_cycles %}
+            <div style="background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+                <h3 style="margin: 0 0 6px; color: #d48806; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                    ⚠️ Variedades y Actividades en Plantaciones (TPSR) sin Configuración de Ciclos ({{ missing_cycles|length }})
+                </h3>
+                <p style="margin: 0 0 10px; font-size: 0.8rem; color: #8c6b00;">
+                    Las siguientes combinaciones tienen siembras o podas registradas en TPSR pero carecen de ciclo/curva configurada. Configúralas en la tabla inferior para incluir sus proyecciones:
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px;">
+                    {% for item in missing_cycles %}
+                        <div style="background: #ffffff; border: 1px solid #ffd591; border-radius: 6px; padding: 8px 12px; font-size: 0.78rem;">
+                            <strong>{{ item.product_master }}</strong> - <span>{{ item.variety }}</span>
+                            <span style="background: #fff7e6; color: #d48806; border: 1px solid #ffd591; font-weight: 800; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; margin-left: 4px;">{{ item.activity }}</span>
+                            <div style="font-size: 0.72rem; color: var(--slate-500); margin-top: 2px;">{{ item.rows }} filas afectadas en TPSR</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto Maestro</th>
+                            <th>Variedad</th>
+                            <th>Actividad</th>
+                            <th>Ciclo (sem)</th>
+                            <th>Desperdicio %</th>
+                            <th>Tallos / Pl</th>
+                            <th>Curva de Cosecha (% por Semana - Debe Sumar 100%)</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in cycle_rows %}
+                            <tr class="cycle-row"
+                                data-product-master="{{ row.product_master }}"
+                                data-variety="{{ row.variety }}"
+                                data-activity="{{ row.activity }}"
+                                data-curve-raw="{{ row.curve }}">
+                                <td><strong>{{ row.product_master }}</strong></td>
+                                <td>{{ row.variety }}</td>
+                                <td>{{ row.activity }}</td>
+                                <td><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks|int }}"></td>
+                                <td><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="numeric" value="{{ row.waste_rate_pct|round|int }}"></td>
+                                <td><input class="edit-input input-stems" type="number" min="0" step="1" inputmode="numeric" value="{{ row.stems_per_plant|round|int }}"></td>
+                                <td>
+                                    <!-- INTERACTIVE INDEPENDENT BOXES CURVE EDITOR CONTAINER -->
+                                    <div class="curve-editor-container">
+                                        <div class="curve-weeks-flex"></div>
+                                        <div>
+                                            <span class="curve-sum-badge sum-err">Suma: 0%</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="save-btn" type="button">Guardar</button>
+                                    <span class="save-status"></span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function parseCurveToPercents(curveRaw) {
+            if (!curveRaw) return [100];
+            const parts = String(curveRaw).split(',').map(s => Number.parseFloat(s.trim())).filter(n => Number.isFinite(n) && n > 0);
+            if (parts.length === 0) return [100];
+            // If values are in decimals (e.g., 0.20, 0.50, 0.30)
+            const maxVal = Math.max(...parts);
+            if (maxVal <= 1.0) {
+                return parts.map(v => Math.round(v * 100));
+            }
+            return parts.map(v => Math.round(v));
+        }
+
+        function buildCurveEditor(row) {
+            const container = row.querySelector('.curve-editor-container');
+            const flex = container.querySelector('.curve-weeks-flex');
+            const badge = container.querySelector('.curve-sum-badge');
+            const saveBtn = row.querySelector('.save-btn');
+            const rawCurve = row.dataset.curveRaw || '';
+
+            let percents = parseCurveToPercents(rawCurve);
+
+            function render() {
+                flex.innerHTML = '';
+                percents.forEach((pct, index) => {
+                    const box = document.createElement('div');
+                    box.className = 'curve-week-box';
+                    box.innerHTML = `
+                        <label>S${index + 1}:</label>
+                        <input type="number" min="0" max="100" step="1" value="${pct}" class="curve-pct-input" data-index="${index}">
+                        <span class="pct-symbol">%</span>
+                        ${percents.length > 1 ? `<button type="button" class="del-week-btn" data-index="${index}" title="Eliminar semana">&times;</button>` : ''}
+                    `;
+                    flex.appendChild(box);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'add-week-btn';
+                addBtn.textContent = '+ Agregar Sem';
+                addBtn.addEventListener('click', () => {
+                    percents.push(0);
+                    render();
+                });
+                flex.appendChild(addBtn);
+
+                updateSum();
+            }
+
+            function updateSum() {
+                const inputs = flex.querySelectorAll('.curve-pct-input');
+                let totalSum = 0;
+                inputs.forEach((inp, idx) => {
+                    const val = Math.max(0, Math.round(Number.parseFloat(inp.value) || 0));
+                    percents[idx] = val;
+                    totalSum += val;
+                });
+
+                if (totalSum === 100) {
+                    badge.className = 'curve-sum-badge sum-ok';
+                    badge.textContent = '✅ Suma: 100%';
+                    saveBtn.disabled = false;
+                } else {
+                    badge.className = 'curve-sum-badge sum-err';
+                    badge.textContent = `⚠️ Suma: ${totalSum}% (Debe ser 100%)`;
+                    saveBtn.disabled = true;
+                }
+            }
+
+            flex.addEventListener('input', (e) => {
+                if (e.target.classList.contains('curve-pct-input')) {
+                    updateSum();
+                }
+            });
+
+            flex.addEventListener('click', (e) => {
+                if (e.target.classList.contains('del-week-btn')) {
+                    const idx = Number.parseInt(e.target.dataset.index);
+                    if (Number.isInteger(idx) && percents.length > 1) {
+                        percents.splice(idx, 1);
+                        render();
+                    }
+                }
+            });
+
+            render();
+
+            return {
+                getCurveDecimalCsv: () => {
+                    const inputs = flex.querySelectorAll('.curve-pct-input');
+                    const decimals = [];
+                    inputs.forEach(inp => {
+                        const val = Math.max(0, Math.round(Number.parseFloat(inp.value) || 0));
+                        decimals.push((val / 100).toFixed(2));
+                    });
+                    return decimals.join(', ');
+                },
+                getSum: () => percents.reduce((a, b) => a + b, 0)
+            };
+        }
+
+        const rowEditors = new Map();
+
+        document.querySelectorAll('.cycle-row').forEach((row) => {
+            const editor = buildCurveEditor(row);
+            rowEditors.set(row, editor);
+        });
+
+        async function saveCycleRow(row) {
+            const status = row.querySelector('.save-status');
+            const editor = rowEditors.get(row);
+            
+            if (editor && editor.getSum() !== 100) {
+                alert(`❌ Error: La curva de cosecha debe sumar exactamente 100%. (Suma actual: ${editor.getSum()}%). Ajusta los valores por semana.`);
+                return;
+            }
+
+            const curveDecimalCsv = editor ? editor.getCurveDecimalCsv() : '';
+
+            const body = {
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                activity: row.dataset.activity,
+                cycle_weeks: row.querySelector('.input-cycle').value,
+                waste_rate_pct: row.querySelector('.input-waste').value,
+                stems_per_plant: row.querySelector('.input-stems').value,
+                curve: curveDecimalCsv,
+            };
+
+            status.textContent = 'Guardando...';
+            try {
+                const response = await fetch('/api/ciclos-actualizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo guardar.');
+                }
+                status.textContent = '✅ Guardado';
+                setTimeout(() => { status.textContent = ''; }, 2500);
+            } catch (error) {
+                status.textContent = '❌ ' + error.message;
+            }
+        }
+
+        document.querySelectorAll('.save-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const row = button.closest('.cycle-row');
+                if (row) {
+                    await saveCycleRow(row);
+                }
+            });
+        });
+
+        document.querySelectorAll('.edit-input').forEach((input) => {
+            input.addEventListener('focus', () => input.select());
+        });
+    </script>
+</body>
+</html>
