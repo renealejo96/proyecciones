@@ -774,9 +774,9 @@
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
                 <div class="chips">
                     <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
-                    <div class="chip">Siembras: <span id="chip-total-siembras">0</span></div>
-                    <div class="chip">Podas: <span id="chip-total-podas">0</span></div>
-                    <div class="chip">Total Selección: <span id="chip-total-general">0</span></div>
+                    <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
+                    <div class="chip">Podas: <span id="chip-total-podas">{{ weekly_view.totals_by_activity.PODA }}</span></div>
+                    <div class="chip">Total Selección: <span id="chip-total-general">{{ weekly_view.grand_total }}</span></div>
                 </div>
             </div>
 
@@ -789,9 +789,9 @@
                             <th colspan="10" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="4" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
-                                <th class="js-week-total" data-week-label="{{ week.label }}">0</th>
+                                <th class="js-week-total" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
                             {% endfor %}
-                            <th class="js-master-total">0</th>
+                            <th class="js-master-total">{{ weekly_view.grand_total }}</th>
                         </tr>
                         <tr class="header-row">
                             <th class="sticky-col sticky-1">Cierre</th>
