@@ -973,9 +973,9 @@
                 if (!input) return;
                 const status = cell.dataset.status;
                 if (pageMode === 'REAL') {
-                    input.disabled = status === 'MODELO';
+                    input.disabled = false;
                 } else {
-                    input.disabled = status === 'AGRONOMO' || status === 'REAL';
+                    input.disabled = (status === 'REAL');
                 }
             });
         }
@@ -1300,9 +1300,14 @@
 
         async function saveWeekCell(row, cell) {
             const input = cell.querySelector('.week-input');
-            const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
-            input.value = String(value);
+            const rawVal = input.value !== undefined ? String(input.value).trim() : '';
             const mode = activeWeekMode;
+
+            let value = null;
+            if (rawVal !== '') {
+                value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
+                input.value = String(value);
+            }
 
             const body = {
                 activity: row.dataset.activity,
@@ -1311,8 +1316,8 @@
                 block: row.dataset.block,
                 source_week: String(row.dataset.sourceWeek),
                 harvest_week: String(cell.dataset.weekCode),
-                value,
-                mode,
+                value: value,
+                mode: mode,
             };
 
             try {
@@ -1325,7 +1330,13 @@
                 if (!response.ok || !result.ok) {
                     throw new Error(result.message || 'No se pudo guardar semana.');
                 }
-                cell.dataset.status = mode;
+                if (result.weekly_status) {
+                    cell.dataset.status = result.weekly_status;
+                } else if (value !== null) {
+                    cell.dataset.status = mode;
+                } else {
+                    cell.dataset.status = 'MODELO';
+                }
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
             } catch (error) {
@@ -1418,6 +1429,9 @@
         document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
             input.addEventListener('focus', () => {
                 input.select();
+                try {
+                    input.setSelectionRange(0, 9999);
+                } catch (e) {}
             });
 
             input.addEventListener('keydown', async (e) => {
@@ -1426,8 +1440,6 @@
                     const cell = input.closest('td');
                     const row = input.closest('.projection-row');
                     if (input.classList.contains('week-input') && cell && row && !input.disabled) {
-                        cell.dataset.status = activeWeekMode;
-                        normalizeWeeklyCellClass(cell);
                         await saveWeekCell(row, cell);
                         recalcAll();
                     } else if (input.classList.contains('edit-input') && row) {
@@ -1479,8 +1491,10 @@
             input.addEventListener('input', () => {
                 const cell = input.closest('.week-cell');
                 if (!cell || input.disabled) return;
-                cell.dataset.status = activeWeekMode;
-                normalizeWeeklyCellClass(cell);
+                if (input.value.trim() !== '') {
+                    cell.dataset.status = activeWeekMode;
+                    normalizeWeeklyCellClass(cell);
+                }
             });
 
             input.addEventListener('change', async () => {

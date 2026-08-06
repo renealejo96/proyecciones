@@ -1130,7 +1130,17 @@ def save_week_adjustment_api():
 
         db.commit()
         invalidate_snapshot_cache()
-        return jsonify({"ok": True, "message": "Dato semanal guardado en PostgreSQL."})
+
+        weekly_status = "MODELO"
+        if existing:
+            if existing.agronomo_estimate is not None:
+                weekly_status = "AGRONOMO"
+            if existing.real_closed is not None:
+                weekly_status = "REAL"
+        elif value is not None:
+            weekly_status = mode
+
+        return jsonify({"ok": True, "message": "Dato semanal guardado en PostgreSQL.", "weekly_status": weekly_status})
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500
