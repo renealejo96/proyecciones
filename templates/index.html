@@ -801,9 +801,7 @@
                 <span class="lg-model">Modelo</span>
                 <span class="lg-agro">Agrónomo</span>
                 <span class="lg-real">Real</span>
-                {% if page_mode == 'REAL' %}
-                    <span class="lg-dump" title="Ventas limitadas / flor descartada">🗑️ DUMP (Descarte)</span>
-                {% endif %}
+                <span class="lg-dump" title="Ventas limitadas / flor descartada">🗑️ DUMP (Descarte)</span>
             </div>
         </section>
 
@@ -815,7 +813,8 @@
                     <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
                     <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
                     <div class="chip">Podas: <span id="chip-total-podas">{{ weekly_view.totals_by_activity.PODA }}</span></div>
-                    <div class="chip">Total Selección: <span id="chip-total-general">{{ weekly_view.grand_total }}</span></div>
+                    <div class="chip chip-dump" style="background: #fee2e2; border-color: #ef4444; color: #b91c1c; font-weight: 700;">🗑️ Total Dumps: <span id="chip-total-dumps">0</span></div>
+                    <div class="chip">Total Cosecha: <span id="chip-total-general">{{ weekly_view.grand_total }}</span></div>
                 </div>
             </div>
 
@@ -915,7 +914,7 @@
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
                                         {% set is_cell_dump = row.is_dump[week.label] if row.is_dump and week.label in row.is_dump else False %}
-                                        {% if page_mode == 'REAL' and (status == 'DUMP' or is_cell_dump) %}
+                                        {% if status == 'DUMP' or is_cell_dump %}
                                             {% set cell_cls = 'status-dump' %}
                                             {% set cell_stat = 'DUMP' %}
                                         {% elif status == 'REAL' %}
@@ -1011,7 +1010,7 @@
 
         function normalizeWeeklyCellClass(cell) {
             cell.classList.remove('status-model', 'status-agronomo', 'status-real', 'status-dump');
-            if (pageMode === 'REAL' && (cell.dataset.status === 'DUMP' || cell.dataset.isDump === 'true')) {
+            if (cell.dataset.status === 'DUMP' || cell.dataset.isDump === 'true') {
                 cell.classList.add('status-dump');
                 return;
             }
@@ -1032,10 +1031,11 @@
                 const input = cell.querySelector('.week-input');
                 if (!input) return;
                 const status = cell.dataset.status;
+                const isDump = (cell.dataset.isDump === 'true' || status === 'DUMP');
                 if (pageMode === 'REAL') {
                     input.disabled = false;
                 } else {
-                    input.disabled = (status === 'REAL');
+                    input.disabled = (status === 'REAL' || isDump);
                 }
             });
         }
@@ -1117,7 +1117,7 @@
             }
         }
 
-        // SUMMARY TABLE WITH VARIETY SUBTOTALS
+        // SUMMARY TABLE WITH VARIETY SUBTOTALS & DUMPS
         function renderSummaryPanels(summaryData) {
             const weekLabels = weekColumns.map(w => w.label);
             const targetTable = document.getElementById('table-summary-main');
@@ -1130,15 +1130,21 @@
             html += `<th>Total Ventana</th></tr></thead><tbody>`;
 
             let grandTotalsByWeek = Object.fromEntries(weekLabels.map(l => [l, 0]));
+            let grandDumpsByWeek = Object.fromEntries(weekLabels.map(l => [l, 0]));
             let grandWindowTotal = 0;
+            let grandDumpsTotal = 0;
 
             Object.values(summaryData).forEach(item => {
                 let varietyWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                let varietyDumpSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
                 let varietyWindowTotal = 0;
+                let varietyDumpTotal = 0;
 
                 ['SIEMBRA', 'PODA'].forEach(act => {
                     const weekVals = item[mode][act];
+                    const dumpVals = (item.dump && item.dump[act]) ? item.dump[act] : {};
                     const actSum = Object.values(weekVals).reduce((a, b) => a + b, 0);
+                    const dumpSum = Object.values(dumpVals).reduce((a, b) => a + b, 0);
 
                     html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td>${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
                     weekLabels.forEach(lbl => {
@@ -1146,10 +1152,16 @@
                         html += `<td>${val.toLocaleString()}</td>`;
                         varietyWeekSums[lbl] += val;
                         grandTotalsByWeek[lbl] += val;
+
+                        const dVal = dumpVals[lbl] || 0;
+                        varietyDumpSums[lbl] += dVal;
+                        grandDumpsByWeek[lbl] += dVal;
                     });
                     html += `<td><strong>${actSum.toLocaleString()}</strong></td></tr>`;
                     varietyWindowTotal += actSum;
                     grandWindowTotal += actSum;
+                    varietyDumpTotal += dumpSum;
+                    grandDumpsTotal += dumpSum;
                 });
 
                 // Subtotal Row per Variety in Summary Table
@@ -1158,13 +1170,31 @@
                     html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
                 });
                 html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+
+                // Subtotal Dumps if exists for this variety
+                if (varietyDumpTotal > 0) {
+                    html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2">↳ 🗑️ Dumps ${item.variety} (Descarte)</td>`;
+                    weekLabels.forEach(lbl => {
+                        const dVal = varietyDumpSums[lbl] || 0;
+                        html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                    });
+                    html += `<td><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
+                }
             });
 
-            html += `<tr class="row-grandtotal"><td class="col-name" colspan="2">TOTALES GENERALES</td>`;
+            html += `<tr class="row-grandtotal"><td class="col-name" colspan="2">TOTAL GENERAL COSECHA / PROYECCIÓN</td>`;
             weekLabels.forEach(lbl => {
                 html += `<td>${grandTotalsByWeek[lbl].toLocaleString()}</td>`;
             });
-            html += `<td>${grandWindowTotal.toLocaleString()}</td></tr></tbody>`;
+            html += `<td>${grandWindowTotal.toLocaleString()}</td></tr>`;
+
+            // FILA DESTACADA DE TOTAL GENERAL DUMPS
+            html += `<tr class="row-grandtotal-dump" style="background: #fee2e2; color: #b91c1c; font-weight: 800;"><td class="col-name" colspan="2">🗑️ TOTAL GENERAL DUMPS (DESCARTE VENTAS)</td>`;
+            weekLabels.forEach(lbl => {
+                const dVal = grandDumpsByWeek[lbl] || 0;
+                html += `<td>${dVal > 0 ? dVal.toLocaleString() : '0'}</td>`;
+            });
+            html += `<td>${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
 
             targetTable.innerHTML = html;
         }
@@ -1204,6 +1234,7 @@
             let masterSiembraTotal = 0;
             let masterPodaTotal = 0;
             let masterGrandTotal = 0;
+            let masterDumpTotal = 0;
 
             const masterTable = document.querySelector('.master-table');
             if (!masterTable) return;
@@ -1253,6 +1284,7 @@
                         proyectado: { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
                         agronomo:   { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
                         real:       { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
+                        dump:       { SIEMBRA: Object.fromEntries(weekColumns.map(w => [w.label, 0])), PODA: Object.fromEntries(weekColumns.map(w => [w.label, 0])) },
                     };
                 }
 
@@ -1261,21 +1293,27 @@
                     const input = cell.querySelector('.week-input');
                     const val = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
                     const status = cell.dataset.status;
+                    const isDump = (status === 'DUMP' || cell.dataset.isDump === 'true');
 
                     masterWeekTotals[label] += val;
                     varietyTotalsMap[variety].weeks[label] += val;
                     masterGrandTotal += val;
 
+                    if (isDump) {
+                        masterDumpTotal += val;
+                        summaryData[key].dump[activity][label] += val;
+                    }
+
                     const modelVal = rowResult.modelByWeek[label] || 0;
                     summaryData[key].proyectado[activity][label] += modelVal;
 
-                    if (status === 'AGRONOMO' || status === 'REAL') {
+                    if (status === 'AGRONOMO' || status === 'REAL' || status === 'DUMP') {
                         summaryData[key].agronomo[activity][label] += val;
                     } else {
                         summaryData[key].agronomo[activity][label] += modelVal;
                     }
 
-                    if (status === 'REAL') {
+                    if (status === 'REAL' || status === 'DUMP') {
                         summaryData[key].real[activity][label] += val;
                     }
                 });
@@ -1322,10 +1360,12 @@
             const chipVisible = document.getElementById('chip-visible-rows');
             const chipSiembra = document.getElementById('chip-total-siembras');
             const chipPoda = document.getElementById('chip-total-podas');
+            const chipDumps = document.getElementById('chip-total-dumps');
             const chipTotal = document.getElementById('chip-total-general');
             if (chipVisible) chipVisible.textContent = String(visibleRowsCount);
             if (chipSiembra) chipSiembra.textContent = String(masterSiembraTotal);
             if (chipPoda) chipPoda.textContent = String(masterPodaTotal);
+            if (chipDumps) chipDumps.textContent = String(masterDumpTotal);
             if (chipTotal) chipTotal.textContent = String(masterGrandTotal);
 
             const metricGrandTotal = document.getElementById('metric-grand-total');
