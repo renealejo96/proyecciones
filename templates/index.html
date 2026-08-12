@@ -580,14 +580,50 @@
             border-color: var(--slate-200);
         }
 
-        /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA */
+        /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA vs DUMPS */
+        .week-cell { position: relative; }
         .week-cell.status-model { background: var(--blue-50); }
         .week-cell.status-agronomo { background: var(--emerald-50); }
         .week-cell.status-real { background: var(--amber-50); }
+        .week-cell.status-dump { background: #fee2e2 !important; }
 
         .week-cell.status-model .week-input { background: #ffffff; border-color: var(--blue-100); color: var(--slate-600); }
         .week-cell.status-agronomo .week-input { background: var(--emerald-50); border-color: var(--emerald-500); color: var(--emerald-600); font-weight: 700; }
         .week-cell.status-real .week-input { background: var(--amber-50); border-color: var(--amber-500); color: var(--amber-600); font-weight: 700; }
+        .week-cell.status-dump .week-input { background: #fef2f2 !important; border-color: #ef4444 !important; color: #b91c1c !important; font-weight: 800 !important; }
+
+        .btn-dump-cell {
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.6rem;
+            padding: 0 1px;
+            opacity: 0.35;
+            transition: all 0.15s ease;
+            line-height: 1;
+            z-index: 2;
+        }
+        .btn-dump-cell:hover {
+            opacity: 1;
+            transform: scale(1.25);
+        }
+        .week-cell.status-dump .btn-dump-cell {
+            opacity: 1;
+            filter: drop-shadow(0 1px 1px rgba(239, 68, 68, 0.4));
+        }
+
+        .lg-dump {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #b91c1c;
+            font-weight: 700;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
 
         .cell-window-total { font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--header-bg); }
 
@@ -765,6 +801,9 @@
                 <span class="lg-model">Modelo</span>
                 <span class="lg-agro">Agrónomo</span>
                 <span class="lg-real">Real</span>
+                {% if page_mode == 'REAL' %}
+                    <span class="lg-dump" title="Ventas limitadas / flor descartada">🗑️ DUMP (Descarte)</span>
+                {% endif %}
             </div>
         </section>
 
@@ -875,7 +914,24 @@
                                     
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
-                                        <td class="week-cell {{ 'status-real' if status == 'REAL' else ('status-agronomo' if status == 'AGRONOMO' else 'status-model') }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ status }}">
+                                        {% set is_cell_dump = row.is_dump[week.label] if row.is_dump and week.label in row.is_dump else False %}
+                                        {% if page_mode == 'REAL' and (status == 'DUMP' or is_cell_dump) %}
+                                            {% set cell_cls = 'status-dump' %}
+                                            {% set cell_stat = 'DUMP' %}
+                                        {% elif status == 'REAL' %}
+                                            {% set cell_cls = 'status-real' %}
+                                            {% set cell_stat = 'REAL' %}
+                                        {% elif status == 'AGRONOMO' %}
+                                            {% set cell_cls = 'status-agronomo' %}
+                                            {% set cell_stat = 'AGRONOMO' %}
+                                        {% else %}
+                                            {% set cell_cls = 'status-model' %}
+                                            {% set cell_stat = 'MODELO' %}
+                                        {% endif %}
+                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}">
+                                            {% if page_mode == 'REAL' %}
+                                                <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
+                                            {% endif %}
                                             <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
                                         </td>
                                     {% endfor %}
@@ -954,7 +1010,11 @@
         }
 
         function normalizeWeeklyCellClass(cell) {
-            cell.classList.remove('status-model', 'status-agronomo', 'status-real');
+            cell.classList.remove('status-model', 'status-agronomo', 'status-real', 'status-dump');
+            if (pageMode === 'REAL' && (cell.dataset.status === 'DUMP' || cell.dataset.isDump === 'true')) {
+                cell.classList.add('status-dump');
+                return;
+            }
             const mode = cell.dataset.status;
             if (mode === 'REAL') {
                 cell.classList.add('status-real');
@@ -1298,10 +1358,55 @@
             }
         }
 
+        async function toggleDumpCell(row, cell) {
+            const input = cell.querySelector('.week-input');
+            const currentIsDump = (cell.dataset.isDump === 'true' || cell.dataset.status === 'DUMP');
+            const nextIsDump = !currentIsDump;
+
+            const rawVal = input.value !== undefined ? String(input.value).trim() : '';
+            let value = null;
+            if (rawVal !== '') {
+                value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
+                input.value = String(value);
+            }
+
+            const body = {
+                activity: row.dataset.activity,
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                block: row.dataset.block,
+                source_week: String(row.dataset.sourceWeek),
+                harvest_week: String(cell.dataset.weekCode),
+                value: value,
+                mode: 'REAL',
+                is_dump: nextIsDump,
+            };
+
+            try {
+                const response = await fetch('/api/ajustes-semana', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const result = await parseApiResponse(response);
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo actualizar estado DUMP.');
+                }
+                cell.dataset.isDump = nextIsDump ? 'true' : 'false';
+                cell.dataset.status = result.weekly_status || (nextIsDump ? 'DUMP' : 'REAL');
+                normalizeWeeklyCellClass(cell);
+                applyWeekCellEditLocks();
+                recalcAll();
+            } catch (error) {
+                console.error("Error toggling dump status:", error);
+            }
+        }
+
         async function saveWeekCell(row, cell) {
             const input = cell.querySelector('.week-input');
             const rawVal = input.value !== undefined ? String(input.value).trim() : '';
             const mode = activeWeekMode;
+            const isDump = (cell.dataset.isDump === 'true' || cell.dataset.status === 'DUMP');
 
             let value = null;
             if (rawVal !== '') {
@@ -1318,6 +1423,7 @@
                 harvest_week: String(cell.dataset.weekCode),
                 value: value,
                 mode: mode,
+                is_dump: (mode === 'REAL' && isDump) ? true : undefined,
             };
 
             try {
@@ -1336,6 +1442,9 @@
                     cell.dataset.status = mode;
                 } else {
                     cell.dataset.status = 'MODELO';
+                }
+                if (result.is_dump !== undefined) {
+                    cell.dataset.isDump = result.is_dump ? 'true' : 'false';
                 }
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
@@ -1503,6 +1612,17 @@
                 if (cell && row && !input.disabled) {
                     await saveWeekCell(row, cell);
                     recalcAll();
+                }
+            });
+        });
+
+        document.querySelectorAll('.btn-dump-cell').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const cell = btn.closest('.week-cell');
+                const row = btn.closest('.projection-row');
+                if (cell && row) {
+                    await toggleDumpCell(row, cell);
                 }
             });
         });

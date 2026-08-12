@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 from openpyxl import load_workbook
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, Index, Integer, String, Text, create_engine
+    Boolean, Column, DateTime, Float, Index, Integer, String, Text, create_engine, text
 )
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -108,6 +108,7 @@ class WeekAdjustmentDB(Base):
     harvest_week = Column(Integer, nullable=False)
     agronomo_estimate = Column(Integer, nullable=True)
     real_closed = Column(Integer, nullable=True)
+    is_dump = Column(Boolean, default=False, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -218,6 +219,13 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Automatic migration: ensure is_dump column exists in week_adjustments
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;"))
+            conn.commit()
+        except Exception:
+            pass
     db = SessionLocal()
     try:
         meta = db.query(AppMetaDB).filter_by(key="data_version").first()

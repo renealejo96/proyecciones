@@ -158,6 +158,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             ): {
                 "agronomo_estimate": w.agronomo_estimate,
                 "real_closed": w.real_closed,
+                "is_dump": bool(w.is_dump),
             }
             for w in week_adjs
         }
@@ -339,12 +340,15 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 week_override = week_adjustments.get(week_override_key, {})
                 exportable_stems = model_exportable
                 weekly_status = "MODELO"
+                is_dump = bool(week_override.get("is_dump", False))
                 if week_override.get("agronomo_estimate") is not None:
                     exportable_stems = int(week_override["agronomo_estimate"])
                     weekly_status = "AGRONOMO"
                 if week_override.get("real_closed") is not None:
                     exportable_stems = int(week_override["real_closed"])
                     weekly_status = "REAL"
+                if is_dump:
+                    weekly_status = "DUMP"
 
                 curve_week, curve_pct = curve_meta_by_week.get(harvest_week, (0, 0.0))
 
@@ -368,6 +372,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                         "model_exportable_stems": int(model_exportable),
                         "exportable_stems": int(exportable_stems),
                         "weekly_status": weekly_status,
+                        "is_dump": is_dump,
                         "block_closed": block_closed,
                     }
                 )
@@ -539,6 +544,7 @@ def aggregate_for_week(
                     {
                         "exportable_stems": "sum",
                         "weekly_status": "first",
+                        "is_dump": "first",
                         "model_exportable_stems": "sum",
                     }
                 )
@@ -619,6 +625,17 @@ def aggregate_for_week(
                 ): str(row.weekly_status or "MODELO")
                 for row in projection_grouped.itertuples(index=False)
             }
+            projection_dump_lookup = {
+                (
+                    row.product_master,
+                    row.variety,
+                    row.activity,
+                    row.source_week,
+                    row.block,
+                    row.harvest_week,
+                ): bool(getattr(row, "is_dump", False))
+                for row in projection_grouped.itertuples(index=False)
+            }
             matrix_rows = []
             for row in source_grouped.itertuples(index=False):
                 weekly_projection = {
@@ -646,6 +663,20 @@ def aggregate_for_week(
                             column["week_code"],
                         ),
                         "MODELO",
+                    )
+                    for column in week_columns
+                }
+                is_dump_by_week = {
+                    column["label"]: projection_dump_lookup.get(
+                        (
+                            row.product_master,
+                            row.variety,
+                            row.activity,
+                            row.source_week,
+                            row.block,
+                            column["week_code"],
+                        ),
+                        False,
                     )
                     for column in week_columns
                 }
@@ -677,6 +708,7 @@ def aggregate_for_week(
                         "program_total": 0 if pd.isna(row.program_total) else int(round(float(row.program_total))),
                         "weekly_projection": weekly_projection,
                         "weekly_status": weekly_status,
+                        "is_dump": is_dump_by_week,
                         "week_code_by_label": week_code_by_label,
                         "window_total": int(sum(weekly_projection.values())),
                         "block_closed": bool(row.block_closed),
@@ -1127,6 +1159,7 @@ def save_week_adjustment_api():
     harvest_week = parse_week_code(payload.get("harvest_week"))
     value = to_int_or_none(payload.get("value"))
     mode = normalize_text(payload.get("mode"))
+    is_dump = payload.get("is_dump")
 
     if activity not in {"SIEMBRA", "PODA"}:
         return jsonify({"ok": False, "message": "Actividad invalida."}), 400
@@ -1155,12 +1188,14 @@ def save_week_adjustment_api():
                 existing.agronomo_estimate = value
             else:
                 existing.real_closed = value
+            if is_dump is not None:
+                existing.is_dump = bool(is_dump)
             existing.updated_at = datetime.utcnow()
 
-            if existing.agronomo_estimate is None and existing.real_closed is None:
+            if existing.agronomo_estimate is None and existing.real_closed is None and not existing.is_dump:
                 db.delete(existing)
         else:
-            if value is not None:
+            if value is not None or (is_dump is not None and bool(is_dump)):
                 new_adj = WeekAdjustmentDB(
                     activity=activity,
                     product_master_norm=pm_norm,
@@ -1171,6 +1206,7 @@ def save_week_adjustment_api():
                     harvest_week=harvest_week,
                     agronomo_estimate=value if mode == "AGRONOMO" else None,
                     real_closed=value if mode == "REAL" else None,
+                    is_dump=bool(is_dump) if is_dump is not None else False,
                 )
                 db.add(new_adj)
 
@@ -1178,6 +1214,7 @@ def save_week_adjustment_api():
         invalidate_snapshot_cache()
 
         weekly_status = "MODELO"
+        is_dump_val = False
         check = db.query(WeekAdjustmentDB).filter_by(
             activity=activity,
             product_master_norm=pm_norm,
@@ -1191,8 +1228,16 @@ def save_week_adjustment_api():
                 weekly_status = "AGRONOMO"
             if check.real_closed is not None:
                 weekly_status = "REAL"
+            if check.is_dump:
+                weekly_status = "DUMP"
+                is_dump_val = True
 
-        return jsonify({"ok": True, "message": "Dato semanal guardado en PostgreSQL.", "weekly_status": weekly_status})
+        return jsonify({
+            "ok": True,
+            "message": "Dato semanal guardado en PostgreSQL.",
+            "weekly_status": weekly_status,
+            "is_dump": is_dump_val,
+        })
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500
