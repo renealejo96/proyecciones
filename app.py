@@ -167,10 +167,8 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             for b in block_closes
         }
 
-        source_rows = []
-        projection_rows = []
-        missing_cycles: dict[tuple[str, str, str], int] = {}
-
+        # Consolidar registros TPSR a nivel de bloque único (activity, product_master, variety, block, source_week)
+        consolidated_dict: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         for rec in tpsr_recs:
             activity = rec.activity
             source_week = rec.source_week
@@ -183,6 +181,37 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             variety_norm = rec.variety_norm
             block = rec.block
             block_norm = rec.block_norm
+
+            key = (activity, product_master_norm, variety_norm, block_norm, source_week)
+            if key not in consolidated_dict:
+                consolidated_dict[key] = {
+                    "activity": activity,
+                    "source_week": source_week,
+                    "plants": plants,
+                    "product_master": product_master,
+                    "product_master_norm": product_master_norm,
+                    "variety": variety,
+                    "variety_norm": variety_norm,
+                    "block": block,
+                    "block_norm": block_norm,
+                }
+            else:
+                consolidated_dict[key]["plants"] += plants
+
+        source_rows = []
+        projection_rows = []
+        missing_cycles: dict[tuple[str, str, str], int] = {}
+
+        for item in consolidated_dict.values():
+            activity = item["activity"]
+            source_week = item["source_week"]
+            plants = item["plants"]
+            product_master = item["product_master"]
+            product_master_norm = item["product_master_norm"]
+            variety = item["variety"]
+            variety_norm = item["variety_norm"]
+            block = item["block"]
+            block_norm = item["block_norm"]
 
             cycle_key = (product_master_norm, variety_norm, activity)
             cycle = cycle_map.get(cycle_key)
@@ -202,8 +231,8 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                     "source_week_short": format_short_week(source_week),
                     "block": block,
                     "plants": plants,
-                    "bed_location": rec.bed_location or "",
-                    "pruning_number": rec.pruning_number or "",
+                    "bed_location": "",
+                    "pruning_number": "",
                     "cycle_found": cycle is not None,
                     "cycle_weeks": None,
                     "waste_rate": None,
