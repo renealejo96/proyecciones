@@ -12,6 +12,7 @@ from flask import Flask, jsonify, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 
 from db import (
+    AppMetaDB,
     BlockClosureDB,
     CycleDefinitionDB,
     MassAdjustmentDB,
@@ -19,7 +20,9 @@ from db import (
     SessionLocal,
     TpsrRecord,
     WeekAdjustmentDB,
+    bump_data_version,
     format_short_week,
+    get_data_version,
     normalize_text,
     parse_week_code,
     process_tpsr_excel_upload,
@@ -86,13 +89,14 @@ def normalize_optional_text(value: Any, fallback: str = "*") -> str:
     return text if text else fallback
 
 
-# In-memory snapshot cache keyed by database update timestamp
-_SNAPSHOT_CACHE: dict[str, Any] = {"last_fetch": 0, "snapshot": None}
+# In-memory snapshot cache synchronized across Gunicorn workers via PostgreSQL data_version
+_WORKER_CACHE: dict[str, Any] = {"version": -1, "snapshot": None}
 
 
 def invalidate_snapshot_cache() -> None:
-    _SNAPSHOT_CACHE["snapshot"] = None
-    _SNAPSHOT_CACHE["last_fetch"] = 0
+    bump_data_version()
+    _WORKER_CACHE["snapshot"] = None
+    _WORKER_CACHE["version"] = -1
 
 
 def build_projection_snapshot_from_db() -> dict[str, Any]:
@@ -360,9 +364,11 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
 
 
 def get_snapshot(force_refresh: bool = False) -> dict[str, Any]:
-    if force_refresh or _SNAPSHOT_CACHE["snapshot"] is None:
-        _SNAPSHOT_CACHE["snapshot"] = build_projection_snapshot_from_db()
-    return dict(_SNAPSHOT_CACHE["snapshot"])
+    current_version = get_data_version()
+    if force_refresh or _WORKER_CACHE["snapshot"] is None or _WORKER_CACHE["version"] != current_version:
+        _WORKER_CACHE["snapshot"] = build_projection_snapshot_from_db()
+        _WORKER_CACHE["version"] = current_version
+    return dict(_WORKER_CACHE["snapshot"])
 
 
 def available_weeks(snapshot: dict[str, Any]) -> list[int]:
@@ -789,7 +795,14 @@ def filter_weekly_view_for_real(weekly_view: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# ================= Flask Routes =================
+# ================= Flask Routes & Middlewares =================
+
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route("/")
 def index() -> str:
@@ -862,7 +875,7 @@ def reales() -> str:
         horizon_weeks_forward,
         selected_product_master=requested_product_master,
     )
-    weekly_view = filter_weekly_view_for_real(weekly_view)
+    # Load all curve projection rows so user can input real data for any stem/block
 
     return render_template(
         "index.html",
@@ -1114,31 +1127,41 @@ def save_week_adjustment_api():
             else:
                 existing.real_closed = value
             existing.updated_at = datetime.utcnow()
+
+            if existing.agronomo_estimate is None and existing.real_closed is None:
+                db.delete(existing)
         else:
-            new_adj = WeekAdjustmentDB(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block=block,
-                block_norm=b_norm,
-                source_week=source_week,
-                harvest_week=harvest_week,
-                agronomo_estimate=value if mode == "AGRONOMO" else None,
-                real_closed=value if mode == "REAL" else None,
-            )
-            db.add(new_adj)
+            if value is not None:
+                new_adj = WeekAdjustmentDB(
+                    activity=activity,
+                    product_master_norm=pm_norm,
+                    variety_norm=v_norm,
+                    block=block,
+                    block_norm=b_norm,
+                    source_week=source_week,
+                    harvest_week=harvest_week,
+                    agronomo_estimate=value if mode == "AGRONOMO" else None,
+                    real_closed=value if mode == "REAL" else None,
+                )
+                db.add(new_adj)
 
         db.commit()
         invalidate_snapshot_cache()
 
         weekly_status = "MODELO"
-        if existing:
-            if existing.agronomo_estimate is not None:
+        check = db.query(WeekAdjustmentDB).filter_by(
+            activity=activity,
+            product_master_norm=pm_norm,
+            variety_norm=v_norm,
+            block_norm=b_norm,
+            source_week=source_week,
+            harvest_week=harvest_week,
+        ).first()
+        if check:
+            if check.agronomo_estimate is not None:
                 weekly_status = "AGRONOMO"
-            if existing.real_closed is not None:
+            if check.real_closed is not None:
                 weekly_status = "REAL"
-        elif value is not None:
-            weekly_status = mode
 
         return jsonify({"ok": True, "message": "Dato semanal guardado en PostgreSQL.", "weekly_status": weekly_status})
     except SQLAlchemyError as exc:

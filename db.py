@@ -125,6 +125,55 @@ class BlockClosureDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AppMetaDB(Base):
+    __tablename__ = "app_meta"
+
+    key = Column(String(50), primary_key=True)
+    value = Column(String(255), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+def get_data_version(db_session=None) -> int:
+    close_session = False
+    if db_session is None:
+        db_session = SessionLocal()
+        close_session = True
+    try:
+        meta = db_session.query(AppMetaDB).filter_by(key="data_version").first()
+        if meta and meta.value:
+            return int(meta.value)
+        return 0
+    except Exception:
+        return 0
+    finally:
+        if close_session:
+            db_session.close()
+
+
+def bump_data_version(db_session=None) -> int:
+    close_session = False
+    if db_session is None:
+        db_session = SessionLocal()
+        close_session = True
+    try:
+        meta = db_session.query(AppMetaDB).filter_by(key="data_version").first()
+        if not meta:
+            meta = AppMetaDB(key="data_version", value="1")
+            db_session.add(meta)
+        else:
+            new_val = int(meta.value or 0) + 1
+            meta.value = str(new_val)
+            meta.updated_at = datetime.utcnow()
+        db_session.commit()
+        return int(meta.value)
+    except Exception:
+        db_session.rollback()
+        return int(time.time())
+    finally:
+        if close_session:
+            db_session.close()
+
+
 def normalize_text(value: Any) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
     text = "".join(character for character in text if not unicodedata.combining(character))
@@ -169,6 +218,17 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        meta = db.query(AppMetaDB).filter_by(key="data_version").first()
+        if not meta:
+            meta = AppMetaDB(key="data_version", value="1")
+            db.add(meta)
+            db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
 
 
 def seed_data_from_excel_if_empty(workbook_path: Path):
