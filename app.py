@@ -432,6 +432,61 @@ def resolve_selected_week(raw_week: str, snapshot: dict[str, Any]) -> int:
     return current_week_code()
 
 
+def product_variety_sort_key(product_master: str, variety: str) -> tuple[str, int, str]:
+    product = (product_master or "").upper().strip()
+    variety_upper = (variety or "").upper().strip()
+
+    if "VERONICA" in product:
+        if "SPLASH" in variety_upper:
+            if "WHITE" in variety_upper:
+                order = 11
+            elif "BLUE" in variety_upper:
+                order = 12
+            elif "PINK" in variety_upper:
+                order = 13
+            else:
+                order = 15
+        else:
+            if "WHITE" in variety_upper:
+                order = 1
+            elif "BLUE" in variety_upper:
+                order = 2
+            elif "PINK" in variety_upper:
+                order = 3
+            else:
+                order = 5
+        return (product, order, variety_upper)
+
+    if "HYPERICUM" in product:
+        if "ROYAL" in variety_upper:
+            order = 1
+        elif "TRIUMP" in variety_upper:
+            order = 2
+        elif "MAJESTIC" in variety_upper or ("PINK" in variety_upper and "MAJESTIC" not in variety_upper):
+            order = 3
+        elif "CHERRY" in variety_upper:
+            order = 4
+        elif "SNOW" in variety_upper:
+            order = 5
+        elif "RENATA" in variety_upper:
+            order = 6
+        elif "RED" in variety_upper:
+            order = 7
+        elif "H21-117" in variety_upper:
+            order = 8
+        elif "H21-68" in variety_upper:
+            order = 9
+        elif "H21-67" in variety_upper:
+            order = 10
+        elif re.match(r"^[A-Z0-9]+[-/]", variety_upper) or variety_upper.startswith("H") or variety_upper.startswith("COD"):
+            order = 20
+        else:
+            order = 30
+        return (product, order, variety_upper)
+
+    return (product, 100, variety_upper)
+
+
 def aggregate_for_week(
     snapshot: dict[str, Any],
     selected_week: int,
@@ -739,36 +794,9 @@ def aggregate_for_week(
         else:
             variety_bucket["total_podas"] += row["window_total"]
 
-    def veronica_sort_key(item: dict[str, Any]) -> tuple[str, int, str]:
-        product = item["product_master"].upper()
-        variety = item["variety"].upper()
-
-        if "VERONICA" in product:
-            if "SPLASH" in variety:
-                if "WHITE" in variety:
-                    order = 11
-                elif "BLUE" in variety:
-                    order = 12
-                elif "PINK" in variety:
-                    order = 13
-                else:
-                    order = 15
-            else:
-                if "WHITE" in variety:
-                    order = 1
-                elif "BLUE" in variety:
-                    order = 2
-                elif "PINK" in variety:
-                    order = 3
-                else:
-                    order = 5
-            return (product, order, variety)
-
-        return (product, 100, variety)
-
     varieties = sorted(
         grouped_varieties.values(),
-        key=veronica_sort_key,
+        key=lambda item: product_variety_sort_key(item.get("product_master", ""), item.get("variety", "")),
     )
     for item in varieties:
         item["total_siembras"] = int(round(item["total_siembras"]))
@@ -904,7 +932,7 @@ def index() -> str:
             for week_code in available_weeks(snapshot)
         ],
         product_options=available_products(snapshot),
-        variety_options=sorted({item["variety"] for item in weekly_view["varieties"]}),
+        variety_options=[item["variety"] for item in weekly_view["varieties"]],
         missing_cycles=missing_cycles[:20],
         db_status=(True, "Conectado a PostgreSQL"),
     )
@@ -949,7 +977,7 @@ def reales() -> str:
             for week_code in available_weeks(snapshot)
         ],
         product_options=available_products(snapshot),
-        variety_options=sorted({item["variety"] for item in weekly_view["varieties"]}),
+        variety_options=[item["variety"] for item in weekly_view["varieties"]],
         missing_cycles=[],
         db_status=(True, "Conectado a PostgreSQL"),
     )

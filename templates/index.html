@@ -625,6 +625,36 @@
             font-size: 0.7rem;
         }
 
+        @keyframes flashRestore {
+            0% { background-color: #fef08a !important; transform: scale(1.04); }
+            50% { background-color: #bbf7d0 !important; }
+            100% { transform: scale(1); }
+        }
+        .flash-restored {
+            animation: flashRestore 0.8s ease-out;
+        }
+        .toast-notify {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            transform: translateY(10px);
+        }
+        .toast-notify.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         .cell-window-total { font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--header-bg); }
 
         .edit-meta-btn {
@@ -927,7 +957,7 @@
                                             {% set cell_cls = 'status-model' %}
                                             {% set cell_stat = 'MODELO' %}
                                         {% endif %}
-                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}">
+                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '') }}">
                                             {% if page_mode == 'REAL' %}
                                                 <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
                                             {% endif %}
@@ -1117,6 +1147,42 @@
             }
         }
 
+        function getVarietySortOrder(product, variety) {
+            const p = (product || '').toUpperCase();
+            const v = (variety || '').toUpperCase();
+
+            if (p.includes('VERONICA')) {
+                if (v.includes('SPLASH')) {
+                    if (v.includes('WHITE')) return 11;
+                    if (v.includes('BLUE')) return 12;
+                    if (v.includes('PINK')) return 13;
+                    return 15;
+                } else {
+                    if (v.includes('WHITE')) return 1;
+                    if (v.includes('BLUE')) return 2;
+                    if (v.includes('PINK')) return 3;
+                    return 5;
+                }
+            }
+
+            if (p.includes('HYPERICUM')) {
+                if (v.includes('ROYAL')) return 1;
+                if (v.includes('TRIUMP')) return 2;
+                if (v.includes('MAJESTIC') || (v.includes('PINK') && !v.includes('MAJESTIC'))) return 3;
+                if (v.includes('CHERRY')) return 4;
+                if (v.includes('SNOW')) return 5;
+                if (v.includes('RENATA')) return 6;
+                if (v.includes('RED')) return 7;
+                if (v.includes('H21-117')) return 8;
+                if (v.includes('H21-68')) return 9;
+                if (v.includes('H21-67')) return 10;
+                if (/^[A-Z0-9]+[-/]/.test(v) || v.startsWith('H') || v.startsWith('COD')) return 20;
+                return 30;
+            }
+
+            return 100;
+        }
+
         // SUMMARY TABLE WITH VARIETY SUBTOTALS & DUMPS
         function renderSummaryPanels(summaryData) {
             const weekLabels = weekColumns.map(w => w.label);
@@ -1134,7 +1200,15 @@
             let grandWindowTotal = 0;
             let grandDumpsTotal = 0;
 
-            Object.values(summaryData).forEach(item => {
+            const sortedItems = Object.values(summaryData).sort((a, b) => {
+                const orderA = getVarietySortOrder(a.product, a.variety);
+                const orderB = getVarietySortOrder(b.product, b.variety);
+                if (orderA !== orderB) return orderA - orderB;
+                if (a.product !== b.product) return a.product.localeCompare(b.product);
+                return a.variety.localeCompare(b.variety);
+            });
+
+            sortedItems.forEach(item => {
                 let varietyWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
                 let varietyDumpSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
                 let varietyWindowTotal = 0;
@@ -1442,6 +1516,68 @@
             }
         }
 
+        function showToast(message) {
+            let toast = document.getElementById('app-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'app-toast';
+                toast.className = 'toast-notify';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+        async function resetWeekCellToModel(row, cell) {
+            if (pageMode !== 'AGRONOMO') return;
+            const input = cell.querySelector('.week-input');
+            if (input && input.disabled) return;
+
+            const body = {
+                activity: row.dataset.activity,
+                product_master: row.dataset.productMaster,
+                variety: row.dataset.variety,
+                block: row.dataset.block,
+                source_week: String(row.dataset.sourceWeek),
+                harvest_week: String(cell.dataset.weekCode),
+                value: null,
+                mode: 'AGRONOMO',
+            };
+
+            try {
+                const response = await fetch('/api/ajustes-semana', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const result = await parseApiResponse(response);
+                if (!response.ok || !result.ok) {
+                    throw new Error(result.message || 'No se pudo restaurar valor de fábrica.');
+                }
+                cell.dataset.status = result.weekly_status || 'MODELO';
+                if (result.is_dump !== undefined) {
+                    cell.dataset.isDump = result.is_dump ? 'true' : 'false';
+                }
+                normalizeWeeklyCellClass(cell);
+                applyWeekCellEditLocks();
+                recalcAll();
+
+                // Visual flash animation & notification
+                cell.classList.remove('flash-restored');
+                void cell.offsetWidth; // trigger reflow
+                cell.classList.add('flash-restored');
+                setTimeout(() => cell.classList.remove('flash-restored'), 1000);
+                showToast('🔄 Celda restaurada al valor de fábrica (estimado)');
+            } catch (error) {
+                console.error("Error resetting week cell to model:", error);
+                showToast('❌ ' + error.message);
+            }
+        }
+
         async function saveWeekCell(row, cell) {
             const input = cell.querySelector('.week-input');
             const rawVal = input.value !== undefined ? String(input.value).trim() : '';
@@ -1666,6 +1802,45 @@
                 }
             });
         });
+
+        // DOUBLE CLICK & DOUBLE TAP TO RESTORE FACTORY ESTIMATE (ONLY IN AGRONOMO TAB)
+        if (pageMode === 'AGRONOMO') {
+            document.querySelectorAll('.week-cell').forEach((cell) => {
+                const input = cell.querySelector('.week-input');
+
+                const handleReset = async (e) => {
+                    if (input && input.disabled) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const row = cell.closest('.projection-row');
+                    if (row) {
+                        await resetWeekCellToModel(row, cell);
+                    }
+                };
+
+                cell.addEventListener('dblclick', handleReset);
+                if (input) {
+                    input.addEventListener('dblclick', handleReset);
+                }
+
+                // Double-tap support for mobile/tablet touch screens
+                let lastTapTime = 0;
+                cell.addEventListener('touchend', async (e) => {
+                    const currentTime = Date.now();
+                    const tapLength = currentTime - lastTapTime;
+                    if (tapLength > 0 && tapLength < 350) {
+                        if (input && input.disabled) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const row = cell.closest('.projection-row');
+                        if (row) {
+                            await resetWeekCellToModel(row, cell);
+                        }
+                    }
+                    lastTapTime = currentTime;
+                });
+            });
+        }
 
         applyWeekCellEditLocks();
 
