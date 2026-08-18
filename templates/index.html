@@ -652,25 +652,21 @@
 
         /* CURRENT CUTOFF WEEK COLUMN HIGHLIGHT */
         th.col-cutoff-week {
-            background: #1e3a8a !important;
-            border-left: 2px solid #38bdf8 !important;
-            border-right: 2px solid #38bdf8 !important;
+            background: #0369a1 !important;
+            color: #ffffff !important;
+            border-bottom: 2px solid #38bdf8 !important;
             position: relative;
         }
         tr.totals-row th.col-cutoff-week {
             background: #0284c7 !important;
             color: #ffffff !important;
-            border-left: 2px solid #38bdf8 !important;
-            border-right: 2px solid #38bdf8 !important;
         }
         td.col-cutoff-week {
             background-color: #f0f9ff !important;
-            border-left: 2px solid #38bdf8 !important;
-            border-right: 2px solid #38bdf8 !important;
         }
         .week-cell.col-cutoff-week .week-input {
-            border-color: #0284c7 !important;
-            box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.4) !important;
+            border: 1.5px solid #0284c7 !important;
+            background: #ffffff !important;
             font-weight: 700;
         }
         .badge-cutoff {
@@ -679,7 +675,7 @@
             background: #38bdf8;
             color: #0f172a;
             border-radius: 3px;
-            padding: 0 2px;
+            padding: 0 3px;
             font-weight: 800;
             line-height: 1.1;
             margin-top: 1px;
@@ -900,24 +896,13 @@
                 </div>
             </form>
 
-            {% if db_status %}
-                <div class="db-status-bar {{ 'db-ok' if db_status[0] else 'db-err' }}">
-                    <span>{{ '🟢' if db_status[0] else '🔴' }} {{ db_status[1] }}</span>
-                    {% if missing_cycles %}
-                        <span style="color: #b91c1c; font-weight: 700; margin-left: 8px;">
-                            ⚠️ {{ missing_cycles|length }} combinaciones sin ciclo ideal. <a href="/parametros" target="_blank" style="color: inherit; text-decoration: underline;">Completar aquí</a>
-                        </span>
-                    {% endif %}
-                </div>
-            {% endif %}
-
-            <!-- SUMMARY CARDS & VARIETY TOTALS -->
+            <!-- SUMMARY CARDS & VARIETY TOTALS (COLLAPSED BY DEFAULT) -->
             <div class="summary-panels-card" id="summary-panels-wrapper">
                 <div class="summary-toggle-bar">
                     <span class="summary-title">📈 Resumen de Totales por Variedad y Actividad</span>
-                    <button type="button" class="summary-collapse-btn" id="summary-collapse-btn">▼ Ocultar Resumen de Totales</button>
+                    <button type="button" class="summary-collapse-btn" id="summary-collapse-btn">▶️ Desplegar Resumen de Totales</button>
                 </div>
-                <div class="summary-table-wrap" id="summary-table-container">
+                <div class="summary-table-wrap" id="summary-table-container" style="display: none;">
                     <table class="summary-table" id="table-summary-main">
                         <!-- Rendered by renderSummaryPanels() JS -->
                     </table>
@@ -1815,14 +1800,15 @@
         }
 
         // Summary Card Collapsing Toggle
-        const toggleSummaryBtn = document.getElementById('toggle-summary-btn');
-        const summaryCard = document.querySelector('.summary-panels-card');
-        if (toggleSummaryBtn && summaryCard) {
-            toggleSummaryBtn.addEventListener('click', () => {
-                summaryCard.classList.toggle('collapsed');
-                toggleSummaryBtn.textContent = summaryCard.classList.contains('collapsed')
-                    ? '▶️ Desplegar Resumen de Totales'
-                    : '▼ Ocultar Resumen de Totales';
+        const summaryCollapseBtn = document.getElementById('summary-collapse-btn') || document.getElementById('toggle-summary-btn');
+        const summaryContainer = document.getElementById('summary-table-container');
+        if (summaryCollapseBtn && summaryContainer) {
+            summaryCollapseBtn.addEventListener('click', () => {
+                const isHidden = summaryContainer.style.display === 'none';
+                summaryContainer.style.display = isHidden ? 'block' : 'none';
+                summaryCollapseBtn.textContent = isHidden
+                    ? '▼ Ocultar Resumen de Totales'
+                    : '▶️ Desplegar Resumen de Totales';
             });
         }
 

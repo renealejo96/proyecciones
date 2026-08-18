@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard Estadístico - Cierre Real y Curvas de Cosecha</title>
+    <title>Tablero Estadístico - Cierre Real y Curvas de Cosecha</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Chart.js CDN for Power BI styled interactive analytics -->
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
@@ -24,12 +24,14 @@
             --pbi-emerald: #059669;
             --pbi-amber: #d97706;
             --pbi-rose: #dc2626;
+            --pbi-purple: #7c3aed;
             --pbi-slate-700: #334155;
             --pbi-slate-600: #475569;
             --pbi-slate-500: #64748b;
             --pbi-slate-300: #cbd5e1;
             --pbi-slate-200: #e2e8f0;
             --pbi-slate-100: #f1f5f9;
+            --pbi-slate-50: #f8fafc;
 
             --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -47,16 +49,16 @@
 
         .dashboard-container {
             width: 100%;
-            max-width: 1680px;
+            max-width: 1720px;
             margin: 0 auto;
-            padding: 12px 16px;
+            padding: 10px 14px;
         }
 
         /* NAVIGATION MENU */
         .main-menu {
             display: flex;
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -65,8 +67,8 @@
             text-decoration: none;
             border: 1px solid var(--pbi-slate-300);
             border-radius: 9999px;
-            padding: 5px 13px;
-            font-size: 0.78rem;
+            padding: 4px 12px;
+            font-size: 0.76rem;
             font-weight: 600;
             color: var(--pbi-slate-700);
             background: #ffffff;
@@ -92,13 +94,13 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .dashboard-title h1 {
             margin: 0;
-            font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+            font-size: clamp(1.15rem, 2.2vw, 1.45rem);
             font-weight: 900;
             color: var(--pbi-blue);
             letter-spacing: -0.02em;
@@ -108,8 +110,8 @@
         }
 
         .dashboard-title p {
-            margin: 2px 0 0;
-            font-size: 0.8rem;
+            margin: 1px 0 0;
+            font-size: 0.78rem;
             color: var(--pbi-slate-600);
         }
 
@@ -117,10 +119,10 @@
         .slicers-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
-            border-radius: 10px;
-            padding: 10px 14px;
+            border-radius: 8px;
+            padding: 8px 12px;
             box-shadow: var(--shadow-card);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -130,11 +132,11 @@
         .slicer-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
         }
 
         .slicer-group label {
-            font-size: 0.66rem;
+            font-size: 0.65rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -143,14 +145,14 @@
 
         .slicer-select {
             border: 1px solid var(--pbi-slate-300);
-            border-radius: 6px;
-            padding: 5px 8px;
-            font-size: 0.78rem;
+            border-radius: 5px;
+            padding: 4px 7px;
+            font-size: 0.76rem;
             font-weight: 600;
             background: #ffffff;
             color: var(--pbi-navy);
             outline: none;
-            min-width: 130px;
+            min-width: 125px;
             cursor: pointer;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
         }
@@ -164,9 +166,9 @@
             background: var(--pbi-blue);
             color: #ffffff;
             border: none;
-            border-radius: 6px;
-            padding: 6px 14px;
-            font-size: 0.78rem;
+            border-radius: 5px;
+            padding: 5px 12px;
+            font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
@@ -181,9 +183,9 @@
         .btn-slicer-clear {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-300);
-            border-radius: 6px;
-            padding: 5px 12px;
-            font-size: 0.78rem;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-size: 0.76rem;
             font-weight: 600;
             color: var(--pbi-slate-700);
             text-decoration: none;
@@ -197,16 +199,16 @@
         /* KPI CARDS (POWER BI EXECUTIVE TILES) */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 12px;
-            margin-bottom: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
         }
 
         .kpi-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
-            border-radius: 10px;
-            padding: 12px 14px;
+            border-radius: 8px;
+            padding: 10px 12px;
             box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
@@ -217,21 +219,22 @@
         .kpi-card.kpi-amber { border-left-color: var(--pbi-amber); }
         .kpi-card.kpi-accent { border-left-color: var(--pbi-accent); }
         .kpi-card.kpi-cyan { border-left-color: var(--pbi-cyan); }
+        .kpi-card.kpi-purple { border-left-color: var(--pbi-purple); }
 
         .kpi-label {
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--pbi-slate-500);
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .kpi-value {
-            font-size: 1.55rem;
+            font-size: 1.45rem;
             font-weight: 900;
             font-family: 'JetBrains Mono', monospace;
             color: var(--pbi-navy);
@@ -239,38 +242,42 @@
         }
 
         .kpi-sub {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: var(--pbi-slate-500);
-            margin-top: 4px;
+            margin-top: 3px;
             font-weight: 600;
         }
 
         .kpi-badge {
-            font-size: 0.62rem;
+            font-size: 0.60rem;
             font-weight: 800;
-            padding: 2px 5px;
-            border-radius: 4px;
+            padding: 1px 4px;
+            border-radius: 3px;
             background: var(--pbi-slate-100);
             color: var(--pbi-slate-700);
         }
 
-        /* CHARTS & MAIN VISUALS GRID */
+        /* 3-COLUMN / 2-COLUMN CHARTS & MAIN VISUALS GRID */
         .analytics-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 14px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
+            .analytics-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
             .analytics-grid { grid-template-columns: 1fr; }
         }
 
         .chart-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
-            border-radius: 10px;
-            padding: 14px;
+            border-radius: 8px;
+            padding: 12px;
             box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
@@ -280,14 +287,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
 
         .chart-header h3 {
             margin: 0;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             font-weight: 800;
             color: var(--pbi-blue);
             display: flex;
@@ -296,10 +303,10 @@
         }
 
         .chart-tag {
-            font-size: 0.66rem;
+            font-size: 0.62rem;
             font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
             background: #eff6ff;
             color: #1e40af;
             border: 1px solid #bfdbfe;
@@ -308,15 +315,15 @@
         .chart-body {
             position: relative;
             width: 100%;
-            height: 260px;
+            height: 230px;
         }
 
-        /* DATA TABLE (POWER BI MATRIX) */
+        /* DATA TABLE (PIVOT GRID / TABLA DINÁMICA STYLE) */
         .table-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
-            border-radius: 10px;
-            padding: 14px;
+            border-radius: 8px;
+            padding: 12px;
             box-shadow: var(--shadow-card);
         }
 
@@ -326,23 +333,41 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .table-header-flex h3 {
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             font-weight: 800;
             color: var(--pbi-blue);
         }
 
+        .table-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-table-action {
+            background: var(--pbi-slate-100);
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--pbi-slate-700);
+            cursor: pointer;
+        }
+        .btn-table-action:hover { background: #e2e8f0; }
+
         .table-search-input {
             border: 1px solid var(--pbi-slate-300);
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 0.76rem;
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 0.74rem;
             outline: none;
-            width: 200px;
+            width: 180px;
         }
 
         .matrix-table-wrap {
@@ -350,19 +375,19 @@
             overflow-y: auto;
             max-height: 52vh;
             border: 1px solid var(--pbi-slate-200);
-            border-radius: 8px;
+            border-radius: 6px;
         }
 
         table.matrix-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 0.76rem;
+            font-size: 0.74rem;
             background: #ffffff;
         }
 
         table.matrix-table th, table.matrix-table td {
-            padding: 5px 8px;
+            padding: 4px 7px;
             border-bottom: 1px solid var(--pbi-slate-200);
             border-right: 1px solid var(--pbi-slate-200);
             text-align: right;
@@ -386,19 +411,60 @@
             text-align: left;
         }
 
-        table.matrix-table tr:nth-child(even) td {
+        /* PIVOT MASTER GROUP ROW */
+        tr.group-master-row {
+            background: #f1f5f9 !important;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        tr.group-master-row td {
+            background: #f1f5f9;
+            color: var(--pbi-navy);
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
+        }
+
+        tr.group-master-row:hover td {
+            background: #e2e8f0 !important;
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            line-height: 16px;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 3px;
+            margin-right: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--pbi-blue);
+            user-select: none;
+        }
+
+        /* CHILD LOT ROWS */
+        tr.group-child-row td {
+            background: #ffffff;
+            font-size: 0.72rem;
+        }
+
+        tr.group-child-row:nth-child(even) td {
             background-color: var(--pbi-slate-50);
         }
 
-        table.matrix-table tr:hover td {
+        tr.group-child-row:hover td {
             background-color: #eff6ff !important;
         }
 
         .badge-ac {
             display: inline-block;
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 0.66rem;
+            border-radius: 3px;
+            padding: 1px 4px;
+            font-size: 0.64rem;
             font-weight: 800;
             font-family: 'JetBrains Mono', monospace;
         }
@@ -415,20 +481,10 @@
             background: #dcfce7;
             color: #166534;
             border: 1px solid #86efac;
-            font-size: 0.62rem;
+            font-size: 0.60rem;
             font-weight: 800;
-            padding: 1px 5px;
-            border-radius: 4px;
-        }
-
-        .badge-status-pending {
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-            font-size: 0.62rem;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 4px;
+            padding: 1px 4px;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -447,7 +503,7 @@
         <div class="header-bar">
             <div class="dashboard-title">
                 <h1>📊 Tablero Estadístico & Curvas de Cierre Real</h1>
-                <p>Análisis de rendimiento, promedio de cierre real por producto maestro, variedad y semana de origen.</p>
+                <p>Análisis de rendimiento real, evolución de cosecha vs proyección y promedio de cierre por producto maestro y variedad.</p>
             </div>
         </div>
 
@@ -501,7 +557,7 @@
                     <span class="kpi-badge">Total Real</span>
                 </div>
                 <div class="kpi-value" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
-                <div class="kpi-sub">Cierre real en lotes analizados</div>
+                <div class="kpi-sub">Total en lotes cerrados</div>
             </div>
 
             <div class="kpi-card kpi-accent">
@@ -510,7 +566,7 @@
                     <span class="kpi-badge">Ponderado</span>
                 </div>
                 <div class="kpi-value" id="kpi-stems-pp">{{ stats.kpis.avg_real_stems_per_plant }}</div>
-                <div class="kpi-sub">Promedio real vs 1.0 ideal</div>
+                <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }}</strong></div>
             </div>
 
             <div class="kpi-card kpi-amber">
@@ -518,69 +574,83 @@
                     <span>⏱️ Ciclo Real Promedio</span>
                     <span class="kpi-badge">Semanas</span>
                 </div>
-                <div class="kpi-value" id="kpi-cycle">{{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.9rem;">sem</span></div>
-                <div class="kpi-sub">Tiempo origen a punteo</div>
+                <div class="kpi-value" id="kpi-cycle">{{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span></div>
+                <div class="kpi-sub">Semanas origen a punteo</div>
             </div>
 
             <div class="kpi-card kpi-cyan">
                 <div class="kpi-label">
-                    <span>📉 Desperdicio Real Prom.</span>
+                    <span>📉 Desperdicio Real</span>
                     <span class="kpi-badge">% Merma</span>
                 </div>
                 <div class="kpi-value" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
-                <div class="kpi-sub">Tasa de merma/descarte</div>
+                <div class="kpi-sub">Tasa de merma estimada</div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card kpi-purple">
                 <div class="kpi-label">
-                    <span>🌾 Plantas Totales</span>
-                    <span class="kpi-badge">TPSR</span>
+                    <span>🌾 Plantas Evaluadas</span>
+                    <span class="kpi-badge">Lotes</span>
                 </div>
                 <div class="kpi-value" id="kpi-plants">{{ '{:,}'.format(stats.kpis.total_plants) }}</div>
-                <div class="kpi-sub">{{ stats.kpis.total_lots }} lotes evaluados</div>
+                <div class="kpi-sub">{{ stats.kpis.total_lots }} lotes con cierre real</div>
             </div>
         </div>
 
-        <!-- ANALYTICS CHARTS SECTION -->
+        <!-- 3 POWER BI ANALYTICS CHARTS SECTION -->
         <div class="analytics-grid">
             <!-- CHART 1: RELATIVE HARVEST CURVE -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>📈 Curva de Cierre Real vs Curva Ideal Teórica</h3>
-                    <span class="chart-tag">% Cosecha por Semana Relativa</span>
+                    <h3>📈 Curva Real vs Ideal</h3>
+                    <span class="chart-tag">% Cosecha por Sem Relativa</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="relativeCurveChart"></canvas>
                 </div>
             </div>
 
-            <!-- CHART 2: CHRONOLOGICAL HARVEST EVOLUTION -->
+            <!-- CHART 2: CHRONOLOGICAL HARVEST EVOLUTION (WITH SECONDARY AXIS VARIATION %) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>📊 Evolución de Tallos por Semana Calendario</h3>
-                    <span class="chart-tag">Tallos Reales vs Estimado</span>
+                    <h3>📊 Real vs Proyectado & % Cumplimiento</h3>
+                    <span class="chart-tag">Eje Der: % Cumplimiento</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="chronoHarvestChart"></canvas>
                 </div>
             </div>
+
+            <!-- CHART 3: REAL STEMS PER PLANT VS TARGET META -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>🎯 Rendimiento T/Pl vs Meta por Sem Cierre</h3>
+                    <span class="chart-tag">Tallos / Planta vs Meta</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="stemsPpChart"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- MATRIX DATA TABLE (DETALLE POR PRODUCTO, VARIEDAD Y SEMANA DE ORIGEN) -->
+        <!-- PIVOT ACCORDION DATA TABLE (TABLA DINÁMICA [+/-] POR PRODUCTO MAESTRO) -->
         <div class="table-card">
             <div class="table-header-flex">
-                <h3>📋 Detalle de Cierre por Producto Maestro, Variedad y Semana de Origen</h3>
-                <input type="text" id="matrix-search" class="table-search-input" placeholder="🔍 Buscar variedad, semana...">
+                <h3>📋 Cierres Reales Agrupados por Producto Maestro (Tabla Dinámica)</h3>
+                <div class="table-controls">
+                    <button type="button" class="btn-table-action" id="btn-expand-all">➕ Desplegar Todo</button>
+                    <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
+                    <input type="text" id="matrix-search" class="table-search-input" placeholder="🔍 Filtrar tabla...">
+                </div>
             </div>
 
             <div class="matrix-table-wrap">
                 <table class="matrix-table" id="matrix-detail-table">
                     <thead>
                         <tr>
-                            <th class="col-left">Producto Maestro</th>
-                            <th class="col-left">Variedad</th>
-                            <th style="width: 70px;">Sem. Orig.</th>
-                            <th style="width: 70px;">Actividad</th>
+                            <th class="col-left" style="width: 220px;">Producto / Variedad</th>
+                            <th style="width: 65px;">Sem. Orig.</th>
+                            <th style="width: 65px;">Actividad</th>
                             <th>Plantas</th>
                             <th>Bloques</th>
                             <th>Tallos Reales</th>
@@ -593,37 +663,56 @@
                         </tr>
                     </thead>
                     <tbody id="matrix-tbody">
-                        {% for row in stats.table_rows %}
-                            <tr class="matrix-row"
-                                data-pm="{{ row.product_master }}"
-                                data-variety="{{ row.variety }}"
-                                data-variety-display="{{ row.variety_display }}"
-                                data-week="{{ row.source_week_short }}"
-                                data-activity="{{ row.activity }}">
-                                <td class="col-left"><strong>{{ row.product_master }}</strong></td>
-                                <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
-                                <td><code>{{ row.source_week_short }}</code></td>
-                                <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
-                                <td>{{ '{:,}'.format(row.plants) }}</td>
-                                <td title="{{ row.blocks_str }}">{{ row.blocks_count }} blq</td>
-                                <td><strong>{{ '{:,}'.format(row.real_stems) if row.real_stems > 0 else '-' }}</strong></td>
-                                <td><span class="metric-real-pp">{{ row.real_stems_per_plant if row.real_stems_per_plant > 0 else '-' }}</span></td>
-                                <td style="color: var(--pbi-slate-600);">{{ row.ideal_stems_per_plant }}</td>
-                                <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
-                                <td style="color: var(--pbi-slate-600);">{{ row.ideal_cycle_weeks }} sem</td>
-                                <td>{{ row.waste_pct }}%</td>
-                                <td>
-                                    {% if row.has_real_data %}
-                                        <span class="badge-status-closed">✅ Con Cierre</span>
-                                    {% else %}
-                                        <span class="badge-status-pending">⏳ Pendiente</span>
-                                    {% endif %}
+                        {% for grp in stats.grouped_products %}
+                            <!-- GROUP MASTER ROW (PRODUCTO MAESTRO CON [+]/[-]) -->
+                            <tr class="group-master-row" data-pm="{{ grp.product_master }}" onclick="toggleGroup('{{ grp.product_master }}')">
+                                <td class="col-left">
+                                    <span class="toggle-icon" id="icon-{{ grp.product_master }}">+</span>
+                                    <strong>{{ grp.product_master }}</strong>
+                                    <span style="font-size: 0.65rem; color: var(--pbi-slate-500); font-weight: 600; margin-left: 4px;">({{ grp.total_lots }} lotes)</span>
                                 </td>
+                                <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
+                                <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
+                                <td><strong>{{ '{:,}'.format(grp.total_plants) }}</strong></td>
+                                <td style="text-align: center;">{{ grp.total_lots }} lotes</td>
+                                <td style="color: var(--pbi-emerald);"><strong>{{ '{:,}'.format(grp.total_real_stems) }}</strong></td>
+                                <td><span class="metric-real-pp" style="font-size: 0.82rem;">{{ grp.avg_real_stems_pp }}</span></td>
+                                <td style="color: var(--pbi-slate-700); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
+                                <td><strong>{{ grp.avg_cycle_weeks }} sem</strong></td>
+                                <td style="color: var(--pbi-slate-600);">{{ grp.avg_ideal_cycle }} sem</td>
+                                <td>{{ grp.avg_waste_pct }}%</td>
+                                <td><span class="badge-status-closed">✅ Con Cierre</span></td>
                             </tr>
+
+                            <!-- CHILD LOT ROWS (OCULTAS POR DEFECTO HASTA DAR CLIC EN [+]) -->
+                            {% for row in grp.lot_rows %}
+                                <tr class="group-child-row child-of-{{ grp.product_master }}"
+                                    style="display: none;"
+                                    data-pm="{{ row.product_master }}"
+                                    data-variety="{{ row.variety }}"
+                                    data-variety-display="{{ row.variety_display }}"
+                                    data-week="{{ row.source_week_short }}"
+                                    data-activity="{{ row.activity }}">
+                                    <td class="col-left" style="padding-left: 28px;">
+                                        ↳ <strong>{{ row.variety_display }}</strong>
+                                    </td>
+                                    <td><code>{{ row.source_week_short }}</code></td>
+                                    <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
+                                    <td>{{ '{:,}'.format(row.plants) }}</td>
+                                    <td title="{{ row.blocks_str }}">{{ row.blocks_count }} blq</td>
+                                    <td><strong>{{ '{:,}'.format(row.real_stems) }}</strong></td>
+                                    <td><span class="metric-real-pp">{{ row.real_stems_per_plant }}</span></td>
+                                    <td style="color: var(--pbi-slate-600);">{{ row.ideal_stems_per_plant }}</td>
+                                    <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
+                                    <td style="color: var(--pbi-slate-600);">{{ row.ideal_cycle_weeks }} sem</td>
+                                    <td>{{ row.waste_pct }}%</td>
+                                    <td><span class="badge-status-closed">✅ Cierre</span></td>
+                                </tr>
+                            {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="13" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
-                                    No se encontraron registros con los filtros seleccionados.
+                                <td colspan="12" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
+                                    No se encontraron lotes con cierres reales registrados para los filtros seleccionados.
                                 </td>
                             </tr>
                         {% endfor %}
@@ -638,6 +727,7 @@
         const selectedVariety = {{ stats.selected_variety | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartChronoData = {{ stats.chart_chrono | tojson }};
+        const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
 
         // DYNAMIC SLICER VARIETY POPULATION
         const slicerPm = document.getElementById('slicer-pm');
@@ -663,19 +753,75 @@
             });
         }
 
-        // TABLE SEARCH FILTER
+        // PIVOT ACCORDION TOGGLE FUNCTIONS
+        function toggleGroup(pm) {
+            const children = document.querySelectorAll(`.child-of-${pm}`);
+            const icon = document.getElementById(`icon-${pm}`);
+            if (!children.length || !icon) return;
+
+            const isCurrentlyHidden = children[0].style.display === 'none';
+            children.forEach(row => {
+                row.style.display = isCurrentlyHidden ? '' : 'none';
+            });
+            icon.textContent = isCurrentlyHidden ? '−' : '+';
+        }
+
+        const btnExpandAll = document.getElementById('btn-expand-all');
+        if (btnExpandAll) {
+            btnExpandAll.addEventListener('click', () => {
+                document.querySelectorAll('.group-child-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '−');
+            });
+        }
+
+        const btnCollapseAll = document.getElementById('btn-collapse-all');
+        if (btnCollapseAll) {
+            btnCollapseAll.addEventListener('click', () => {
+                document.querySelectorAll('.group-child-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '+');
+            });
+        }
+
+        // TABLE SEARCH FILTER (AUTO-EXPANDS MATCHING GROUPS)
         const searchInput = document.getElementById('matrix-search');
         if (searchInput) {
             searchInput.addEventListener('input', () => {
                 const q = searchInput.value.toLowerCase().trim();
-                document.querySelectorAll('.matrix-row').forEach(tr => {
-                    const text = (tr.dataset.pm + ' ' + tr.dataset.variety + ' ' + tr.dataset.varietyDisplay + ' ' + tr.dataset.week + ' ' + tr.dataset.activity).toLowerCase();
-                    tr.style.display = text.includes(q) ? '' : 'none';
+                if (!q) {
+                    document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
+                    document.querySelectorAll('.group-child-row').forEach(r => r.style.display = 'none');
+                    document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '+');
+                    return;
+                }
+
+                document.querySelectorAll('.group-master-row').forEach(masterRow => {
+                    const pm = masterRow.dataset.pm;
+                    const childRows = document.querySelectorAll(`.child-of-${pm}`);
+                    let anyChildMatch = false;
+
+                    childRows.forEach(child => {
+                        const text = (child.dataset.pm + ' ' + child.dataset.variety + ' ' + child.dataset.varietyDisplay + ' ' + child.dataset.week + ' ' + child.dataset.activity).toLowerCase();
+                        const matches = text.includes(q);
+                        child.style.display = matches ? '' : 'none';
+                        if (matches) anyChildMatch = true;
+                    });
+
+                    const masterMatches = pm.toLowerCase().includes(q);
+                    if (masterMatches || anyChildMatch) {
+                        masterRow.style.display = '';
+                        const icon = document.getElementById(`icon-${pm}`);
+                        if (icon) icon.textContent = '−';
+                        if (masterMatches && !anyChildMatch) {
+                            childRows.forEach(child => child.style.display = '');
+                        }
+                    } else {
+                        masterRow.style.display = 'none';
+                    }
                 });
             });
         }
 
-        // RENDER CHART 1: RELATIVE HARVEST CURVE (POWER BI THEME)
+        // 1. RENDER CHART 1: RELATIVE HARVEST CURVE
         const ctxRelative = document.getElementById('relativeCurveChart');
         if (ctxRelative && typeof Chart !== 'undefined') {
             new Chart(ctxRelative, {
@@ -684,7 +830,7 @@
                     labels: chartRelativeData.labels,
                     datasets: [
                         {
-                            label: 'Curva Real Promedio (%)',
+                            label: 'Curva Real (%)',
                             data: chartRelativeData.real_curve,
                             borderColor: '#0284c7',
                             backgroundColor: 'rgba(2, 132, 199, 0.12)',
@@ -696,7 +842,7 @@
                             pointBackgroundColor: '#0284c7',
                         },
                         {
-                            label: 'Curva Teórica Ideal (%)',
+                            label: 'Curva Ideal (%)',
                             data: chartRelativeData.ideal_curve,
                             borderColor: '#f59e0b',
                             backgroundColor: 'transparent',
@@ -717,16 +863,14 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                font: { family: 'Inter', size: 11, weight: '700' },
+                                font: { family: 'Inter', size: 10, weight: '700' },
                                 usePointStyle: true,
-                                boxWidth: 8,
+                                boxWidth: 7,
                             }
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.y}%`;
-                                }
+                                label: function(context) { return `${context.dataset.label}: ${context.parsed.y}%`; }
                             }
                         }
                     },
@@ -735,12 +879,12 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) { return value + '%'; },
-                                font: { family: 'JetBrains Mono', size: 10 }
+                                font: { family: 'JetBrains Mono', size: 9 }
                             },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         x: {
-                            ticks: { font: { family: 'Inter', size: 10, weight: '600' } },
+                            ticks: { font: { family: 'Inter', size: 9, weight: '600' } },
                             grid: { display: false }
                         }
                     }
@@ -748,27 +892,42 @@
             });
         }
 
-        // RENDER CHART 2: CHRONOLOGICAL HARVEST CHART
+        // 2. RENDER CHART 2: REAL VS PROYECTADO WITH SECONDARY AXIS (% CUMPLIMIENTO)
         const ctxChrono = document.getElementById('chronoHarvestChart');
         if (ctxChrono && typeof Chart !== 'undefined') {
             new Chart(ctxChrono, {
-                type: 'bar',
                 data: {
                     labels: chartChronoData.labels,
                     datasets: [
                         {
-                            label: 'Tallos Reales Cosechados',
+                            type: 'bar',
+                            label: 'Tallos Reales',
                             data: chartChronoData.real_stems,
                             backgroundColor: '#059669',
                             borderRadius: 4,
                             barPercentage: 0.6,
+                            yAxisID: 'y',
                         },
                         {
-                            label: 'Estimado Agrónomo',
+                            type: 'bar',
+                            label: 'Proyectado Agrónomo',
                             data: chartChronoData.agronomo_stems,
                             backgroundColor: '#93c5fd',
                             borderRadius: 4,
                             barPercentage: 0.6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            type: 'line',
+                            label: '% Cumplimiento',
+                            data: chartChronoData.fulfillment_pct,
+                            borderColor: '#d97706',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#d97706',
+                            tension: 0.3,
+                            yAxisID: 'y1',
                         }
                     ]
                 },
@@ -780,15 +939,105 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                font: { family: 'Inter', size: 11, weight: '700' },
+                                font: { family: 'Inter', size: 10, weight: '700' },
                                 usePointStyle: true,
-                                boxWidth: 8,
+                                boxWidth: 7,
                             }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
+                                    if (context.dataset.yAxisID === 'y1') {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    }
                                     return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} tallos`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; },
+                                font: { family: 'JetBrains Mono', size: 9 }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                callback: function(value) { return value + '%'; },
+                                font: { family: 'JetBrains Mono', size: 9 },
+                                color: '#d97706'
+                            }
+                        },
+                        x: {
+                            ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. RENDER CHART 3: STEMS PER PLANT REAL VS TARGET META BY CLOSURE WEEK
+        const ctxStemsPp = document.getElementById('stemsPpChart');
+        if (ctxStemsPp && typeof Chart !== 'undefined') {
+            new Chart(ctxStemsPp, {
+                type: 'line',
+                data: {
+                    labels: chartStemsPpData.labels,
+                    datasets: [
+                        {
+                            label: 'Real T/pl',
+                            data: chartStemsPpData.real_stems_pp,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.12)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#059669',
+                        },
+                        {
+                            label: 'Meta Ideal T/pl',
+                            data: chartStemsPpData.target_stems_pp,
+                            borderColor: '#dc2626',
+                            borderDash: [6, 4],
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointBackgroundColor: '#dc2626',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: 'Inter', size: 10, weight: '700' },
+                                usePointStyle: true,
+                                boxWidth: 7,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const blkCount = chartStemsPpData.blocks_count[context.dataIndex] || 0;
+                                    return `${context.dataset.label}: ${context.parsed.y} T/pl (${blkCount} blq cerrados)`;
                                 }
                             }
                         }
@@ -797,13 +1046,13 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value) { return value.toLocaleString(); },
-                                font: { family: 'JetBrains Mono', size: 10 }
+                                callback: function(value) { return value + ' T/pl'; },
+                                font: { family: 'JetBrains Mono', size: 9 }
                             },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         x: {
-                            ticks: { font: { family: 'JetBrains Mono', size: 10, weight: '600' } },
+                            ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } },
                             grid: { display: false }
                         }
                     }

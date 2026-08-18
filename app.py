@@ -1167,6 +1167,42 @@ def calculate_week_difference(w1: int, w2: int) -> int:
         return 0
 
 
+def find_cycle_definition(
+    cycles_map: dict[tuple[str, str, str], dict[str, Any]],
+    pm_norm: str,
+    var_norm: str,
+    ac_norm: str,
+) -> dict[str, Any]:
+    # 1. Exact match
+    c = cycles_map.get((pm_norm, var_norm, ac_norm))
+    if c:
+        return c
+    # 2. Match by variety and activity
+    for (p, v, a), cdef in cycles_map.items():
+        if v == var_norm and a == ac_norm:
+            return cdef
+    # 3. Match by variety only
+    for (p, v, a), cdef in cycles_map.items():
+        if v == var_norm:
+            return cdef
+    # 4. Match by product_master and activity
+    for (p, v, a), cdef in cycles_map.items():
+        if p == pm_norm and a == ac_norm:
+            return cdef
+    # 5. Match by product_master only
+    for (p, v, a), cdef in cycles_map.items():
+        if p == pm_norm:
+            return cdef
+
+    default_stems = 4.0 if "VERONICA" in pm_norm else (9.5 if "GYPSO" in pm_norm else 1.0)
+    return {
+        "stems_per_plant": default_stems,
+        "cycle_weeks": 10,
+        "waste_rate": 0.10,
+        "curve": (0.10, 0.25, 0.35, 0.20, 0.10),
+    }
+
+
 def get_statistics_data(
     year_filter: str = "",
     pm_filter: str = "",
@@ -1230,6 +1266,12 @@ def get_statistics_data(
 
         tpsr_records = tpsr_query.all()
 
+        # Plants lookup per block: (product_master_norm, variety_norm, source_week, activity, block_norm) -> plants
+        plants_by_block_map: dict[tuple[str, str, int, str, str], int] = {}
+        for r in tpsr_records:
+            k_blk = (r.product_master_norm, r.variety_norm, r.source_week, r.activity, r.block_norm)
+            plants_by_block_map[k_blk] = plants_by_block_map.get(k_blk, 0) + (r.plants or 0)
+
         # 4. Query Week Adjustments (Real closed data)
         week_adj_query = db.query(WeekAdjustmentDB)
         if pm_filter:
@@ -1266,13 +1308,16 @@ def get_statistics_data(
                 grouped_lots[k]["blocks"].add(r.block)
 
         # 6. Build Row Summaries & Calculate Metrics
-        table_rows: list[dict[str, Any]] = []
+        flat_table_rows: list[dict[str, Any]] = []
+        lots_by_pm: dict[str, list[dict[str, Any]]] = {}
+
         total_real_stems_sum = 0
         total_plants_sum = 0
         total_dumps_sum = 0
         real_stems_per_plant_list = []
         cycle_real_list = []
         waste_list = []
+        ideal_stems_per_plant_list = []
 
         relative_curve_real_sums: dict[int, float] = {i: 0.0 for i in range(12)}
         relative_curve_real_counts: dict[int, int] = {i: 0 for i in range(12)}
@@ -1282,18 +1327,16 @@ def get_statistics_data(
         chronological_real_stems: dict[str, int] = {}
         chronological_agronomo_stems: dict[str, int] = {}
 
+        # Harvest weeks closure breakdown for Chart 3: hw_short -> { real_stems, plants, blocks }
+        closure_weeks_breakdown: dict[str, dict[str, Any]] = {}
+
         for k, lot in grouped_lots.items():
             pm, var, sw, ac = k
             pm_norm = normalize_text(pm)
             var_norm = normalize_text(var)
             ac_norm = normalize_text(ac)
 
-            c_def = cycles_map.get((pm_norm, var_norm, ac_norm), {
-                "cycle_weeks": 10,
-                "waste_rate": 0.10,
-                "stems_per_plant": 1.0,
-                "curve": [0.10, 0.25, 0.35, 0.20, 0.10],
-            })
+            c_def = find_cycle_definition(cycles_map, pm_norm, var_norm, ac_norm)
 
             adjs = adj_map.get((pm_norm, var_norm, sw, ac), [])
             real_stems = sum(a.real_closed for a in adjs if a.real_closed is not None)
@@ -1311,6 +1354,16 @@ def get_statistics_data(
                     harvest_weeks_dict[hw] = harvest_weeks_dict.get(hw, 0) + a.real_closed
                     hw_short = format_short_week(hw)
                     chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + a.real_closed
+
+                    # Accumulate for Chart 3
+                    if hw_short not in closure_weeks_breakdown:
+                        closure_weeks_breakdown[hw_short] = {"real_stems": 0, "plants": 0, "blocks": set()}
+                    closure_weeks_breakdown[hw_short]["real_stems"] += a.real_closed
+                    k_b = (a.product_master_norm, a.variety_norm, a.source_week, a.activity, a.block_norm)
+                    closure_weeks_breakdown[hw_short]["plants"] += plants_by_block_map.get(k_b, 0)
+                    if a.block:
+                        closure_weeks_breakdown[hw_short]["blocks"].add(a.block)
+
                 if a.agronomo_estimate is not None and a.agronomo_estimate > 0:
                     hw_short = format_short_week(a.harvest_week)
                     chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + a.agronomo_estimate
@@ -1336,41 +1389,72 @@ def get_statistics_data(
                     relative_curve_ideal_sums[idx] += (pct * 100.0)
                     relative_curve_ideal_counts[idx] += 1
 
-            total_plants_sum += plants
             if has_real_data:
+                total_plants_sum += plants
                 total_real_stems_sum += real_stems
                 total_dumps_sum += dump_stems
                 real_stems_per_plant_list.append(real_stems_pp)
+                ideal_stems_per_plant_list.append(ideal_stems_pp)
+                waste_list.append(c_def["waste_rate"] * 100.0)
 
-            waste_list.append(c_def["waste_rate"] * 100.0)
+                item = {
+                    "product_master": pm,
+                    "variety": var,
+                    "variety_display": lot["variety_display"],
+                    "source_week": sw,
+                    "source_week_short": lot["source_week_short"],
+                    "activity": ac,
+                    "plants": plants,
+                    "blocks_count": len(lot["blocks"]),
+                    "blocks_str": ", ".join(sorted(list(lot["blocks"]))[:4]) + ("..." if len(lot["blocks"]) > 4 else ""),
+                    "real_stems": real_stems,
+                    "dump_stems": dump_stems,
+                    "real_stems_per_plant": real_stems_pp,
+                    "ideal_stems_per_plant": ideal_stems_pp,
+                    "real_cycle_weeks": real_cycle_weeks,
+                    "ideal_cycle_weeks": c_def["cycle_weeks"],
+                    "waste_pct": round(c_def["waste_rate"] * 100.0, 1),
+                    "has_real_data": has_real_data,
+                    "harvest_weeks_count": len(harvest_weeks_dict),
+                }
+                flat_table_rows.append(item)
+                lots_by_pm.setdefault(pm, []).append(item)
 
-            table_rows.append({
+        flat_table_rows.sort(key=lambda x: (x["source_week"], x["product_master"], x["variety"]), reverse=True)
+
+        # Build Grouped Products for Pivot Accordion (Tabla Dinámica [+/-])
+        grouped_products: list[dict[str, Any]] = []
+        for pm in sorted(lots_by_pm.keys()):
+            items = lots_by_pm[pm]
+            items.sort(key=lambda x: (x["source_week"], x["variety"]), reverse=True)
+            pm_plants = sum(i["plants"] for i in items)
+            pm_real_stems = sum(i["real_stems"] for i in items)
+            pm_real_pp = round(pm_real_stems / pm_plants, 1) if (pm_plants > 0 and pm_real_stems > 0) else 0.0
+            pm_ideal_pp = round(sum(i["ideal_stems_per_plant"] * i["plants"] for i in items) / pm_plants, 1) if pm_plants > 0 else (round(sum(i["ideal_stems_per_plant"] for i in items) / len(items), 1) if items else 1.0)
+            pm_cycle = round(sum(i["real_cycle_weeks"] for i in items) / len(items), 1) if items else 0.0
+            pm_ideal_cycle = round(sum(i["ideal_cycle_weeks"] for i in items) / len(items), 1) if items else 0.0
+            pm_waste = round(sum(i["waste_pct"] for i in items) / len(items), 1) if items else 10.0
+
+            grouped_products.append({
                 "product_master": pm,
-                "variety": var,
-                "variety_display": lot["variety_display"],
-                "source_week": sw,
-                "source_week_short": lot["source_week_short"],
-                "activity": ac,
-                "plants": plants,
-                "blocks_count": len(lot["blocks"]),
-                "blocks_str": ", ".join(sorted(list(lot["blocks"]))[:4]) + ("..." if len(lot["blocks"]) > 4 else ""),
-                "real_stems": real_stems,
-                "dump_stems": dump_stems,
-                "real_stems_per_plant": real_stems_pp,
-                "ideal_stems_per_plant": ideal_stems_pp,
-                "real_cycle_weeks": real_cycle_weeks,
-                "ideal_cycle_weeks": c_def["cycle_weeks"],
-                "waste_pct": round(c_def["waste_rate"] * 100.0, 1),
-                "has_real_data": has_real_data,
-                "harvest_weeks_count": len(harvest_weeks_dict),
+                "total_lots": len(items),
+                "total_plants": pm_plants,
+                "total_real_stems": pm_real_stems,
+                "avg_real_stems_pp": pm_real_pp,
+                "avg_ideal_stems_pp": pm_ideal_pp,
+                "avg_cycle_weeks": pm_cycle,
+                "avg_ideal_cycle": pm_ideal_cycle,
+                "avg_waste_pct": pm_waste,
+                "lot_rows": items,
             })
 
-        table_rows.sort(key=lambda x: (x["source_week"], x["product_master"], x["variety"]), reverse=True)
-
-        avg_real_stems_pp = round(total_real_stems_sum / total_plants_sum, 1) if total_plants_sum > 0 and total_real_stems_sum > 0 else (round(sum(real_stems_per_plant_list)/len(real_stems_per_plant_list), 1) if real_stems_per_plant_list else 0.0)
-        avg_cycle = round(sum(cycle_real_list) / len(cycle_real_list), 1) if cycle_real_list else (round(sum(r["ideal_cycle_weeks"] for r in table_rows)/len(table_rows), 1) if table_rows else 0.0)
+        # Overall KPIs
+        avg_real_stems_pp = round(total_real_stems_sum / total_plants_sum, 1) if (total_plants_sum > 0 and total_real_stems_sum > 0) else (round(sum(real_stems_per_plant_list) / len(real_stems_per_plant_list), 1) if real_stems_per_plant_list else 0.0)
+        avg_ideal_stems_pp = round(sum(ideal_stems_per_plant_list) / len(ideal_stems_per_plant_list), 1) if ideal_stems_per_plant_list else (4.0 if "VERONICA" in pm_filter.upper() else (9.5 if "GYPSO" in pm_filter.upper() else 1.0))
+        avg_cycle = round(sum(cycle_real_list) / len(cycle_real_list), 1) if cycle_real_list else 0.0
         avg_waste = round(sum(waste_list) / len(waste_list), 1) if waste_list else 10.0
 
+        # Chart 1: Relative Curve
         curve_labels = [f"Sem {i}" if i == 0 else f"Sem +{i}" for i in range(8)]
         chart_real_curve = []
         chart_ideal_curve = []
@@ -1384,21 +1468,44 @@ def get_statistics_data(
         if r_sum > 0:
             chart_real_curve = [round((v / r_sum) * 100.0, 1) for v in chart_real_curve]
 
+        # Chart 2: Chronological Harvest Evolution with Secondary Axis (% Variation / Fulfillment)
         sorted_chrono_weeks = sorted(list(set(list(chronological_real_stems.keys()) + list(chronological_agronomo_stems.keys()))))[-16:]
         chrono_real_data = [chronological_real_stems.get(w, 0) for w in sorted_chrono_weeks]
         chrono_agro_data = [chronological_agronomo_stems.get(w, 0) for w in sorted_chrono_weeks]
+        chrono_fulfillment_pct = [
+            round((r / a * 100.0), 1) if a > 0 else (100.0 if r > 0 else 0.0)
+            for r, a in zip(chrono_real_data, chrono_agro_data)
+        ]
+        chrono_variation_pct = [
+            round(((r - a) / a * 100.0), 1) if a > 0 else 0.0
+            for r, a in zip(chrono_real_data, chrono_agro_data)
+        ]
+
+        # Chart 3: Real Stems / Plant vs Target Meta by Closure / Harvest Week
+        sorted_closure_weeks = sorted(list(closure_weeks_breakdown.keys()))[-16:]
+        chart_stems_pp_real = []
+        chart_stems_pp_target = []
+        chart_stems_pp_blocks = []
+        for w in sorted_closure_weeks:
+            b_info = closure_weeks_breakdown[w]
+            w_real_pp = round(b_info["real_stems"] / b_info["plants"], 1) if b_info["plants"] > 0 else 0.0
+            chart_stems_pp_real.append(w_real_pp)
+            chart_stems_pp_target.append(avg_ideal_stems_pp)
+            chart_stems_pp_blocks.append(len(b_info["blocks"]))
 
         return {
             "kpis": {
                 "total_real_stems": total_real_stems_sum,
                 "total_plants": total_plants_sum,
                 "avg_real_stems_per_plant": avg_real_stems_pp,
+                "avg_ideal_stems_per_plant": avg_ideal_stems_pp,
                 "avg_cycle_weeks": avg_cycle,
                 "avg_waste_pct": avg_waste,
                 "total_dumps": total_dumps_sum,
-                "total_lots": len(table_rows),
+                "total_lots": len(flat_table_rows),
             },
-            "table_rows": table_rows,
+            "table_rows": flat_table_rows,
+            "grouped_products": grouped_products,
             "chart_relative": {
                 "labels": curve_labels,
                 "real_curve": chart_real_curve,
@@ -1408,6 +1515,14 @@ def get_statistics_data(
                 "labels": sorted_chrono_weeks,
                 "real_stems": chrono_real_data,
                 "agronomo_stems": chrono_agro_data,
+                "fulfillment_pct": chrono_fulfillment_pct,
+                "variation_pct": chrono_variation_pct,
+            },
+            "chart_stems_pp": {
+                "labels": sorted_closure_weeks,
+                "real_stems_pp": chart_stems_pp_real,
+                "target_stems_pp": chart_stems_pp_target,
+                "blocks_count": chart_stems_pp_blocks,
             },
             "available_years": available_years,
             "available_pms": available_pms,
