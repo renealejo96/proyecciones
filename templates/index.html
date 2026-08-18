@@ -556,9 +556,10 @@
         .cell-real-stems { font-weight: 800; color: var(--emerald-600); font-family: 'JetBrains Mono', monospace; }
 
         /* PARAMETER & WEEK COLUMNS (COMFORTABLE READABLE SIZING) */
-        .col-param-waste-ideal { width: 44px; min-width: 44px; max-width: 44px; }
-        .col-param-waste-ajust { width: 46px; min-width: 46px; max-width: 46px; }
-        .col-param-total-prog { width: 52px; min-width: 52px; max-width: 52px; }
+        .col-param-waste-ideal { width: 42px; min-width: 42px; max-width: 42px; }
+        .col-param-waste-ajust { width: 44px; min-width: 44px; max-width: 44px; }
+        .col-param-export-stems { width: 52px; min-width: 52px; max-width: 52px; font-weight: 700; }
+        .col-param-total-prod { width: 54px; min-width: 54px; max-width: 54px; font-weight: 700; color: #1e3a8a; }
         .col-param-real-stems { width: 44px; min-width: 44px; max-width: 44px; }
         
         .col-week-header,
@@ -985,7 +986,8 @@
                             
                             <th class="param-col col-param-waste-ideal">Desp.<br>Ideal</th>
                             <th class="param-col col-param-waste-ajust">Desp.<br>Ajust.</th>
-                            <th class="param-col col-param-total-prog" title="Total Producción Teórica = Plantas × T/pl">Total<br>Producción</th>
+                            <th class="param-col col-param-export-stems" title="Tallos Exportables = Plantas × T/pl × (1 - Desp.)">Tallos<br>Export.</th>
+                            <th class="param-col col-param-total-prod" title="Total Producción = Suma de toda la fila de cosechas">Total<br>Producción</th>
                             <th class="param-col col-param-real-stems">Real<br>T/pl</th>
                             
                             {% for week in weekly_view.week_columns %}
@@ -1027,7 +1029,8 @@
                                     
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
                                     <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}"></td>
-                                    <td class="param-col cell-program-total col-param-total-prog">{{ row.program_total }}</td>
+                                    <td class="param-col cell-program-total col-param-export-stems">{{ row.program_total }}</td>
+                                    <td class="param-col cell-total-prod col-param-total-prod">{{ row.window_total }}</td>
                                     <td class="param-col cell-real-stems col-param-real-stems">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
                                     {% for week in weekly_view.week_columns %}
@@ -1203,6 +1206,10 @@
             });
 
             row.querySelector('.cell-window-total').textContent = String(windowTotal);
+            const totalProdCell = row.querySelector('.cell-total-prod');
+            if (totalProdCell) {
+                totalProdCell.textContent = String(windowTotal);
+            }
 
             const realStemsCell = row.querySelector('.cell-real-stems');
             if (realStemsCell) {

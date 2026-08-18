@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tablero Estadístico - Rendimiento por Bloque y Subtotales por Semana</title>
+    <title>Tablero Estadístico - Rendimiento por Semana de Siembra y Bloques</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -317,14 +317,14 @@
         .chart-body {
             position: relative;
             width: 100%;
-            height: 220px;
+            height: 230px;
         }
 
         .chart-body.wide-body {
-            height: 240px;
+            height: 250px;
         }
 
-        /* DATA TABLE (PIVOT GRID WITH BLOCK & WEEK SUB-ROWS) */
+        /* DATA TABLE (PIVOT GRID WITH SOURCE WEEK & BLOCK BREAKDOWN) */
         .table-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
@@ -395,7 +395,7 @@
         .matrix-table-wrap {
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 55vh;
+            max-height: 58vh;
             border: 1px solid var(--pbi-slate-200);
             border-radius: 6px;
         }
@@ -451,6 +451,50 @@
             background: #e2e8f0 !important;
         }
 
+        /* LEVEL 2: SOURCE WEEK ROW (SEMANA DE SIEMBRA / PODA) */
+        tr.group-sw-row {
+            background: #e0f2fe !important;
+            cursor: pointer;
+            font-weight: 750;
+        }
+
+        tr.group-sw-row td {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-bottom: 1px solid #bae6fd;
+        }
+
+        tr.group-sw-row:hover td {
+            background-color: #bae6fd !important;
+        }
+
+        /* LEVEL 3: BLOCK ROW (BLOQUE INDIVIDUAL) */
+        tr.group-block-row {
+            cursor: pointer;
+        }
+
+        tr.group-block-row td {
+            background: #ffffff;
+            font-size: 0.73rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr.group-block-row:hover td {
+            background-color: #f8fafc !important;
+        }
+
+        /* LEVEL 4: HARVEST WEEK SUB-ROW (DETALLE DE SEMANA DE COSECHA) */
+        tr.group-harvest-row td {
+            background: #faf5ff !important;
+            font-size: 0.70rem;
+            color: var(--pbi-slate-700);
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        tr.group-harvest-row:hover td {
+            background-color: #f3e8ff !important;
+        }
+
         .toggle-icon {
             display: inline-block;
             width: 18px;
@@ -468,48 +512,38 @@
             user-select: none;
         }
 
-        .toggle-icon-sm {
+        .toggle-icon-sw {
             display: inline-block;
             width: 16px;
             height: 16px;
             line-height: 14px;
             text-align: center;
             background: #ffffff;
+            border: 1px solid #38bdf8;
+            border-radius: 3px;
+            margin-right: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #0284c7;
+            user-select: none;
+        }
+
+        .toggle-icon-sm {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            line-height: 13px;
+            text-align: center;
+            background: #ffffff;
             border: 1px solid var(--pbi-slate-300);
             border-radius: 3px;
             margin-right: 4px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.70rem;
+            font-size: 0.68rem;
             font-weight: 800;
-            color: var(--pbi-accent);
+            color: var(--pbi-purple);
             user-select: none;
-        }
-
-        /* LEVEL 2: BLOCK SUBTOTAL ROW */
-        tr.group-block-row {
-            cursor: pointer;
-        }
-
-        tr.group-block-row td {
-            background: #ffffff;
-            font-size: 0.73rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        tr.group-block-row:hover td {
-            background-color: #eff6ff !important;
-        }
-
-        /* LEVEL 3: HARVEST WEEK SUB-ROW (DETALLE DE SEMANA DE COSECHA) */
-        tr.group-harvest-row td {
-            background: #faf5ff !important;
-            font-size: 0.70rem;
-            color: var(--pbi-slate-700);
-            border-bottom: 1px dashed #e2e8f0;
-        }
-
-        tr.group-harvest-row:hover td {
-            background-color: #f3e8ff !important;
         }
 
         .badge-ac {
@@ -575,8 +609,8 @@
         <!-- DASHBOARD TITLE -->
         <div class="header-bar">
             <div class="dashboard-title">
-                <h1>📊 Tablero Estadístico & Rendimiento por Bloque y Semana</h1>
-                <p>Análisis de rendimiento real por bloque, detalle de tallos ingresados semana a semana y curvas de continuidad.</p>
+                <h1>📊 Tablero Estadístico & Rendimiento por Semana de Siembra</h1>
+                <p>Agrupación jerárquica por producto maestro, semana de siembra/poda y bloques con desglose semana a semana de cosecha.</p>
             </div>
         </div>
 
@@ -626,11 +660,11 @@
         <div class="kpi-grid">
             <div class="kpi-card kpi-emerald">
                 <div class="kpi-label">
-                    <span>🌸 Tallos Cosechados Reales</span>
-                    <span class="kpi-badge">Total Real</span>
+                    <span>🌸 Total Producción / Tallos</span>
+                    <span class="kpi-badge">Curva + Real</span>
                 </div>
                 <div class="kpi-value" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
-                <div class="kpi-sub">Total en bloques con cosecha</div>
+                <div class="kpi-sub">Total cosechado y proyectado</div>
             </div>
 
             <div class="kpi-card kpi-accent">
@@ -644,16 +678,16 @@
 
             <div class="kpi-card kpi-purple">
                 <div class="kpi-label">
-                    <span>📦 Bloques Cerrados</span>
-                    <span class="kpi-badge">Cierres</span>
+                    <span>📦 Bloques Monitoreados</span>
+                    <span class="kpi-badge">Bloques</span>
                 </div>
-                <div class="kpi-value" id="kpi-closed">{{ stats.kpis.total_closed_blocks }} <span style="font-size: 0.85rem; color: var(--pbi-slate-500);">/ {{ stats.kpis.total_lots }}</span></div>
-                <div class="kpi-sub">Bloques cerrados formalmente</div>
+                <div class="kpi-value" id="kpi-closed">{{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: var(--pbi-slate-500);">({{ stats.kpis.total_closed_blocks }} cerrados)</span></div>
+                <div class="kpi-sub">Total de bloques en evaluación</div>
             </div>
 
             <div class="kpi-card kpi-amber">
                 <div class="kpi-label">
-                    <span>⏱️ Ciclo Real Promedio</span>
+                    <span>⏱️ Ciclo Promedio</span>
                     <span class="kpi-badge">Semanas</span>
                 </div>
                 <div class="kpi-value" id="kpi-cycle">{{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span></div>
@@ -662,7 +696,7 @@
 
             <div class="kpi-card kpi-cyan">
                 <div class="kpi-label">
-                    <span>📉 Desperdicio Real</span>
+                    <span>📉 Desperdicio Promedio</span>
                     <span class="kpi-badge">% Merma</span>
                 </div>
                 <div class="kpi-value" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
@@ -694,11 +728,11 @@
                 </div>
             </div>
 
-            <!-- CHART 3: STEMS PER PLANT BY BLOCK VS TARGET META -->
+            <!-- CHART 3: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>🎯 Rendimiento T/Pl vs Meta por Bloque</h3>
-                    <span class="chart-tag">Tallos / Planta por Bloque</span>
+                    <h3>🎯 Rendimiento T/Pl vs Meta por Sem Siembra</h3>
+                    <span class="chart-tag">Eje X: Semanas de Siembra</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="stemsPpChart"></canvas>
@@ -717,13 +751,14 @@
             </div>
         </div>
 
-        <!-- PIVOT ACCORDION DATA TABLE WITH HARVEST WEEKS BREAKDOWN -->
+        <!-- PIVOT ACCORDION DATA TABLE WITH SOURCE WEEK HIERARCHY -->
         <div class="table-card">
             <div class="table-header-flex">
-                <h3>📋 Desglose de Rendimiento por Bloque y Semanas de Cosecha (Tabla Dinámica)</h3>
+                <h3>📋 Desglose de Rendimiento: Producto Maestro ➔ Semana Siembra/Poda ➔ Bloques ➔ Semanas Cosecha</h3>
                 <div style="display: flex; gap: 6px;">
-                    <button type="button" class="btn-table-action" id="btn-expand-all">➕ Desplegar Bloques</button>
-                    <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Semanas</button>
+                    <button type="button" class="btn-table-action" id="btn-expand-sw">📅 Desplegar Siembras</button>
+                    <button type="button" class="btn-table-action" id="btn-expand-blocks">📦 Desplegar Bloques</button>
+                    <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Todo</button>
                     <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
                 </div>
             </div>
@@ -732,7 +767,11 @@
             <div class="table-filters-toolbar">
                 <div class="t-filter-item">
                     <span>🔍 Bloque:</span>
-                    <input type="text" id="t-filter-block" class="t-filter-ctrl" placeholder="ej. 100" style="width: 70px;">
+                    <input type="text" id="t-filter-block" class="t-filter-ctrl" placeholder="ej. 13A o 100" style="width: 85px;">
+                </div>
+                <div class="t-filter-item">
+                    <span>📅 Sem. Orig:</span>
+                    <input type="text" id="t-filter-week" class="t-filter-ctrl" placeholder="ej. 2621" style="width: 75px;">
                 </div>
                 <div class="t-filter-item">
                     <span>🌸 Variedad:</span>
@@ -769,16 +808,15 @@
                 <table class="matrix-table" id="matrix-detail-table">
                     <thead>
                         <tr>
-                            <th class="col-left" style="width: 190px;">Bloque / Semana Cosecha</th>
+                            <th class="col-left" style="width: 200px;">Nivel / Estructura</th>
                             <th class="col-left" style="width: 170px;">Variedad / Detalle</th>
                             <th style="width: 65px;">Sem. Orig.</th>
                             <th style="width: 65px;">Actividad</th>
                             <th>Plantas</th>
-                            <th>Tallos Cosechados</th>
+                            <th>Total Producción</th>
                             <th>Real T/pl</th>
                             <th>Ideal T/pl</th>
                             <th>Ciclo Real</th>
-                            <th>Ciclo Ideal</th>
                             <th>Desp. %</th>
                             <th>Semanas Cosecha</th>
                             <th>Estado</th>
@@ -798,11 +836,10 @@
                                 <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                 <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                 <td><strong>{{ '{:,}'.format(grp.total_plants) }}</strong></td>
-                                <td style="color: var(--pbi-emerald);"><strong>{{ '{:,}'.format(grp.total_real_stems) }}</strong></td>
+                                <td style="color: var(--pbi-emerald);"><strong>{{ '{:,}'.format(grp.total_production) }}</strong></td>
                                 <td><span class="metric-real-pp {{ 'metric-optimal' if grp.avg_real_stems_pp >= grp.avg_ideal_stems_pp else 'metric-low' }}" style="font-size: 0.80rem;">{{ grp.avg_real_stems_pp }}</span></td>
                                 <td style="color: var(--pbi-slate-700); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
                                 <td><strong>{{ grp.avg_cycle_weeks }} sem</strong></td>
-                                <td style="color: var(--pbi-slate-600);">{{ grp.avg_ideal_cycle }} sem</td>
                                 <td>{{ grp.avg_waste_pct }}%</td>
                                 <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                 <td>
@@ -814,87 +851,130 @@
                                 </td>
                             </tr>
 
-                            <!-- LEVEL 2: INDIVIDUAL BLOCK SUBTOTAL ROWS -->
-                            {% for row in grp.lot_rows %}
-                                {% set block_uid = grp.product_master ~ '-' ~ row.block ~ '-' ~ row.source_week %}
-                                <tr class="group-block-row child-of-{{ grp.product_master }}"
+                            <!-- LEVEL 2: SOURCE WEEK SUB-GROUPS (SEMANA DE SIEMBRA / PODA) -->
+                            {% for sw_group in grp.source_week_groups %}
+                                {% set sw_uid = grp.product_master ~ '-' ~ sw_group.source_week ~ '-' ~ sw_group.activity %}
+                                <tr class="group-sw-row sw-of-{{ grp.product_master }}"
                                     style="display: none;"
-                                    data-pm="{{ row.product_master }}"
-                                    data-block="{{ row.block }}"
-                                    data-block-uid="{{ block_uid }}"
-                                    data-variety="{{ row.variety }}"
-                                    data-variety-display="{{ row.variety_display }}"
-                                    data-week="{{ row.source_week_short }}"
-                                    data-activity="{{ row.activity }}"
-                                    data-status="{{ row.status }}"
-                                    data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}"
-                                    onclick="toggleBlockWeeks('{{ block_uid }}')">
-                                    <td class="col-left" style="padding-left: 20px;">
-                                        {% if row.harvest_breakdown %}
-                                            <span class="toggle-icon-sm" id="icon-blk-{{ block_uid }}">+</span>
-                                        {% else %}
-                                            <span style="display: inline-block; width: 20px;"></span>
-                                        {% endif %}
-                                        <strong>Bloque {{ row.block }}</strong>
+                                    data-pm="{{ grp.product_master }}"
+                                    data-sw-uid="{{ sw_uid }}"
+                                    data-week="{{ sw_group.source_week_short }}"
+                                    data-activity="{{ sw_group.activity }}"
+                                    onclick="toggleSwGroup('{{ sw_uid }}')">
+                                    <td class="col-left" style="padding-left: 18px;">
+                                        <span class="toggle-icon-sw" id="icon-sw-{{ sw_uid }}">+</span>
+                                        <strong>📅 Sem. {{ sw_group.source_week_short }} ({{ sw_group.activity }})</strong>
                                     </td>
-                                    <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
-                                    <td><code>{{ row.source_week_short }}</code></td>
-                                    <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
-                                    <td>{{ '{:,}'.format(row.plants) }}</td>
-                                    <td style="color: var(--pbi-navy);"><strong>{{ '{:,}'.format(row.real_stems) }}</strong></td>
-                                    <td>
-                                        <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
-                                            {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
-                                        </span>
+                                    <td class="col-left" style="color: #0369a1; font-weight: 600;">
+                                        {{ sw_group.blocks_count }} bloque(s) sembrados
                                     </td>
-                                    <td style="color: var(--pbi-slate-600);">{{ row.ideal_stems_per_plant }}</td>
-                                    <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
-                                    <td style="color: var(--pbi-slate-600);">{{ row.ideal_cycle_weeks }} sem</td>
-                                    <td>{{ row.waste_pct }}%</td>
-                                    <td style="font-size: 0.68rem; color: var(--pbi-slate-600);">{{ row.harvest_weeks_str }}</td>
+                                    <td><code>{{ sw_group.source_week_short }}</code></td>
+                                    <td><span class="badge-ac {{ 'badge-s' if sw_group.activity == 'SIEMBRA' else 'badge-p' }}">{{ sw_group.activity }}</span></td>
+                                    <td><strong>{{ '{:,}'.format(sw_group.total_plants) }}</strong></td>
+                                    <td style="color: #0369a1; font-weight: 800;">{{ '{:,}'.format(sw_group.total_production) }}</td>
+                                    <td><span class="metric-real-pp {{ 'metric-optimal' if sw_group.avg_real_stems_pp >= sw_group.avg_ideal_stems_pp else 'metric-low' }}">{{ sw_group.avg_real_stems_pp }}</span></td>
+                                    <td style="color: var(--pbi-slate-700); font-weight: 700;">{{ sw_group.avg_ideal_stems_pp }}</td>
+                                    <td><strong>{{ sw_group.avg_cycle_weeks }} sem</strong></td>
+                                    <td>{{ sw_group.avg_waste_pct }}%</td>
+                                    <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                     <td>
-                                        {% if row.is_closed %}
-                                            <span class="badge-status-closed">✅ CERRADO</span>
-                                        {% elif row.has_real_data %}
-                                            <span class="badge-status-harvest">⏳ EN COSECHA</span>
+                                        {% if sw_group.closed_blocks_count == sw_group.blocks_count and sw_group.blocks_count > 0 %}
+                                            <span class="badge-status-closed">✅ Cerrado</span>
                                         {% else %}
-                                            <span class="badge-status-pending">⏳ PENDIENTE</span>
+                                            <span class="badge-status-harvest">{{ sw_group.closed_blocks_count }}/{{ sw_group.blocks_count }} Cerrados</span>
                                         {% endif %}
                                     </td>
                                 </tr>
 
-                                <!-- LEVEL 3: HARVEST WEEKS BREAKDOWN ROWS (DESGLOSE POR SEMANA DE COSECHA) -->
-                                {% for hw in row.harvest_breakdown %}
-                                    <tr class="group-harvest-row harvest-of-{{ block_uid }} child-of-{{ grp.product_master }}"
+                                <!-- LEVEL 3: INDIVIDUAL BLOCK ROWS OF THIS SOURCE WEEK -->
+                                {% for row in sw_group.blocks %}
+                                    {% set block_uid = sw_uid ~ '-' ~ row.block %}
+                                    <tr class="group-block-row blk-of-{{ sw_uid }} sw-child-of-{{ grp.product_master }}"
                                         style="display: none;"
                                         data-pm="{{ row.product_master }}"
                                         data-block="{{ row.block }}"
+                                        data-block-uid="{{ block_uid }}"
+                                        data-sw-uid="{{ sw_uid }}"
                                         data-variety="{{ row.variety }}"
-                                        data-week="{{ row.source_week_short }}">
-                                        <td class="col-left" style="padding-left: 44px; color: var(--pbi-purple); font-weight: 700;">
-                                            ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
+                                        data-variety-display="{{ row.variety_display }}"
+                                        data-week="{{ row.source_week_short }}"
+                                        data-activity="{{ row.activity }}"
+                                        data-status="{{ row.status }}"
+                                        data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}"
+                                        onclick="toggleBlockWeeks('{{ block_uid }}')">
+                                        <td class="col-left" style="padding-left: 36px;">
+                                            {% if row.harvest_breakdown %}
+                                                <span class="toggle-icon-sm" id="icon-blk-{{ block_uid }}">+</span>
+                                            {% else %}
+                                                <span style="display: inline-block; width: 18px;"></span>
+                                            {% endif %}
+                                            <strong>Bloque {{ row.block }}</strong>
                                         </td>
-                                        <td class="col-left" style="color: var(--pbi-slate-500); font-size: 0.68rem;">
-                                            Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
+                                        <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
+                                        <td><code>{{ row.source_week_short }}</code></td>
+                                        <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
+                                        <td>{{ '{:,}'.format(row.plants) }}</td>
+                                        <td style="color: var(--pbi-navy);"><strong>{{ '{:,}'.format(row.total_production) }}</strong></td>
+                                        <td>
+                                            <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
+                                                {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
+                                            </span>
                                         </td>
-                                        <td style="text-align: center; color: var(--pbi-slate-400);">{{ row.source_week_short }}</td>
-                                        <td style="text-align: center; color: var(--pbi-slate-400);">-</td>
-                                        <td style="color: var(--pbi-slate-400);">-</td>
-                                        <td style="color: var(--pbi-purple); font-weight: 700;">{{ '{:,}'.format(hw.real_stems) }}</td>
-                                        <td style="color: var(--pbi-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace;">{{ hw.real_stems_pp }}</td>
-                                        <td style="color: var(--pbi-slate-400);">-</td>
-                                        <td style="color: var(--pbi-slate-400);">-</td>
-                                        <td style="color: var(--pbi-slate-400);">-</td>
-                                        <td style="color: var(--pbi-slate-400);">-</td>
-                                        <td style="text-align: center; font-weight: 600; color: var(--pbi-purple);">Sem {{ hw.harvest_week_short }}</td>
-                                        <td><span class="badge-status-harvest" style="font-size: 0.58rem;">Corte Semanal</span></td>
+                                        <td style="color: var(--pbi-slate-600);">{{ row.ideal_stems_per_plant }}</td>
+                                        <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
+                                        <td>{{ row.waste_pct }}%</td>
+                                        <td style="font-size: 0.68rem; color: var(--pbi-slate-600);">{{ row.harvest_weeks_str }}</td>
+                                        <td>
+                                            {% if row.is_closed %}
+                                                <span class="badge-status-closed">✅ CERRADO</span>
+                                            {% elif row.has_real_data %}
+                                                <span class="badge-status-harvest">⏳ EN COSECHA</span>
+                                            {% else %}
+                                                <span class="badge-status-pending">⏳ PENDIENTE</span>
+                                            {% endif %}
+                                        </td>
                                     </tr>
+
+                                    <!-- LEVEL 4: HARVEST WEEKS BREAKDOWN ROWS (DESGLOSE SEMANA A SEMANA DE COSECHA) -->
+                                    {% for hw in row.harvest_breakdown %}
+                                        <tr class="group-harvest-row harvest-of-{{ block_uid }} blk-child-of-{{ sw_uid }} sw-grandchild-of-{{ grp.product_master }}"
+                                            style="display: none;"
+                                            data-pm="{{ row.product_master }}"
+                                            data-block="{{ row.block }}"
+                                            data-variety="{{ row.variety }}"
+                                            data-week="{{ row.source_week_short }}">
+                                            <td class="col-left" style="padding-left: 56px; color: var(--pbi-purple); font-weight: 700;">
+                                                ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
+                                            </td>
+                                            <td class="col-left" style="color: var(--pbi-slate-500); font-size: 0.68rem;">
+                                                Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
+                                            </td>
+                                            <td style="text-align: center; color: var(--pbi-slate-400);">{{ row.source_week_short }}</td>
+                                            <td style="text-align: center; color: var(--pbi-slate-400);">-</td>
+                                            <td style="color: var(--pbi-slate-400);">-</td>
+                                            <td style="color: var(--pbi-purple); font-weight: 700;">{{ '{:,}'.format(hw.stems) }}</td>
+                                            <td style="color: var(--pbi-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace;">{{ hw.stems_pp }}</td>
+                                            <td style="color: var(--pbi-slate-400);">-</td>
+                                            <td style="color: var(--pbi-slate-400);">-</td>
+                                            <td style="color: var(--pbi-slate-400);">-</td>
+                                            <td style="text-align: center; font-weight: 600; color: var(--pbi-purple);">Sem {{ hw.harvest_week_short }}</td>
+                                            <td>
+                                                {% if hw.source == 'REAL' %}
+                                                    <span class="badge-status-closed" style="font-size: 0.58rem;">✅ Real Cosechado</span>
+                                                {% elif hw.source == 'AGRONOMO' %}
+                                                    <span class="badge-status-harvest" style="font-size: 0.58rem;">📝 Estimado Agrónomo</span>
+                                                {% else %}
+                                                    <span class="badge-status-pending" style="font-size: 0.58rem;">🔮 Curva Modelo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
                                 {% endfor %}
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="13" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
-                                    No se encontraron bloques con cierres o cosechas para los filtros seleccionados.
+                                <td colspan="12" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
+                                    No se encontraron registros de siembras o cosechas para los filtros seleccionados.
                                 </td>
                             </tr>
                         {% endfor %}
@@ -938,18 +1018,35 @@
 
         // PIVOT ACCORDION TOGGLE FUNCTIONS
         function togglePmGroup(pm) {
-            const blockRows = document.querySelectorAll(`.group-block-row.child-of-${pm}`);
+            const swRows = document.querySelectorAll(`.sw-of-${pm}`);
             const icon = document.getElementById(`icon-pm-${pm}`);
-            if (!blockRows.length || !icon) return;
+            if (!swRows.length || !icon) return;
 
-            const isCurrentlyHidden = blockRows[0].style.display === 'none';
-            blockRows.forEach(row => {
+            const isCurrentlyHidden = swRows[0].style.display === 'none';
+            swRows.forEach(row => {
                 row.style.display = isCurrentlyHidden ? '' : 'none';
             });
-            // If collapsing master PM, hide all harvest week sub-rows too
             if (!isCurrentlyHidden) {
-                document.querySelectorAll(`.group-harvest-row.child-of-${pm}`).forEach(hr => hr.style.display = 'none');
-                document.querySelectorAll(`[id^="icon-blk-${pm}"]`).forEach(bi => bi.textContent = '+');
+                document.querySelectorAll(`.sw-child-of-${pm}`).forEach(r => r.style.display = 'none');
+                document.querySelectorAll(`.sw-grandchild-of-${pm}`).forEach(r => r.style.display = 'none');
+                document.querySelectorAll(`[id^="icon-sw-${pm}"]`).forEach(i => i.textContent = '+');
+                document.querySelectorAll(`[id^="icon-blk-${pm}"]`).forEach(i => i.textContent = '+');
+            }
+            icon.textContent = isCurrentlyHidden ? '−' : '+';
+        }
+
+        function toggleSwGroup(swUid) {
+            const blkRows = document.querySelectorAll(`.blk-of-${swUid}`);
+            const icon = document.getElementById(`icon-sw-${swUid}`);
+            if (!blkRows.length || !icon) return;
+
+            const isCurrentlyHidden = blkRows[0].style.display === 'none';
+            blkRows.forEach(row => {
+                row.style.display = isCurrentlyHidden ? '' : 'none';
+            });
+            if (!isCurrentlyHidden) {
+                document.querySelectorAll(`.blk-child-of-${swUid}`).forEach(r => r.style.display = 'none');
+                document.querySelectorAll(`[id^="icon-blk-${swUid}"]`).forEach(i => i.textContent = '+');
             }
             icon.textContent = isCurrentlyHidden ? '−' : '+';
         }
@@ -966,12 +1063,26 @@
             icon.textContent = isCurrentlyHidden ? '−' : '+';
         }
 
-        const btnExpandAll = document.getElementById('btn-expand-all');
-        if (btnExpandAll) {
-            btnExpandAll.addEventListener('click', () => {
+        const btnExpandSw = document.getElementById('btn-expand-sw');
+        if (btnExpandSw) {
+            btnExpandSw.addEventListener('click', () => {
+                document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
+                document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
+                document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
+            });
+        }
+
+        const btnExpandBlocks = document.getElementById('btn-expand-blocks');
+        if (btnExpandBlocks) {
+            btnExpandBlocks.addEventListener('click', () => {
+                document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
+                document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
             });
         }
@@ -979,9 +1090,11 @@
         const btnExpandWeeks = document.getElementById('btn-expand-weeks');
         if (btnExpandWeeks) {
             btnExpandWeeks.addEventListener('click', () => {
+                document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
+                document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '−');
             });
         }
@@ -989,15 +1102,18 @@
         const btnCollapseAll = document.getElementById('btn-collapse-all');
         if (btnCollapseAll) {
             btnCollapseAll.addEventListener('click', () => {
+                document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '+');
+                document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
             });
         }
 
         // INLINE TABLE FILTERS HANDLER
         const filterBlock = document.getElementById('t-filter-block');
+        const filterWeek = document.getElementById('t-filter-week');
         const filterVar = document.getElementById('t-filter-variety');
         const filterAc = document.getElementById('t-filter-ac');
         const filterStatus = document.getElementById('t-filter-status');
@@ -1006,58 +1122,76 @@
 
         function applyTableFilters() {
             const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
+            const weekQ = (filterWeek ? filterWeek.value : '').toLowerCase().trim();
             const varQ = (filterVar ? filterVar.value : '').toLowerCase().trim();
             const acQ = (filterAc ? filterAc.value : '').trim();
             const statusQ = (filterStatus ? filterStatus.value : '').trim();
             const perfQ = (filterPerf ? filterPerf.value : '').trim();
 
-            const isFiltering = blkQ || varQ || acQ || statusQ || perfQ;
+            const isFiltering = blkQ || weekQ || varQ || acQ || statusQ || perfQ;
 
             document.querySelectorAll('.group-master-row').forEach(masterRow => {
                 const pm = masterRow.dataset.pm;
-                const blockRows = document.querySelectorAll(`.group-block-row.child-of-${pm}`);
-                let visibleCount = 0;
+                const swRows = document.querySelectorAll(`.sw-of-${pm}`);
+                let pmVisibleCount = 0;
 
-                blockRows.forEach(blockRow => {
-                    const rowBlk = (blockRow.dataset.block || '').toLowerCase();
-                    const rowVar = (blockRow.dataset.variety || '' + ' ' + blockRow.dataset.varietyDisplay || '').toLowerCase();
-                    const rowAc = blockRow.dataset.activity || '';
-                    const rowStatus = blockRow.dataset.status || '';
-                    const rowPerf = blockRow.dataset.perf || '';
-                    const blockUid = blockRow.dataset.blockUid;
+                swRows.forEach(swRow => {
+                    const swUid = swRow.dataset.swUid;
+                    const blkRows = document.querySelectorAll(`.blk-of-${swUid}`);
+                    let swVisibleCount = 0;
 
-                    let match = true;
-                    if (blkQ && !rowBlk.includes(blkQ)) match = false;
-                    if (varQ && !rowVar.includes(varQ)) match = false;
-                    if (acQ && rowAc !== acQ) match = false;
-                    if (statusQ && rowStatus !== statusQ) match = false;
-                    if (perfQ && rowPerf !== perfQ) match = false;
+                    blkRows.forEach(blockRow => {
+                        const rowBlk = (blockRow.dataset.block || '').toLowerCase();
+                        const rowWeek = (blockRow.dataset.week || '').toLowerCase();
+                        const rowVar = (blockRow.dataset.variety || '' + ' ' + blockRow.dataset.varietyDisplay || '').toLowerCase();
+                        const rowAc = blockRow.dataset.activity || '';
+                        const rowStatus = blockRow.dataset.status || '';
+                        const rowPerf = blockRow.dataset.perf || '';
+                        const blockUid = blockRow.dataset.blockUid;
 
-                    blockRow.style.display = match ? '' : 'none';
-                    if (match) visibleCount++;
+                        let match = true;
+                        if (blkQ && !rowBlk.includes(blkQ)) match = false;
+                        if (weekQ && !rowWeek.includes(weekQ)) match = false;
+                        if (varQ && !rowVar.includes(varQ)) match = false;
+                        if (acQ && rowAc !== acQ) match = false;
+                        if (statusQ && rowStatus !== statusQ) match = false;
+                        if (perfQ && rowPerf !== perfQ) match = false;
 
-                    // If block is hidden, hide its harvest sub-rows
-                    const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
-                    if (!match) {
-                        harvestRows.forEach(hr => hr.style.display = 'none');
+                        blockRow.style.display = match ? '' : 'none';
+                        if (match) swVisibleCount++;
+
+                        const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
+                        if (!match) {
+                            harvestRows.forEach(hr => hr.style.display = 'none');
+                        }
+                    });
+
+                    if (isFiltering) {
+                        swRow.style.display = swVisibleCount > 0 ? '' : 'none';
+                        const iconSw = document.getElementById(`icon-sw-${swUid}`);
+                        if (iconSw) iconSw.textContent = swVisibleCount > 0 ? '−' : '+';
+                        if (swVisibleCount > 0) pmVisibleCount++;
+                    } else {
+                        swRow.style.display = 'none';
+                        blkRows.forEach(b => b.style.display = 'none');
+                        const iconSw = document.getElementById(`icon-sw-${swUid}`);
+                        if (iconSw) iconSw.textContent = '+';
                     }
                 });
 
                 if (isFiltering) {
-                    masterRow.style.display = visibleCount > 0 ? '' : 'none';
-                    const icon = document.getElementById(`icon-pm-${pm}`);
-                    if (icon) icon.textContent = visibleCount > 0 ? '−' : '+';
+                    masterRow.style.display = pmVisibleCount > 0 ? '' : 'none';
+                    const iconPm = document.getElementById(`icon-pm-${pm}`);
+                    if (iconPm) iconPm.textContent = pmVisibleCount > 0 ? '−' : '+';
                 } else {
                     masterRow.style.display = '';
-                    blockRows.forEach(c => c.style.display = 'none');
-                    document.querySelectorAll(`.group-harvest-row.child-of-${pm}`).forEach(hr => hr.style.display = 'none');
-                    const icon = document.getElementById(`icon-pm-${pm}`);
-                    if (icon) icon.textContent = '+';
+                    const iconPm = document.getElementById(`icon-pm-${pm}`);
+                    if (iconPm) iconPm.textContent = '+';
                 }
             });
         }
 
-        [filterBlock, filterVar, filterAc, filterStatus, filterPerf].forEach(ctrl => {
+        [filterBlock, filterWeek, filterVar, filterAc, filterStatus, filterPerf].forEach(ctrl => {
             if (ctrl) {
                 ctrl.addEventListener('input', applyTableFilters);
                 ctrl.addEventListener('change', applyTableFilters);
@@ -1067,6 +1201,7 @@
         if (filterReset) {
             filterReset.addEventListener('click', () => {
                 if (filterBlock) filterBlock.value = '';
+                if (filterWeek) filterWeek.value = '';
                 if (filterVar) filterVar.value = '';
                 if (filterAc) filterAc.value = '';
                 if (filterStatus) filterStatus.value = '';
@@ -1143,7 +1278,7 @@
                     datasets: [
                         {
                             type: 'bar',
-                            label: 'Tallos Reales',
+                            label: 'Tallos Reales Cosechados',
                             data: chartChronoData.real_stems,
                             backgroundColor: '#059669',
                             borderRadius: 4,
@@ -1223,7 +1358,7 @@
             });
         }
 
-        // 3. RENDER CHART 3: STEMS PER PLANT BY BLOCK VS TARGET META
+        // 3. RENDER CHART 3: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
             const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
@@ -1237,7 +1372,7 @@
                     labels: chartStemsPpData.labels,
                     datasets: [
                         {
-                            label: 'Real T/pl Bloque',
+                            label: 'Rendimiento T/pl Sem. Siembra',
                             data: chartStemsPpData.real_stems_pp,
                             borderColor: '#0284c7',
                             backgroundColor: 'rgba(2, 132, 199, 0.08)',
@@ -1265,6 +1400,9 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
+                    layout: {
+                        padding: { left: 4, right: 10, top: 4, bottom: 8 }
+                    },
                     plugins: {
                         legend: {
                             position: 'top',
@@ -1287,7 +1425,16 @@
                             ticks: { callback: function(v) { return v + ' T/pl'; }, font: { family: 'JetBrains Mono', size: 9 } },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
-                        x: { ticks: { font: { family: 'JetBrains Mono', size: 8, weight: '600' } }, grid: { display: false } }
+                        x: {
+                            ticks: {
+                                font: { family: 'JetBrains Mono', size: 9, weight: '700' },
+                                maxRotation: 45,
+                                minRotation: 0,
+                                autoSkip: false,
+                                padding: 6,
+                            },
+                            grid: { display: false }
+                        }
                     }
                 }
             });
