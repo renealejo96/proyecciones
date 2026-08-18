@@ -885,6 +885,7 @@
                         <button type="button" class="dropdown-btn" id="ops-menu-btn">⚡ Opciones ▼</button>
                         <div class="dropdown-menu" id="ops-dropdown-menu">
                             <button type="button" class="dropdown-item" id="menu-save-all">💾 Guardar Todo en Excel</button>
+                            <button type="button" class="dropdown-item" id="menu-toggle-params">👁️ Mostrar / Ocultar Parámetros</button>
                             <button type="button" class="dropdown-item" onclick="location.href='/?sync_db=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">🗄️ Sincronizar PostgreSQL</button>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">🌾 Vista Llenado Agrónomo</a>
@@ -916,6 +917,8 @@
             <div class="variety-header">
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
                 <div class="chips">
+                    <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Mostrar u ocultar columnas de parámetros (Ciclos, T/pl, Desperdicio, Totales)">👁️ Ocultar Parámetros</button>
+                    <button type="button" id="reset-filters-btn" class="toggle-params-btn" style="color: var(--slate-600);" title="Limpiar los filtros rápidos de columna">🔄 Limpiar Filtros</button>
                     <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
                     <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
                     <div class="chip">Podas: <span id="chip-total-podas">{{ weekly_view.totals_by_activity.PODA }}</span></div>
@@ -1967,9 +1970,11 @@
             });
         }
 
-        // Auto-hide parameter columns on smaller screens by default (< 900px)
-        let paramsVisible = window.innerWidth >= 900;
+        // Auto-hide parameter columns on smaller screens by default (< 1100px) or remember user preference
+        let savedParamsPref = localStorage.getItem('proyecciones_params_visible');
+        let paramsVisible = savedParamsPref !== null ? (savedParamsPref === 'true') : (window.innerWidth >= 1100);
         const toggleParamsBtn = document.getElementById('toggle-params-btn');
+        const menuToggleParams = document.getElementById('menu-toggle-params');
         
         function updateParamsVisibility() {
             document.querySelectorAll('.table-wrap').forEach((wrap) => {
@@ -1980,14 +1985,26 @@
             });
             if (toggleParamsBtn) {
                 toggleParamsBtn.textContent = paramsVisible ? '👁️ Ocultar Parámetros' : '👁️ Mostrar Parámetros';
+                toggleParamsBtn.style.background = paramsVisible ? '#ffffff' : '#e0f2fe';
+                toggleParamsBtn.style.color = paramsVisible ? 'var(--header-bg)' : '#0284c7';
+                toggleParamsBtn.style.borderColor = paramsVisible ? 'var(--slate-300)' : '#38bdf8';
+            }
+            if (menuToggleParams) {
+                menuToggleParams.textContent = paramsVisible ? '👁️ Ocultar Parámetros Fila' : '👁️ Mostrar Parámetros Fila';
             }
         }
 
+        function toggleParams() {
+            paramsVisible = !paramsVisible;
+            localStorage.setItem('proyecciones_params_visible', String(paramsVisible));
+            updateParamsVisibility();
+        }
+
         if (toggleParamsBtn) {
-            toggleParamsBtn.addEventListener('click', () => {
-                paramsVisible = !paramsVisible;
-                updateParamsVisibility();
-            });
+            toggleParamsBtn.addEventListener('click', toggleParams);
+        }
+        if (menuToggleParams) {
+            menuToggleParams.addEventListener('click', toggleParams);
         }
         updateParamsVisibility();
 
