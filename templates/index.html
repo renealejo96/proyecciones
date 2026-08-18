@@ -286,16 +286,16 @@
         }
 
         .summary-table {
-            width: 100%;
-            min-width: 850px;
+            width: max-content;
             border-collapse: collapse;
             font-size: 0.72rem;
         }
         .summary-table th, .summary-table td {
-            padding: 4px 6px;
+            padding: 3px 6px;
             border-bottom: 1px solid var(--slate-200);
             border-right: 1px solid var(--slate-200);
             text-align: right;
+            white-space: nowrap;
         }
         .summary-table th {
             background: var(--header-bg);
@@ -449,7 +449,6 @@
 
         table {
             width: max-content;
-            min-width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             background: #fff;
@@ -556,6 +555,33 @@
         .param-col { background: var(--slate-50); }
         .cell-real-stems { font-weight: 800; color: var(--emerald-600); font-family: 'JetBrains Mono', monospace; }
 
+        /* PARAMETER & WEEK COLUMNS (COMPACT SIZING) */
+        .col-param-waste-ideal { width: 42px; min-width: 42px; max-width: 42px; }
+        .col-param-waste-ajust { width: 46px; min-width: 46px; max-width: 46px; }
+        .col-param-total-prog { width: 50px; min-width: 50px; max-width: 50px; }
+        .col-param-real-stems { width: 44px; min-width: 44px; max-width: 44px; }
+        
+        .col-week-header,
+        th.js-week-total,
+        td.week-cell,
+        td.subtotal-week-val {
+            width: 44px !important;
+            min-width: 44px !important;
+            max-width: 44px !important;
+            padding: 1px 1px !important;
+            box-sizing: border-box !important;
+        }
+
+        .col-total-final,
+        th.js-master-total,
+        td.cell-window-total,
+        td.subtotal-variety-window-val {
+            width: 54px !important;
+            min-width: 54px !important;
+            max-width: 54px !important;
+            font-weight: 800 !important;
+        }
+
         /* WHEN PARAMETERS ARE HIDDEN (.hide-params):
            ALL columns right of Plantas (columns 8..15) hide!
            Column 7 (Plantas) becomes the frozen boundary!
@@ -576,8 +602,7 @@
         tbody tr:hover td { background-color: var(--blue-50) !important; }
         tbody tr:hover td.sticky-col { background-color: var(--blue-50) !important; }
 
-        .edit-input,
-        .week-input {
+        .edit-input {
             box-sizing: border-box;
             width: 100%;
             max-width: 100%;
@@ -591,6 +616,23 @@
             text-align: right;
             outline: none;
             margin: 0;
+            display: block;
+        }
+
+        .week-input {
+            box-sizing: border-box;
+            width: 42px;
+            max-width: 42px;
+            height: 22px;
+            border: 1px solid var(--slate-300);
+            border-radius: 4px;
+            background: #ffffff;
+            padding: 1px 1px;
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            outline: none;
+            margin: 0 auto;
             display: block;
         }
 
@@ -886,9 +928,9 @@
                             <th colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="4" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
-                                <th class="js-week-total" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
+                                <th class="js-week-total col-week-header" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
                             {% endfor %}
-                            <th class="js-master-total">{{ weekly_view.grand_total }}</th>
+                            <th class="js-master-total col-total-final">{{ weekly_view.grand_total }}</th>
                         </tr>
                         <tr class="header-row">
                             <th class="sticky-col sticky-1">Cierre</th>
@@ -937,15 +979,15 @@
                             <th class="sticky-col sticky-10 param-col">T/pl<br>Ideal</th>
                             <th class="sticky-col sticky-11 param-col">T/pl<br>Ajust.</th>
                             
-                            <th class="param-col">Desp.<br>Ideal %</th>
-                            <th class="param-col">Desp.<br>Ajust. %</th>
-                            <th class="param-col">Total<br>Export.</th>
-                            <th class="param-col">Real<br>T/pl</th>
+                            <th class="param-col col-param-waste-ideal">Desp.<br>Ideal %</th>
+                            <th class="param-col col-param-waste-ajust">Desp.<br>Ajust. %</th>
+                            <th class="param-col col-param-total-prog">Total<br>Export.</th>
+                            <th class="param-col col-param-real-stems">Real<br>T/pl</th>
                             
                             {% for week in weekly_view.week_columns %}
-                                <th>{{ week.label }}</th>
+                                <th class="col-week-header">{{ week.label }}</th>
                             {% endfor %}
-                            <th>Total</th>
+                            <th class="col-total-final">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -974,10 +1016,10 @@
                                     <td class="sticky-col sticky-10 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
                                     <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ row.stems_per_plant }}"></td>
                                     
-                                    <td class="param-col">{{ '%.2f'|format(row.ideal_waste_rate * 100) }}</td>
-                                    <td class="param-col"><input class="edit-input input-waste" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round(1) }}"></td>
-                                    <td class="param-col cell-program-total">{{ row.program_total }}</td>
-                                    <td class="param-col cell-real-stems">{{ '%.2f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
+                                    <td class="param-col col-param-waste-ideal">{{ '%.2f'|format(row.ideal_waste_rate * 100) }}</td>
+                                    <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round(1) }}"></td>
+                                    <td class="param-col cell-program-total col-param-total-prog">{{ row.program_total }}</td>
+                                    <td class="param-col cell-real-stems col-param-real-stems">{{ '%.2f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
@@ -995,14 +1037,14 @@
                                             {% set cell_cls = 'status-model' %}
                                             {% set cell_stat = 'MODELO' %}
                                         {% endif %}
-                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
+                                        <td class="week-cell col-week-header {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
                                             {% if page_mode == 'REAL' %}
                                                 <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
                                             {% endif %}
                                             <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
                                         </td>
                                     {% endfor %}
-                                    <td class="cell-window-total">{{ row.window_total }}</td>
+                                    <td class="cell-window-total col-total-final">{{ row.window_total }}</td>
                                 </tr>
                             {% endfor %}
 
@@ -1013,9 +1055,9 @@
                                 </td>
                                 <td colspan="4" class="param-col"></td>
                                 {% for week in weekly_view.week_columns %}
-                                    <td class="subtotal-week-val" data-week-label="{{ week.label }}">0</td>
+                                    <td class="subtotal-week-val col-week-header" data-week-label="{{ week.label }}">0</td>
                                 {% endfor %}
-                                <td class="subtotal-variety-window-val">0</td>
+                                <td class="subtotal-variety-window-val col-total-final">0</td>
                             </tr>
                         {% endfor %}
                     </tbody>
