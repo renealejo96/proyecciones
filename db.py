@@ -220,13 +220,28 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Automatic migration: ensure is_dump column exists in week_adjustments
+    # Automatic migration: ensure is_dump and dump_stems columns exist in week_adjustments
     with engine.connect() as conn:
         try:
             conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;"))
             conn.commit()
         except Exception:
-            pass
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN is_dump BOOLEAN DEFAULT FALSE;"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN dump_stems INTEGER DEFAULT 0;"))
+                conn.commit()
+            except Exception:
+                pass
+
     db = SessionLocal()
     try:
         meta = db.query(AppMetaDB).filter_by(key="data_version").first()
