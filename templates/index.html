@@ -473,8 +473,10 @@
             background: var(--totals-bg) !important;
             color: var(--totals-text) !important;
             font-weight: 800;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             border-bottom: 2px solid #f59e0b !important;
+            padding: 3px 2px;
+            white-space: nowrap;
         }
 
         tr.header-row th {
@@ -484,13 +486,17 @@
             background: var(--header-bg) !important;
             color: var(--header-text) !important;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-size: 0.68rem;
+            letter-spacing: 0.02em;
+            font-size: 0.64rem;
             font-weight: 700;
             border-bottom: 2px solid #1d4ed8 !important;
+            white-space: normal;
+            line-height: 1.12;
+            padding: 3px 2px;
+            vertical-align: middle;
         }
 
-        /* STICKY FROZEN LEFT COLUMNS 1 THROUGH 10 */
+        /* STICKY FROZEN LEFT COLUMNS 1 THROUGH 11 */
         .sticky-col {
             position: sticky;
             z-index: 10;
@@ -509,23 +515,35 @@
             color: var(--totals-text) !important;
         }
 
-        /* OFFSETS FOR STICKY COLUMNS 1 TO 10 */
-        .sticky-1 { left: 0px; width: 34px; min-width: 34px; max-width: 34px; }
-        .sticky-2 { left: 34px; width: 38px; min-width: 38px; max-width: 38px; }
-        .sticky-3 { left: 72px; width: 56px; min-width: 56px; max-width: 56px; font-family: 'JetBrains Mono', monospace; }
-        .sticky-4 { left: 128px; width: 66px; min-width: 66px; max-width: 66px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
-        .sticky-5 { left: 194px; width: 88px; min-width: 88px; max-width: 88px; }
-        .sticky-6 { left: 282px; width: 62px; min-width: 62px; max-width: 62px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-        .sticky-7 { left: 344px; width: 54px; min-width: 54px; max-width: 54px; }
-        .sticky-8 { left: 398px; width: 64px; min-width: 64px; max-width: 64px; }
-        .sticky-9 { left: 462px; width: 56px; min-width: 56px; max-width: 56px; }
-        
-        /* COLUMN 10 (T/pl Ajust.) IS THE FROZEN BOUNDARY WHEN PARAMS ARE VISIBLE */
-        .sticky-10 { 
-            left: 518px; 
-            width: 64px; 
-            min-width: 64px; 
-            max-width: 64px;
+        /* OFFSETS FOR STICKY COLUMNS:
+           1: Cierre (32px, left: 0)
+           2: AC (34px, left: 32px)
+           3: Sem. Origen (48px, left: 66px)
+           4: Sem. Cosecha (48px, left: 114px)
+           5: Bloque (48px, left: 162px)
+           6: Variedad (115px, left: 210px)
+           7: Plantas (56px, left: 325px)
+           --- Parameters (when visible) ---
+           8: Ciclo Ideal (44px, left: 381px)
+           9: Ciclo Ajust. (48px, left: 425px)
+           10: T/pl Ideal (44px, left: 473px)
+           11: T/pl Ajust. (48px, left: 517px)
+        */
+        .sticky-1 { left: 0px; width: 32px; min-width: 32px; max-width: 32px; }
+        .sticky-2 { left: 32px; width: 34px; min-width: 34px; max-width: 34px; }
+        .sticky-3 { left: 66px; width: 48px; min-width: 48px; max-width: 48px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .sticky-4 { left: 114px; width: 48px; min-width: 48px; max-width: 48px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1e40af; font-size: 0.72rem; }
+        .sticky-5 { left: 162px; width: 48px; min-width: 48px; max-width: 48px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
+        .sticky-6 { left: 210px; width: 115px; min-width: 115px; max-width: 115px; text-align: left; padding-left: 5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sticky-7 { left: 325px; width: 56px; min-width: 56px; max-width: 56px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .sticky-8 { left: 381px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-9 { left: 425px; width: 48px; min-width: 48px; max-width: 48px; }
+        .sticky-10 { left: 473px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-11 { 
+            left: 517px; 
+            width: 48px; 
+            min-width: 48px; 
+            max-width: 48px;
             box-shadow: var(--shadow-sticky);
             border-right: 2px solid #64748b !important;
         }
@@ -534,15 +552,15 @@
         .cell-real-stems { font-weight: 800; color: var(--emerald-600); font-family: 'JetBrains Mono', monospace; }
 
         /* WHEN PARAMETERS ARE HIDDEN (.hide-params):
-           ALL columns right of Plantas (columns 7..14) hide!
-           Column 6 (Plantas) becomes the frozen boundary!
+           ALL columns right of Plantas (columns 8..15) hide!
+           Column 7 (Plantas) becomes the frozen boundary!
         */
         .hide-params .param-col { display: none !important; }
-        .hide-params .sticky-6 {
+        .hide-params .sticky-7 {
             box-shadow: var(--shadow-sticky) !important;
             border-right: 2px solid #64748b !important;
         }
-        .hide-params .sticky-10 {
+        .hide-params .sticky-11 {
             box-shadow: none !important;
             border-right: 1px solid var(--slate-200) !important;
         }
@@ -725,6 +743,7 @@
     <!-- DATALISTS FOR NATIVE HYBRID SEARCH/SELECT -->
     <datalist id="block-datalist"></datalist>
     <datalist id="week-datalist"></datalist>
+    <datalist id="harvest-week-datalist"></datalist>
 
     <main class="page">
         <nav class="main-menu">
@@ -854,7 +873,7 @@
                 <table class="projection-table master-table">
                     <thead>
                         <tr class="totals-row">
-                            <th colspan="10" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
+                            <th colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="4" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
                                 <th class="js-week-total" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
@@ -866,46 +885,52 @@
                             <th class="sticky-col sticky-2" title="Actividad: S = Siembra, P = Poda">
                                 <div class="header-filter-cell">
                                     <span>AC</span>
-                                    <select id="h-filter-ac" class="h-filter-ctrl" style="width: 32px;">
+                                    <select id="h-filter-ac" class="h-filter-ctrl" style="width: 30px;">
                                         <option value="">(T)</option>
                                         <option value="SIEMBRA">S</option>
                                         <option value="PODA">P</option>
                                     </select>
                                 </div>
                             </th>
-                            <th class="sticky-col sticky-3">
+                            <th class="sticky-col sticky-3" title="Semana origen de Siembra o Poda">
                                 <div class="header-filter-cell">
-                                    <span>Sem.</span>
-                                    <input type="text" id="h-filter-week" list="week-datalist" class="h-filter-ctrl" placeholder="🔍" style="width: 38px;">
+                                    <span>Sem.<br>Orig.</span>
+                                    <input type="text" id="h-filter-week" list="week-datalist" class="h-filter-ctrl" placeholder="🔍" style="width: 36px;">
                                 </div>
                             </th>
-                            <th class="sticky-col sticky-4">
+                            <th class="sticky-col sticky-4" title="Semana estimada en que entra a punteo / cosecha">
                                 <div class="header-filter-cell">
-                                    <span>Bloque</span>
-                                    <input type="text" id="h-filter-block" list="block-datalist" class="h-filter-ctrl" placeholder="🔍 86..." style="width: 44px;">
+                                    <span style="color: #93c5fd;">Sem.<br>Cose.</span>
+                                    <input type="text" id="h-filter-harvest-week" list="harvest-week-datalist" class="h-filter-ctrl" placeholder="🔍" style="width: 36px;">
                                 </div>
                             </th>
                             <th class="sticky-col sticky-5">
                                 <div class="header-filter-cell">
+                                    <span>Bloque</span>
+                                    <input type="text" id="h-filter-block" list="block-datalist" class="h-filter-ctrl" placeholder="🔍 41" style="width: 40px;">
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-6">
+                                <div class="header-filter-cell">
                                     <span>Variedad</span>
-                                    <select id="h-filter-variety" class="h-filter-ctrl" style="width: 72px;">
+                                    <select id="h-filter-variety" class="h-filter-ctrl" style="width: 95px;">
                                         <option value="">(Todas)</option>
                                         {% for v in weekly_view.varieties %}
-                                            <option value="{{ v.variety }}">{{ v.variety }}</option>
+                                            <option value="{{ v.variety }}">{{ v.variety_display or v.variety }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </th>
-                            <th class="sticky-col sticky-6">Plantas</th>
-                            <th class="sticky-col sticky-7 param-col">Ciclo Ideal</th>
-                            <th class="sticky-col sticky-8 param-col">Ciclo Ajust.</th>
-                            <th class="sticky-col sticky-9 param-col">T/pl Ideal</th>
-                            <th class="sticky-col sticky-10 param-col">T/pl Ajust.</th>
+                            <th class="sticky-col sticky-7">Plantas</th>
+                            <th class="sticky-col sticky-8 param-col">Ciclo<br>Ideal</th>
+                            <th class="sticky-col sticky-9 param-col">Ciclo<br>Ajust.</th>
+                            <th class="sticky-col sticky-10 param-col">T/pl<br>Ideal</th>
+                            <th class="sticky-col sticky-11 param-col">T/pl<br>Ajust.</th>
                             
-                            <th class="param-col">Desp. Ideal %</th>
-                            <th class="param-col">Desp. Ajust. %</th>
-                            <th class="param-col">Total Export.</th>
-                            <th class="param-col">Real T/pl</th>
+                            <th class="param-col">Desp.<br>Ideal %</th>
+                            <th class="param-col">Desp.<br>Ajust. %</th>
+                            <th class="param-col">Total<br>Export.</th>
+                            <th class="param-col">Real<br>T/pl</th>
                             
                             {% for week in weekly_view.week_columns %}
                                 <th>{{ week.label }}</th>
@@ -921,20 +946,23 @@
                                     data-activity="{{ row.activity }}"
                                     data-source-week="{{ row.source_week }}"
                                     data-source-week-short="{{ row.source_week_short }}"
+                                    data-harvest-week-short="{{ row.harvest_start_week_short }}"
                                     data-product-master="{{ row.product_master }}"
                                     data-variety="{{ variety.variety }}"
+                                    data-variety-display="{{ row.variety_display or variety.variety_display or variety.variety }}"
                                     data-block="{{ row.block }}"
                                     data-curve="{{ row.curve_csv }}">
                                     <td class="sticky-col sticky-1"><input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }}></td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                     <td class="sticky-col sticky-3">{{ row.source_week_short }}</td>
-                                    <td class="sticky-col sticky-4 block-col">{{ row.block }}</td>
-                                    <td class="sticky-col sticky-5">{{ variety.variety }}</td>
-                                    <td class="sticky-col sticky-6 plants-cell">{{ row.plants }}</td>
-                                    <td class="sticky-col sticky-7 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
-                                    <td class="sticky-col sticky-8 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
-                                    <td class="sticky-col sticky-9 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
-                                    <td class="sticky-col sticky-10 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ row.stems_per_plant }}"></td>
+                                    <td class="sticky-col sticky-4 harvest-start-col" title="Semana estimada en que entra a punteo / cosecha">{{ row.harvest_start_week_short }}</td>
+                                    <td class="sticky-col sticky-5 block-col">{{ row.block }}</td>
+                                    <td class="sticky-col sticky-6" title="{{ row.variety }}">{{ row.variety_display or variety.variety_display or variety.variety }}</td>
+                                    <td class="sticky-col sticky-7 plants-cell">{{ row.plants }}</td>
+                                    <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
+                                    <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
+                                    <td class="sticky-col sticky-10 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
+                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ row.stems_per_plant }}"></td>
                                     
                                     <td class="param-col">{{ '%.2f'|format(row.ideal_waste_rate * 100) }}</td>
                                     <td class="param-col"><input class="edit-input input-waste" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round(1) }}"></td>
@@ -957,7 +985,7 @@
                                             {% set cell_cls = 'status-model' %}
                                             {% set cell_stat = 'MODELO' %}
                                         {% endif %}
-                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '') }}">
+                                        <td class="week-cell {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
                                             {% if page_mode == 'REAL' %}
                                                 <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
                                             {% endif %}
@@ -970,8 +998,8 @@
 
                             <!-- IN-TABLE VARIETY SUBTOTAL ROW -->
                             <tr class="variety-subtotal-row" data-variety="{{ variety.variety }}">
-                                <td colspan="10" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
-                                    <strong>📊 Subtotal {{ variety.variety }}</strong>
+                                <td colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
+                                    <strong>📊 Subtotal {{ variety.variety_display or variety.variety }}</strong>
                                 </td>
                                 <td colspan="4" class="param-col"></td>
                                 {% for week in weekly_view.week_columns %}
@@ -1078,6 +1106,15 @@
             const desiredCycle = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.input-cycle').value) || 0));
             const sourceWeek = Math.round(Number.parseFloat(row.dataset.sourceWeek) || 0);
             const curve = parseCurve(row.dataset.curve);
+
+            // Update Semana de Cosecha (Punteo) cell
+            const harvestStartWeek = shiftWeek(sourceWeek, desiredCycle);
+            const harvestStartShort = String(harvestStartWeek).slice(-4);
+            const harvestStartCell = row.querySelector('.harvest-start-col');
+            if (harvestStartCell) {
+                harvestStartCell.textContent = harvestStartShort;
+            }
+            row.dataset.harvestWeekShort = harvestStartShort;
 
             const baseExportable = Math.round(plants * stemsPerPlant * (1 - wasteRate));
             row.querySelector('.cell-program-total').textContent = String(baseExportable);
@@ -1273,23 +1310,33 @@
             targetTable.innerHTML = html;
         }
 
+        let allKnownBlocks = new Set();
+        let allKnownWeeks = new Set();
+        let allKnownHarvestWeeks = new Set();
+
         function populateFilterDatalists() {
-            const availableBlocks = new Set();
-            const availableWeeks = new Set();
+            allKnownBlocks.clear();
+            allKnownWeeks.clear();
+            allKnownHarvestWeeks.clear();
 
             document.querySelectorAll('.projection-row').forEach(row => {
-                if (row.dataset.block) availableBlocks.add(row.dataset.block);
-                if (row.dataset.sourceWeekShort) availableWeeks.add(row.dataset.sourceWeekShort);
-                else if (row.dataset.sourceWeek) availableWeeks.add(row.dataset.sourceWeek);
+                if (row.dataset.block) allKnownBlocks.add(row.dataset.block.toLowerCase().trim());
+                if (row.dataset.sourceWeekShort) allKnownWeeks.add(row.dataset.sourceWeekShort.toLowerCase().trim());
+                else if (row.dataset.sourceWeek) allKnownWeeks.add(String(row.dataset.sourceWeek).toLowerCase().trim());
+                if (row.dataset.harvestWeekShort) allKnownHarvestWeeks.add(row.dataset.harvestWeekShort.toLowerCase().trim());
             });
 
             const blockDl = document.getElementById('block-datalist');
             if (blockDl) {
-                blockDl.innerHTML = Array.from(availableBlocks).sort().map(b => `<option value="${b}">`).join('');
+                blockDl.innerHTML = Array.from(allKnownBlocks).sort().map(b => `<option value="${b.toUpperCase()}">`).join('');
             }
             const weekDl = document.getElementById('week-datalist');
             if (weekDl) {
-                weekDl.innerHTML = Array.from(availableWeeks).sort().map(w => `<option value="${w}">`).join('');
+                weekDl.innerHTML = Array.from(allKnownWeeks).sort().map(w => `<option value="${w}">`).join('');
+            }
+            const harvestWeekDl = document.getElementById('harvest-week-datalist');
+            if (harvestWeekDl) {
+                harvestWeekDl.innerHTML = Array.from(allKnownHarvestWeeks).sort().map(w => `<option value="${w}">`).join('');
             }
         }
 
@@ -1302,6 +1349,7 @@
             const filterVarietyVal = (document.getElementById('h-filter-variety')?.value || '').trim();
             const filterAcVal = (document.getElementById('h-filter-ac')?.value || '').trim();
             const filterWeekVal = (document.getElementById('h-filter-week')?.value || '').toLowerCase().trim();
+            const filterHarvestWeekVal = (document.getElementById('h-filter-harvest-week')?.value || '').toLowerCase().trim();
 
             const summaryData = {};
             let visibleRowsCount = 0;
@@ -1317,18 +1365,48 @@
             const varietyTotalsMap = {};
 
             masterTable.querySelectorAll('.projection-row').forEach((row) => {
-                const blockName = (row.dataset.block || '').toLowerCase();
+                const blockName = (row.dataset.block || '').toLowerCase().trim();
                 const varietyName = row.dataset.variety || '';
+                const varietyDisplay = row.dataset.varietyDisplay || '';
                 const activityName = row.dataset.activity || '';
-                const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase();
+                const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase().trim();
+                const harvestWeekShort = (row.dataset.harvestWeekShort || '').toLowerCase().trim();
 
-                // Multi-Column Filter Matching
-                const matchBlock = !filterBlockVal || blockName.includes(filterBlockVal);
-                const matchVariety = !filterVarietyVal || varietyName === filterVarietyVal;
+                // Multi-Column Filter Matching:
+                // Exact block match when value equals an existing block, otherwise substring
+                let matchBlock = true;
+                if (filterBlockVal) {
+                    if (allKnownBlocks.has(filterBlockVal)) {
+                        matchBlock = (blockName === filterBlockVal);
+                    } else {
+                        matchBlock = blockName.includes(filterBlockVal);
+                    }
+                }
+
+                // Exact week match when value equals an existing week, otherwise substring
+                let matchWeek = true;
+                if (filterWeekVal) {
+                    if (allKnownWeeks.has(filterWeekVal)) {
+                        matchWeek = (weekShort === filterWeekVal || (row.dataset.sourceWeek && String(row.dataset.sourceWeek) === filterWeekVal));
+                    } else {
+                        matchWeek = weekShort.includes(filterWeekVal);
+                    }
+                }
+
+                // Harvest week match
+                let matchHarvestWeek = true;
+                if (filterHarvestWeekVal) {
+                    if (allKnownHarvestWeeks.has(filterHarvestWeekVal)) {
+                        matchHarvestWeek = (harvestWeekShort === filterHarvestWeekVal);
+                    } else {
+                        matchHarvestWeek = harvestWeekShort.includes(filterHarvestWeekVal);
+                    }
+                }
+
+                const matchVariety = !filterVarietyVal || (varietyName === filterVarietyVal || varietyDisplay === filterVarietyVal);
                 const matchAc = !filterAcVal || activityName === filterAcVal;
-                const matchWeek = !filterWeekVal || weekShort.includes(filterWeekVal);
 
-                const isVisible = matchBlock && matchVariety && matchAc && matchWeek;
+                const isVisible = matchBlock && matchVariety && matchAc && matchWeek && matchHarvestWeek;
                 row.style.display = isVisible ? '' : 'none';
 
                 if (!isVisible) return;
@@ -1532,10 +1610,10 @@
             }, 2200);
         }
 
-        async function resetWeekCellToModel(row, cell) {
-            if (pageMode !== 'AGRONOMO') return;
-            const input = cell.querySelector('.week-input');
-            if (input && input.disabled) return;
+        async function resetWeekCell(row, cell, explicitMode = null) {
+            const targetMode = explicitMode || activeWeekMode;
+            const currentStatus = cell.dataset.status;
+            const isBlockedByReal = (pageMode === 'AGRONOMO' && currentStatus === 'REAL');
 
             const body = {
                 activity: row.dataset.activity,
@@ -1545,7 +1623,9 @@
                 source_week: String(row.dataset.sourceWeek),
                 harvest_week: String(cell.dataset.weekCode),
                 value: null,
-                mode: 'AGRONOMO',
+                mode: targetMode,
+                reset: true,
+                reset_all: isBlockedByReal,
             };
 
             try {
@@ -1556,7 +1636,7 @@
                 });
                 const result = await parseApiResponse(response);
                 if (!response.ok || !result.ok) {
-                    throw new Error(result.message || 'No se pudo restaurar valor de fábrica.');
+                    throw new Error(result.message || 'No se pudo restaurar celda.');
                 }
                 cell.dataset.status = result.weekly_status || 'MODELO';
                 if (result.is_dump !== undefined) {
@@ -1568,12 +1648,12 @@
 
                 // Visual flash animation & notification
                 cell.classList.remove('flash-restored');
-                void cell.offsetWidth; // trigger reflow
+                void cell.offsetWidth;
                 cell.classList.add('flash-restored');
                 setTimeout(() => cell.classList.remove('flash-restored'), 1000);
-                showToast('🔄 Celda restaurada al valor de fábrica (estimado)');
+                showToast('🔄 Celda restaurada al cálculo del modelo');
             } catch (error) {
-                console.error("Error resetting week cell to model:", error);
+                console.error("Error resetting week cell:", error);
                 showToast('❌ ' + error.message);
             }
         }
@@ -1584,11 +1664,14 @@
             const mode = activeWeekMode;
             const isDump = (cell.dataset.isDump === 'true' || cell.dataset.status === 'DUMP');
 
-            let value = null;
-            if (rawVal !== '') {
-                value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
-                input.value = String(value);
+            if (rawVal === '') {
+                // If user leaves cell empty, reset it back to factory model calculation
+                await resetWeekCell(row, cell, mode);
+                return;
             }
+
+            const value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
+            input.value = String(value);
 
             const body = {
                 activity: row.dataset.activity,
@@ -1667,7 +1750,7 @@
         }
 
         // Interactive Column Header Filters Event Listeners
-        ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week'].forEach(id => {
+        ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
             const ctrl = document.getElementById(id);
             if (ctrl) {
                 ctrl.addEventListener('input', recalcAll);
@@ -1678,7 +1761,7 @@
         const resetFiltersBtn = document.getElementById('reset-filters-btn');
         if (resetFiltersBtn) {
             resetFiltersBtn.addEventListener('click', () => {
-                ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week'].forEach(id => {
+                ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
                     const ctrl = document.getElementById(id);
                     if (ctrl) ctrl.value = '';
                 });
@@ -1695,7 +1778,7 @@
                 wrap.classList.toggle('hide-params', !paramsVisible);
             });
             document.querySelectorAll('.totals-title-col').forEach((th) => {
-                th.colSpan = paramsVisible ? 10 : 6;
+                th.colSpan = paramsVisible ? 11 : 7;
             });
             if (toggleParamsBtn) {
                 toggleParamsBtn.textContent = paramsVisible ? '👁️ Ocultar Parámetros' : '👁️ Mostrar Parámetros';
@@ -1803,44 +1886,40 @@
             });
         });
 
-        // DOUBLE CLICK & DOUBLE TAP TO RESTORE FACTORY ESTIMATE (ONLY IN AGRONOMO TAB)
-        if (pageMode === 'AGRONOMO') {
-            document.querySelectorAll('.week-cell').forEach((cell) => {
-                const input = cell.querySelector('.week-input');
+        // DOUBLE CLICK & DOUBLE TAP TO RESTORE (BOTH IN AGRONOMO AND REAL TABS)
+        document.querySelectorAll('.week-cell').forEach((cell) => {
+            const input = cell.querySelector('.week-input');
 
-                const handleReset = async (e) => {
-                    if (input && input.disabled) return;
+            const handleReset = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const row = cell.closest('.projection-row');
+                if (row) {
+                    await resetWeekCell(row, cell);
+                }
+            };
+
+            cell.addEventListener('dblclick', handleReset);
+            if (input) {
+                input.addEventListener('dblclick', handleReset);
+            }
+
+            // Double-tap support for mobile/tablet touch screens
+            let lastTapTime = 0;
+            cell.addEventListener('touchend', async (e) => {
+                const currentTime = Date.now();
+                const tapLength = currentTime - lastTapTime;
+                if (tapLength > 0 && tapLength < 350) {
                     e.preventDefault();
                     e.stopPropagation();
                     const row = cell.closest('.projection-row');
                     if (row) {
-                        await resetWeekCellToModel(row, cell);
+                        await resetWeekCell(row, cell);
                     }
-                };
-
-                cell.addEventListener('dblclick', handleReset);
-                if (input) {
-                    input.addEventListener('dblclick', handleReset);
                 }
-
-                // Double-tap support for mobile/tablet touch screens
-                let lastTapTime = 0;
-                cell.addEventListener('touchend', async (e) => {
-                    const currentTime = Date.now();
-                    const tapLength = currentTime - lastTapTime;
-                    if (tapLength > 0 && tapLength < 350) {
-                        if (input && input.disabled) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const row = cell.closest('.projection-row');
-                        if (row) {
-                            await resetWeekCellToModel(row, cell);
-                        }
-                    }
-                    lastTapTime = currentTime;
-                });
+                lastTapTime = currentTime;
             });
-        }
+        });
 
         applyWeekCellEditLocks();
 

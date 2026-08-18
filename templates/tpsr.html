@@ -38,6 +38,7 @@
 
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
         }
 
         * { box-sizing: border-box; }
@@ -52,15 +53,15 @@
 
         .page {
             width: 100%;
-            max-width: 1550px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 16px;
+            padding: 12px;
         }
 
         .main-menu {
             display: flex;
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -95,7 +96,7 @@
             border: 1px solid var(--slate-200);
             border-radius: 12px;
             box-shadow: var(--shadow-md);
-            padding: 20px;
+            padding: 16px;
             margin-bottom: 16px;
         }
 
@@ -105,29 +106,58 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
+            margin-bottom: 12px;
         }
 
         h1 {
             margin: 0;
-            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            font-size: clamp(1.15rem, 2.5vw, 1.45rem);
             font-weight: 800;
             color: var(--navy-brand);
             letter-spacing: -0.02em;
         }
 
         p {
-            margin: 6px 0 16px;
+            margin: 4px 0 0;
             color: var(--slate-600);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-create {
+            background: var(--navy-brand);
+            color: #ffffff;
+            border: none;
+            border-radius: 9999px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 3px 8px rgba(30, 58, 138, 0.25);
+            transition: all 0.15s ease;
+        }
+
+        .btn-create:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
         }
 
         /* Upload Card Widget */
         .upload-card {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
             border: 2px dashed var(--slate-300);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
             transition: border-color 0.2s ease, background-color 0.2s ease;
         }
 
@@ -139,7 +169,7 @@
         .upload-flex {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
         }
 
@@ -148,8 +178,8 @@
             color: #ffffff;
             border: none;
             border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.85rem;
+            padding: 7px 14px;
+            font-size: 0.8rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -165,14 +195,14 @@
         }
 
         .upload-info {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--slate-600);
         }
 
         /* Upload Results Box */
         .upload-results {
-            margin-top: 12px;
-            padding: 12px;
+            margin-top: 10px;
+            padding: 10px;
             background: #ffffff;
             border: 1px solid var(--slate-200);
             border-radius: 8px;
@@ -182,18 +212,18 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .stat-box {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 6px;
             text-align: center;
             font-weight: 700;
         }
-        .stat-box .num { font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; }
-        .stat-box .lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-box .num { font-size: 1.1rem; font-family: 'JetBrains Mono', monospace; }
+        .stat-box .lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .stat-new { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .stat-updated { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
@@ -203,21 +233,21 @@
         .mismatches-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.78rem;
-            margin-top: 8px;
+            font-size: 0.76rem;
+            margin-top: 6px;
         }
         .mismatches-table th, .mismatches-table td {
-            padding: 6px 8px;
+            padding: 5px 8px;
             border: 1px solid var(--slate-200);
             text-align: left;
         }
         .mismatches-table th { background: var(--amber-50); color: #78350f; }
 
-        /* Table & Controls */
+        /* Filter Toolbar */
         .filter-bar {
             display: flex;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
             background: var(--slate-50);
@@ -226,13 +256,36 @@
             border: 1px solid var(--slate-200);
         }
 
-        .filter-bar input {
+        .filter-bar input,
+        .filter-bar select {
             border: 1px solid var(--slate-300);
             border-radius: 6px;
-            padding: 5px 10px;
-            font-size: 0.82rem;
+            padding: 4px 8px;
+            font-size: 0.78rem;
             outline: none;
             background: #ffffff;
+        }
+
+        .filter-btn-submit {
+            background: var(--navy-brand);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .filter-btn-clear {
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            text-decoration: none;
         }
 
         .table-wrap {
@@ -240,22 +293,22 @@
             overflow-y: auto;
             max-height: 65vh;
             border: 1px solid var(--slate-300);
-            border-radius: 10px;
+            border-radius: 8px;
             background: #ffffff;
             box-shadow: var(--shadow-sm);
         }
 
         table.tpsr-grid {
             width: 100%;
-            min-width: 1000px;
+            min-width: 1050px;
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             background: #fff;
         }
 
         table.tpsr-grid th, table.tpsr-grid td {
-            padding: 8px 10px;
+            padding: 5px 8px;
             border-bottom: 1px solid var(--slate-200);
             border-right: 1px solid var(--slate-200);
             text-align: left;
@@ -267,23 +320,50 @@
             background: var(--navy-brand);
             color: #ffffff;
             text-transform: uppercase;
-            font-size: 0.68rem;
+            font-size: 0.64rem;
             font-weight: 700;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.03em;
             position: sticky;
             top: 0;
             z-index: 10;
+            line-height: 1.15;
+        }
+
+        .header-filter-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: flex-start;
+        }
+
+        .header-filter-cell span {
+            font-size: 0.62rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .h-filter-ctrl {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            background: #ffffff;
+            color: var(--slate-900);
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 2px 3px;
+            outline: none;
+            box-sizing: border-box;
         }
 
         tr:nth-child(even) td { background-color: var(--slate-50); }
-        tr:hover td { background-color: var(--slate-100); }
+        tr:hover td { background-color: var(--blue-50) !important; }
 
         .edit-input {
-            width: 85px;
+            width: 75px;
             border: 1px solid var(--slate-300);
             border-radius: 5px;
-            padding: 4px 6px;
-            font-size: 0.8rem;
+            padding: 2px 4px;
+            font-size: 0.76rem;
             font-family: 'JetBrains Mono', monospace;
             text-align: right;
             outline: none;
@@ -299,7 +379,7 @@
         .badge-ac {
             display: inline-block;
             border-radius: 4px;
-            padding: 2px 6px;
+            padding: 2px 5px;
             font-size: 0.68rem;
             font-weight: 800;
             font-family: 'JetBrains Mono', monospace;
@@ -307,35 +387,49 @@
         .badge-s { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .badge-p { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 
-        .save-btn {
+        .btn-action-edit {
+            border: 1px solid #93c5fd;
+            border-radius: 5px;
+            background: #eff6ff;
+            color: #1e40af;
+            font-weight: 700;
+            padding: 3px 7px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-action-edit:hover { background: #dbeafe; color: #1d4ed8; }
+
+        .btn-action-save {
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
             background: var(--emerald-600);
             color: #ffffff;
             font-weight: 700;
-            padding: 5px 10px;
-            font-size: 0.74rem;
+            padding: 3px 7px;
+            font-size: 0.72rem;
             cursor: pointer;
+            margin-left: 3px;
         }
-        .save-btn:hover { background: var(--emerald-500); }
+        .btn-action-save:hover { background: var(--emerald-500); }
 
-        .del-btn {
+        .btn-action-del {
             border: 1px solid var(--slate-300);
-            border-radius: 6px;
+            border-radius: 5px;
             background: #ffffff;
             color: var(--rose-600);
             font-weight: 700;
-            padding: 5px 9px;
-            font-size: 0.74rem;
+            padding: 3px 6px;
+            font-size: 0.72rem;
             cursor: pointer;
-            margin-left: 4px;
+            margin-left: 3px;
         }
-        .del-btn:hover { background: var(--rose-600); color: #ffffff; }
+        .btn-action-del:hover { background: var(--rose-600); color: #ffffff; }
 
         .save-status {
             display: inline-block;
-            margin-left: 4px;
-            font-size: 0.72rem;
+            margin-left: 3px;
+            font-size: 0.7rem;
             font-weight: 600;
             color: var(--slate-500);
         }
@@ -344,28 +438,201 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 12px;
+            margin-top: 10px;
             flex-wrap: wrap;
             gap: 8px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
         }
 
         .page-btn {
             border: 1px solid var(--slate-300);
             background: #ffffff;
             border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 0.8rem;
+            padding: 4px 9px;
+            font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
             color: var(--slate-700);
         }
         .page-btn:hover { background: var(--slate-100); }
-        .page-btn.disabled { opacity: 0.5; pointer-events: none; }
+
+        /* MODAL STYLES */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 520px;
+            border: 1px solid var(--slate-200);
+            animation: modalFadeIn 0.2s ease-out;
+            overflow: hidden;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            background: var(--navy-brand);
+            color: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        .modal-close-btn:hover { opacity: 1; }
+
+        .modal-body {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .modal-form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .modal-form-group label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate-600);
+        }
+
+        .modal-form-group input,
+        .modal-form-group select {
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            outline: none;
+            background: #ffffff;
+            color: var(--slate-900);
+        }
+
+        .modal-form-group input:focus,
+        .modal-form-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .modal-footer {
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-200);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-modal-cancel {
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            cursor: pointer;
+        }
+
+        .btn-modal-save {
+            background: var(--emerald-600);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-modal-save:hover { background: var(--emerald-500); }
+
+        /* Toast Notify */
+        .toast-notify {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        .toast-notify.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
+    <!-- DATALISTS FOR TPSR AUTOCOMPLETE -->
+    <datalist id="tpsr-block-datalist"></datalist>
+    <datalist id="tpsr-week-datalist"></datalist>
+    <datalist id="tpsr-variety-datalist">
+        {% for v in available_varieties %}
+            <option value="{{ v }}">
+        {% endfor %}
+    </datalist>
+    <datalist id="tpsr-pm-datalist">
+        {% for pm in available_pms %}
+            <option value="{{ pm }}">
+        {% endfor %}
+    </datalist>
+
     <main class="page">
         <nav class="main-menu">
             <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
@@ -378,7 +645,12 @@
             <div class="header-flex">
                 <div>
                     <h1>🌱 Gestión de Plantaciones TPSR (PostgreSQL)</h1>
-                    <p>Base de Datos Postgres | Carga semanal sin duplicados, validación automática de correcciones y edición en tiempo real.</p>
+                    <p>Base de Datos Postgres | Carga semanal, filtros por columna en cabecera y edición integral de plantaciones.</p>
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="btn-create" id="btn-open-create-modal">
+                        ➕ Nueva Plantación
+                    </button>
                 </div>
             </div>
 
@@ -434,60 +706,104 @@
                 </div>
             </div>
 
-            <!-- Filter & Search Bar -->
-            <form class="filter-bar" method="GET" action="/tpsr">
-                <label>🔍 Buscar:</label>
-                <input type="text" name="search" value="{{ search_query }}" placeholder="Variedad, bloque, producto..." style="width: 250px;">
-                <button class="save-btn" type="submit">Filtrar</button>
-                {% if search_query %}
-                    <a class="page-btn" href="/tpsr">Limpiar</a>
-                {% endif %}
-                <span style="font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-left: auto;">
-                    Registros Totales en DB: {{ total_records }}
+            <!-- Filter & Search Bar with Server Query and Reset -->
+            <form class="filter-bar" id="tpsr-filter-form" method="GET" action="/tpsr">
+                <label><strong>🔍 Filtro Rápido Servidor:</strong></label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Buscar en todas las columnas..." style="width: 220px;">
+                <input type="hidden" name="ac" id="form-filter-ac" value="{{ filter_ac }}">
+                <input type="hidden" name="semana" id="form-filter-week" value="{{ filter_week }}">
+                <input type="hidden" name="pm" id="form-filter-pm" value="{{ filter_pm }}">
+                <input type="hidden" name="variedad" id="form-filter-variety" value="{{ filter_variety }}">
+                <input type="hidden" name="bloque" id="form-filter-block" value="{{ filter_block }}">
+                <button class="filter-btn-submit" type="submit">🔍 Consultar Servidor</button>
+                <button class="filter-btn-clear" type="button" id="btn-clear-all-filters">🔄 Limpiar Filtros</button>
+                <span style="font-size: 0.76rem; font-weight: 700; color: var(--slate-600); margin-left: auto;">
+                    Filas en Página: <span id="tpsr-visible-count">{{ tpsr_rows|length }}</span> | Total Base Datos: {{ total_records }}
                 </span>
             </form>
 
             <div class="table-wrap">
-                <table class="tpsr-grid">
+                <table class="tpsr-grid" id="tpsr-main-table">
                     <thead>
                         <tr>
-                            <th>ID DB</th>
-                            <th>Actividad</th>
-                            <th>Semana Origen</th>
-                            <th>Producto Maestro</th>
-                            <th>Variedad</th>
-                            <th>Bloque (Editable)</th>
-                            <th>Ubicación Cama</th>
-                            <th>Plantas (Editable)</th>
-                            <th>Acciones</th>
+                            <th style="width: 45px;">ID</th>
+                            <th style="width: 75px;">
+                                <div class="header-filter-cell">
+                                    <span>Actividad</span>
+                                    <select id="tpsr-h-filter-ac" class="h-filter-ctrl" style="width: 65px;">
+                                        <option value="">(Todas)</option>
+                                        <option value="SIEMBRA" {{ 'selected' if filter_ac == 'SIEMBRA' else '' }}>Siembra</option>
+                                        <option value="PODA" {{ 'selected' if filter_ac == 'PODA' else '' }}>Poda</option>
+                                    </select>
+                                </div>
+                            </th>
+                            <th style="width: 65px;">
+                                <div class="header-filter-cell">
+                                    <span>Sem. Orig.</span>
+                                    <input type="text" id="tpsr-h-filter-week" list="tpsr-week-datalist" value="{{ filter_week }}" class="h-filter-ctrl" placeholder="🔍 Sem" style="width: 55px;">
+                                </div>
+                            </th>
+                            <th style="width: 100px;">
+                                <div class="header-filter-cell">
+                                    <span>Producto</span>
+                                    <select id="tpsr-h-filter-pm" class="h-filter-ctrl" style="width: 90px;">
+                                        <option value="">(Todos)</option>
+                                        {% for pm in available_pms %}
+                                            <option value="{{ pm }}" {{ 'selected' if filter_pm == pm else '' }}>{{ pm }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </th>
+                            <th style="width: 130px;">
+                                <div class="header-filter-cell">
+                                    <span>Variedad</span>
+                                    <input type="text" id="tpsr-h-filter-variety" list="tpsr-variety-datalist" value="{{ filter_variety }}" class="h-filter-ctrl" placeholder="🔍 Variedad" style="width: 115px;">
+                                </div>
+                            </th>
+                            <th style="width: 65px;">
+                                <div class="header-filter-cell">
+                                    <span>Bloque</span>
+                                    <input type="text" id="tpsr-h-filter-block" list="tpsr-block-datalist" value="{{ filter_block }}" class="h-filter-ctrl" placeholder="🔍 41" style="width: 55px;">
+                                </div>
+                            </th>
+                            <th style="width: 80px;">Cama / Poda</th>
+                            <th style="width: 85px;">Plantas</th>
+                            <th style="width: 155px;">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tpsr-tbody">
                         {% for row in tpsr_rows %}
                             <tr class="tpsr-row"
                                 data-row-index="{{ row.row_index }}"
                                 data-activity="{{ row.activity }}"
                                 data-product-master="{{ row.product_master }}"
                                 data-variety="{{ row.variety }}"
-                                data-source-week="{{ row.source_week }}">
+                                data-variety-display="{{ row.variety_display or row.variety }}"
+                                data-source-week="{{ row.source_week }}"
+                                data-source-week-short="{{ row.source_week_short }}"
+                                data-block="{{ row.block }}"
+                                data-bed-location="{{ row.bed_location }}"
+                                data-pruning-number="{{ row.pruning_number }}"
+                                data-plants="{{ row.plants }}">
                                 <td><code>#{{ row.row_index }}</code></td>
                                 <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
                                 <td><strong>{{ row.source_week_short }}</strong></td>
                                 <td>{{ row.product_master }}</td>
-                                <td><strong>{{ row.variety }}</strong></td>
-                                <td><input class="edit-input input-block" type="text" value="{{ row.block }}" style="width: 90px; text-align: left;"></td>
-                                <td>{{ row.bed_location }}</td>
-                                <td><input class="edit-input input-plants" type="number" min="0" step="1" inputmode="numeric" value="{{ row.plants }}"></td>
+                                <td title="{{ row.variety }}"><strong>{{ row.variety_display or row.variety }}</strong></td>
+                                <td><input class="edit-input input-block" type="text" value="{{ row.block }}" style="width: 60px; text-align: left;"></td>
+                                <td><span style="font-size: 0.72rem; color: var(--slate-600);">{{ row.bed_location or '-' }}{% if row.pruning_number %} (P{{ row.pruning_number }}){% endif %}</span></td>
+                                <td><input class="edit-input input-plants" type="number" min="0" step="1" inputmode="numeric" value="{{ row.plants }}" style="width: 75px;"></td>
                                 <td>
-                                    <button class="save-btn" type="button">💾 Guardar</button>
-                                    <button class="del-btn" type="button">🗑️ Eliminar</button>
+                                    <button class="btn-action-edit" type="button" title="Editar actividad, semana, variedad, etc. en menú completo">✏️ Editar</button>
+                                    <button class="btn-action-save" type="button" title="Guardar bloque y plantas rápido">💾</button>
+                                    <button class="btn-action-del" type="button" title="Eliminar registro de PostgreSQL">🗑️</button>
                                     <span class="save-status"></span>
                                 </td>
                             </tr>
                         {% else %}
                             <tr>
                                 <td colspan="9" style="text-align: center; padding: 20px; color: var(--slate-500);">
-                                    No se encontraron registros de plantaciones en la base de datos.
+                                    No se encontraron registros de plantaciones con los filtros seleccionados.
                                 </td>
                             </tr>
                         {% endfor %}
@@ -500,15 +816,76 @@
                 <div>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></div>
                 <div style="display: flex; gap: 4px;">
                     {% if page > 1 %}
-                        <a class="page-btn" href="/tpsr?page={{ page - 1 }}&search={{ search_query }}">◀ Anterior</a>
+                        <a class="page-btn" href="/tpsr?page={{ page - 1 }}&search={{ search_query }}&ac={{ filter_ac }}&semana={{ filter_week }}&pm={{ filter_pm }}&variedad={{ filter_variety }}&bloque={{ filter_block }}">◀ Anterior</a>
                     {% endif %}
                     {% if page < total_pages %}
-                        <a class="page-btn" href="/tpsr?page={{ page + 1 }}&search={{ search_query }}">Siguiente ▶</a>
+                        <a class="page-btn" href="/tpsr?page={{ page + 1 }}&search={{ search_query }}&ac={{ filter_ac }}&semana={{ filter_week }}&pm={{ filter_pm }}&variedad={{ filter_variety }}&bloque={{ filter_block }}">Siguiente ▶</a>
                     {% endif %}
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- DEDICATED EDIT & CREATE MODAL MENU FOR TPSR -->
+    <div class="modal-backdrop" id="tpsr-modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title">✏️ Modificar Plantación TPSR</h3>
+                <button type="button" class="modal-close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="modal-tpsr-form">
+                <input type="hidden" id="modal-row-index" value="">
+                <div class="modal-body">
+                    <div class="modal-form-group">
+                        <label>Actividad:</label>
+                        <select id="modal-activity" required>
+                            <option value="SIEMBRA">SIEMBRA</option>
+                            <option value="PODA">PODA</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Semana Origen (ej. 2610):</label>
+                        <input type="text" id="modal-source-week" placeholder="2610 o 202610" required>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Producto Maestro:</label>
+                        <input type="text" id="modal-product-master" list="tpsr-pm-datalist" placeholder="ej. VERONICA" required>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Variedad:</label>
+                        <input type="text" id="modal-variety" list="tpsr-variety-datalist" placeholder="ej. SPLASH WHITE" required>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Bloque:</label>
+                        <input type="text" id="modal-block" placeholder="ej. 41" required>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Número de Plantas:</label>
+                        <input type="number" id="modal-plants" min="0" step="1" placeholder="ej. 1500" required>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Ubicación Cama:</label>
+                        <input type="text" id="modal-bed-location" placeholder="ej. C-01 (opcional)">
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label>Número de Poda:</label>
+                        <input type="text" id="modal-pruning-number" placeholder="ej. 1 (opcional)">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-modal-cancel" id="btn-cancel-modal">Cancelar</button>
+                    <button type="submit" class="btn-modal-save" id="btn-submit-modal">💾 Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         async function parseApiResponse(response) {
@@ -516,25 +893,43 @@
             try { return JSON.parse(text); } catch (e) { throw new Error('Respuesta inválida del servidor.'); }
         }
 
+        function showToast(message) {
+            let toast = document.getElementById('app-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'app-toast';
+                toast.className = 'toast-notify';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+        }
+
         // Upload File Handler
         const fileInput = document.getElementById('tpsr-file-input');
         const uploadZone = document.getElementById('upload-zone');
         const resultsBox = document.getElementById('upload-results');
 
-        ['dragenter', 'dragover'].forEach(name => {
-            uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-        });
-        ['dragleave', 'drop'].forEach(name => {
-            uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); });
-        });
-        uploadZone.addEventListener('drop', (e) => {
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                uploadFile();
-            }
-        });
+        if (uploadZone) {
+            ['dragenter', 'dragover'].forEach(name => {
+                uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+            });
+            ['dragleave', 'drop'].forEach(name => {
+                uploadZone.addEventListener(name, (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); });
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    uploadFile();
+                }
+            });
+        }
 
-        fileInput.addEventListener('change', uploadFile);
+        if (fileInput) {
+            fileInput.addEventListener('change', uploadFile);
+        }
 
         async function uploadFile() {
             if (!fileInput.files.length) return;
@@ -550,9 +945,9 @@
             resultsBox.style.display = 'block';
             resultsBox.innerHTML = `
                 <div style="padding: 16px; text-align: center; color: var(--navy-brand); font-weight: 700;">
-                    <div style="font-size: 1.2rem; margin-bottom: 6px;">⏳ Procesando archivo Excel "${file.name}"...</div>
-                    <div style="font-size: 0.82rem; color: var(--slate-600); font-weight: 500;">
-                        Validando registros en PostgreSQL, identificando duplicados y detectando correcciones de plantas. Por favor espera unas milésimas de segundo...
+                    <div style="font-size: 1.1rem; margin-bottom: 6px;">⏳ Procesando archivo Excel "${file.name}"...</div>
+                    <div style="font-size: 0.8rem; color: var(--slate-600); font-weight: 500;">
+                        Validando registros en PostgreSQL, identificando duplicados y detectando correcciones de plantas...
                     </div>
                 </div>
             `;
@@ -642,15 +1037,122 @@
             }
         }
 
+        // Live Header Filtering & Known Values
+        let tpsrKnownBlocks = new Set();
+        let tpsrKnownWeeks = new Set();
+
+        function populateTpsrFilterDatalists() {
+            tpsrKnownBlocks.clear();
+            tpsrKnownWeeks.clear();
+
+            document.querySelectorAll('.tpsr-row').forEach(row => {
+                if (row.dataset.block) tpsrKnownBlocks.add(row.dataset.block.toLowerCase().trim());
+                if (row.dataset.sourceWeekShort) tpsrKnownWeeks.add(row.dataset.sourceWeekShort.toLowerCase().trim());
+                else if (row.dataset.sourceWeek) tpsrKnownWeeks.add(String(row.dataset.sourceWeek).toLowerCase().trim());
+            });
+
+            const blockDl = document.getElementById('tpsr-block-datalist');
+            if (blockDl) {
+                blockDl.innerHTML = Array.from(tpsrKnownBlocks).sort().map(b => `<option value="${b.toUpperCase()}">`).join('');
+            }
+            const weekDl = document.getElementById('tpsr-week-datalist');
+            if (weekDl) {
+                weekDl.innerHTML = Array.from(tpsrKnownWeeks).sort().map(w => `<option value="${w}">`).join('');
+            }
+        }
+
+        function filterTpsrTableLocally() {
+            const filterAc = (document.getElementById('tpsr-h-filter-ac')?.value || '').trim();
+            const filterWeek = (document.getElementById('tpsr-h-filter-week')?.value || '').toLowerCase().trim();
+            const filterPm = (document.getElementById('tpsr-h-filter-pm')?.value || '').trim();
+            const filterVariety = (document.getElementById('tpsr-h-filter-variety')?.value || '').toLowerCase().trim();
+            const filterBlock = (document.getElementById('tpsr-h-filter-block')?.value || '').toLowerCase().trim();
+
+            // Sync hidden inputs in server form
+            document.getElementById('form-filter-ac').value = filterAc;
+            document.getElementById('form-filter-week').value = filterWeek;
+            document.getElementById('form-filter-pm').value = filterPm;
+            document.getElementById('form-filter-variety').value = filterVariety;
+            document.getElementById('form-filter-block').value = filterBlock;
+
+            let visibleCount = 0;
+            document.querySelectorAll('.tpsr-row').forEach(row => {
+                const act = row.dataset.activity || '';
+                const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase().trim();
+                const pm = row.dataset.productMaster || '';
+                const variety = (row.dataset.variety || '').toLowerCase().trim();
+                const varietyDisplay = (row.dataset.varietyDisplay || '').toLowerCase().trim();
+                const block = (row.dataset.block || '').toLowerCase().trim();
+
+                const matchAc = !filterAc || act === filterAc;
+                
+                // Exact week matching
+                let matchWeek = true;
+                if (filterWeek) {
+                    if (tpsrKnownWeeks.has(filterWeek)) {
+                        matchWeek = (weekShort === filterWeek || (row.dataset.sourceWeek && String(row.dataset.sourceWeek) === filterWeek));
+                    } else {
+                        matchWeek = weekShort.includes(filterWeek);
+                    }
+                }
+
+                const matchPm = !filterPm || pm === filterPm;
+                const matchVariety = !filterVariety || variety.includes(filterVariety) || varietyDisplay.includes(filterVariety);
+
+                // Exact block matching: if input matches an existing block, match exact!
+                let matchBlock = true;
+                if (filterBlock) {
+                    if (tpsrKnownBlocks.has(filterBlock)) {
+                        matchBlock = (block === filterBlock);
+                    } else {
+                        matchBlock = block.includes(filterBlock);
+                    }
+                }
+
+                const isVisible = matchAc && matchWeek && matchPm && matchVariety && matchBlock;
+                row.style.display = isVisible ? '' : 'none';
+                if (isVisible) visibleCount++;
+            });
+
+            const countSpan = document.getElementById('tpsr-visible-count');
+            if (countSpan) countSpan.textContent = String(visibleCount);
+        }
+
+        ['tpsr-h-filter-ac', 'tpsr-h-filter-week', 'tpsr-h-filter-pm', 'tpsr-h-filter-variety', 'tpsr-h-filter-block'].forEach(id => {
+            const ctrl = document.getElementById(id);
+            if (ctrl) {
+                ctrl.addEventListener('input', filterTpsrTableLocally);
+                ctrl.addEventListener('change', filterTpsrTableLocally);
+            }
+        });
+
+        const btnClearFilters = document.getElementById('btn-clear-all-filters');
+        if (btnClearFilters) {
+            btnClearFilters.addEventListener('click', () => {
+                ['tpsr-h-filter-ac', 'tpsr-h-filter-week', 'tpsr-h-filter-pm', 'tpsr-h-filter-variety', 'tpsr-h-filter-block'].forEach(id => {
+                    const ctrl = document.getElementById(id);
+                    if (ctrl) ctrl.value = '';
+                });
+                const searchInp = document.querySelector('input[name="search"]');
+                if (searchInp) searchInp.value = '';
+                filterTpsrTableLocally();
+                window.location.href = '/tpsr';
+            });
+        }
+
+        // Quick Save Row (Block & Plants)
         async function saveTpsrRow(tr) {
             const status = tr.querySelector('.save-status');
+            const newBlock = tr.querySelector('.input-block').value.trim();
+            const newPlants = Number.parseInt(tr.querySelector('.input-plants').value) || 0;
+
             const body = {
                 row_index: Number.parseInt(tr.dataset.rowIndex),
-                block: tr.querySelector('.input-block').value.trim(),
-                plants: Number.parseInt(tr.querySelector('.input-plants').value) || 0,
+                block: newBlock,
+                plants: newPlants,
             };
 
-            status.textContent = 'Guardando...';
+            status.textContent = '⏳';
             try {
                 const response = await fetch('/api/tpsr-actualizar', {
                     method: 'POST',
@@ -661,24 +1163,28 @@
                 if (!response.ok || !result.ok) {
                     throw new Error(result.message || 'No se pudo guardar.');
                 }
-                status.textContent = '✅ Guardado';
+                tr.dataset.block = newBlock;
+                tr.dataset.plants = String(newPlants);
+                status.textContent = '✅';
                 setTimeout(() => { status.textContent = ''; }, 2000);
+                showToast('✅ Registro TPSR guardado en PostgreSQL.');
             } catch (error) {
-                status.textContent = '❌ ' + error.message;
+                status.textContent = '❌';
+                alert('Error al guardar: ' + error.message);
             }
         }
 
         async function deleteTpsrRow(tr) {
             const status = tr.querySelector('.save-status');
             const variety = tr.dataset.variety;
-            const block = tr.querySelector('.input-block').value;
-            const week = tr.dataset.sourceWeek;
+            const block = tr.dataset.block || tr.querySelector('.input-block').value;
+            const week = tr.dataset.sourceWeekShort || tr.dataset.sourceWeek;
 
             if (!confirm(`¿Estás seguro de eliminar el registro de ${variety} (Bloque ${block}, Sem ${week}) de la base de datos PostgreSQL?`)) {
                 return;
             }
 
-            status.textContent = 'Eliminando...';
+            status.textContent = '⏳';
             try {
                 const response = await fetch('/api/tpsr-eliminar', {
                     method: 'POST',
@@ -690,14 +1196,126 @@
                     throw new Error(result.message || 'No se pudo eliminar.');
                 }
                 tr.remove();
+                showToast('🗑️ Registro eliminado de PostgreSQL.');
             } catch (error) {
-                status.textContent = '❌ ' + error.message;
+                status.textContent = '❌';
+                alert('Error al eliminar: ' + error.message);
             }
         }
 
+        // MODAL HANDLERS
+        const modalBackdrop = document.getElementById('tpsr-modal-backdrop');
+        const modalTitle = document.getElementById('modal-title');
+        const modalForm = document.getElementById('modal-tpsr-form');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnCancelModal = document.getElementById('btn-cancel-modal');
+        const btnOpenCreateModal = document.getElementById('btn-open-create-modal');
+
+        function openModal(mode, data = {}) {
+            modalBackdrop.classList.add('show');
+            if (mode === 'CREATE') {
+                modalTitle.textContent = '➕ Nueva Plantación TPSR';
+                document.getElementById('modal-row-index').value = '';
+                document.getElementById('modal-activity').value = 'SIEMBRA';
+                document.getElementById('modal-source-week').value = '';
+                document.getElementById('modal-product-master').value = '';
+                document.getElementById('modal-variety').value = '';
+                document.getElementById('modal-block').value = '';
+                document.getElementById('modal-plants').value = '';
+                document.getElementById('modal-bed-location').value = '';
+                document.getElementById('modal-pruning-number').value = '';
+                document.getElementById('btn-submit-modal').textContent = '➕ Crear Plantación';
+            } else {
+                modalTitle.textContent = `✏️ Modificar Plantación TPSR (ID #${data.rowIndex})`;
+                document.getElementById('modal-row-index').value = data.rowIndex || '';
+                document.getElementById('modal-activity').value = data.activity || 'SIEMBRA';
+                document.getElementById('modal-source-week').value = data.sourceWeekShort || data.sourceWeek || '';
+                document.getElementById('modal-product-master').value = data.productMaster || '';
+                document.getElementById('modal-variety').value = data.variety || '';
+                document.getElementById('modal-block').value = data.block || '';
+                document.getElementById('modal-plants').value = data.plants || '';
+                document.getElementById('modal-bed-location').value = data.bedLocation || '';
+                document.getElementById('modal-pruning-number').value = data.pruningNumber || '';
+                document.getElementById('btn-submit-modal').textContent = '💾 Guardar Cambios';
+            }
+        }
+
+        function closeModal() {
+            modalBackdrop.classList.remove('show');
+        }
+
+        if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+        if (btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
+        if (btnOpenCreateModal) btnOpenCreateModal.addEventListener('click', () => openModal('CREATE'));
+
+        modalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rowIndex = document.getElementById('modal-row-index').value;
+            const isEdit = Boolean(rowIndex);
+
+            const payload = {
+                row_index: isEdit ? Number.parseInt(rowIndex) : undefined,
+                activity: document.getElementById('modal-activity').value,
+                source_week: document.getElementById('modal-source-week').value.trim(),
+                product_master: document.getElementById('modal-product-master').value.trim(),
+                variety: document.getElementById('modal-variety').value.trim(),
+                block: document.getElementById('modal-block').value.trim(),
+                plants: Number.parseInt(document.getElementById('modal-plants').value) || 0,
+                bed_location: document.getElementById('modal-bed-location').value.trim(),
+                pruning_number: document.getElementById('modal-pruning-number').value.trim(),
+            };
+
+            const submitBtn = document.getElementById('btn-submit-modal');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Guardando...';
+
+            try {
+                const endpoint = isEdit ? '/api/tpsr-actualizar' : '/api/tpsr-crear';
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const result = await parseApiResponse(res);
+                if (!res.ok || !result.ok) {
+                    throw new Error(result.message || 'Error al procesar solicitud.');
+                }
+
+                closeModal();
+                showToast(isEdit ? '✅ Plantación actualizada correctamente en PostgreSQL.' : '✅ Nueva plantación creada en PostgreSQL.');
+                setTimeout(() => window.location.reload(), 600);
+            } catch (err) {
+                alert('❌ ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = isEdit ? '💾 Guardar Cambios' : '➕ Crear Plantación';
+            }
+        });
+
+        // Row button bindings
         document.querySelectorAll('.tpsr-row').forEach((tr) => {
-            tr.querySelector('.save-btn').addEventListener('click', () => saveTpsrRow(tr));
-            tr.querySelector('.del-btn').addEventListener('click', () => deleteTpsrRow(tr));
+            const btnSave = tr.querySelector('.btn-action-save');
+            const btnDel = tr.querySelector('.btn-action-del');
+            const btnEdit = tr.querySelector('.btn-action-edit');
+
+            if (btnSave) btnSave.addEventListener('click', () => saveTpsrRow(tr));
+            if (btnDel) btnDel.addEventListener('click', () => deleteTpsrRow(tr));
+            if (btnEdit) {
+                btnEdit.addEventListener('click', () => {
+                    openModal('EDIT', {
+                        rowIndex: tr.dataset.rowIndex,
+                        activity: tr.dataset.activity,
+                        sourceWeek: tr.dataset.sourceWeek,
+                        sourceWeekShort: tr.dataset.sourceWeekShort,
+                        productMaster: tr.dataset.productMaster,
+                        variety: tr.dataset.variety,
+                        block: tr.dataset.block || tr.querySelector('.input-block').value,
+                        plants: tr.dataset.plants || tr.querySelector('.input-plants').value,
+                        bedLocation: tr.dataset.bedLocation,
+                        pruningNumber: tr.dataset.pruningNumber,
+                    });
+                });
+            }
 
             tr.querySelectorAll('.edit-input').forEach((inp) => {
                 inp.addEventListener('focus', () => inp.select());
@@ -708,6 +1326,8 @@
                 });
             });
         });
+
+        populateTpsrFilterDatalists();
     </script>
 </body>
 </html>

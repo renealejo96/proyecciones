@@ -487,6 +487,20 @@ def product_variety_sort_key(product_master: str, variety: str) -> tuple[str, in
     return (product, 100, variety_upper)
 
 
+def format_variety_display(variety: str) -> str:
+    v = (variety or "").strip()
+    v_upper = v.upper()
+    if v_upper.startswith("SKYLER SPLASH "):
+        return "Splash " + v[14:].title()
+    elif v_upper == "SKYLER WHITE IMPROVED":
+        return "Skyler White Imp."
+    elif v_upper.startswith("SKYLER "):
+        return "Skyler " + v[7:].title()
+    elif v_upper.startswith("MAGICAL "):
+        return v[8:].title()
+    return v.title() if (v.isupper() and len(v) > 3) else v
+
+
 def aggregate_for_week(
     snapshot: dict[str, Any],
     selected_week: int,
@@ -738,13 +752,20 @@ def aggregate_for_week(
                 week_code_by_label = {
                     column["label"]: column["week_code"] for column in week_columns
                 }
+                eff_cycle = 0 if pd.isna(row.cycle_weeks) else int(row.cycle_weeks)
+                harvest_start_week = shift_week(int(row.source_week), eff_cycle) if eff_cycle else int(row.source_week)
+                harvest_start_week_short = format_short_week(harvest_start_week)
+
                 matrix_rows.append(
                     {
                         "variety": row.variety,
+                        "variety_display": format_variety_display(row.variety),
                         "product_master": row.product_master,
                         "activity": row.activity,
                         "source_week": row.source_week,
                         "source_week_short": row.source_week_short,
+                        "harvest_start_week": harvest_start_week,
+                        "harvest_start_week_short": harvest_start_week_short,
                         "block": row.block,
                         "plants": int(row.plants),
                         "cycle_weeks": None if pd.isna(row.cycle_weeks) else int(row.cycle_weeks),
@@ -781,6 +802,7 @@ def aggregate_for_week(
             {
                 "product_master": row["product_master"],
                 "variety": row["variety"],
+                "variety_display": row["variety_display"],
                 "siembras": [],
                 "podas": [],
                 "total_siembras": 0,
@@ -859,6 +881,7 @@ def filter_weekly_view_for_real(weekly_view: dict[str, Any]) -> dict[str, Any]:
             {
                 "product_master": variety.get("product_master", ""),
                 "variety": variety.get("variety", ""),
+                "variety_display": variety.get("variety_display", format_variety_display(variety.get("variety", ""))),
                 "siembras": filtered_siembras,
                 "podas": filtered_podas,
                 "total_siembras": total_siembras,
@@ -1022,8 +1045,36 @@ def tpsr_view():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 100, type=int)
         search_query = request.args.get("search", "").strip()
+        filter_ac = request.args.get("ac", "").strip()
+        filter_week = request.args.get("semana", "").strip()
+        filter_pm = request.args.get("pm", "").strip()
+        filter_variety = request.args.get("variedad", "").strip()
+        filter_block = request.args.get("bloque", "").strip()
 
         query = db.query(TpsrRecord)
+
+        if filter_ac:
+            query = query.filter(TpsrRecord.activity == normalize_text(filter_ac))
+
+        if filter_week:
+            parsed_sw = parse_week_code(filter_week)
+            if parsed_sw:
+                query = query.filter(TpsrRecord.source_week == parsed_sw)
+            else:
+                query = query.filter(TpsrRecord.source_week_short.like(f"%{filter_week}%"))
+
+        if filter_pm:
+            norm_pm = normalize_text(filter_pm)
+            query = query.filter(TpsrRecord.product_master_norm.like(f"%{norm_pm}%"))
+
+        if filter_variety:
+            norm_var = normalize_text(filter_variety)
+            query = query.filter(TpsrRecord.variety_norm.like(f"%{norm_var}%"))
+
+        if filter_block:
+            norm_blk = normalize_text(filter_block)
+            query = query.filter(TpsrRecord.block_norm == norm_blk)
+
         if search_query:
             norm_q = normalize_text(search_query)
             query = query.filter(
@@ -1042,16 +1093,21 @@ def tpsr_view():
                 "activity": r.activity,
                 "product_master": r.product_master,
                 "variety": r.variety,
+                "variety_display": format_variety_display(r.variety),
                 "source_week": r.source_week,
                 "source_week_short": format_short_week(r.source_week),
                 "block": r.block,
                 "bed_location": r.bed_location or "",
+                "pruning_number": r.pruning_number or "",
                 "plants": r.plants,
             }
             for r in records
         ]
 
         total_pages = (total_records + per_page - 1) // per_page if per_page > 0 else 1
+
+        available_pms = [pm[0] for pm in db.query(TpsrRecord.product_master).distinct().order_by(TpsrRecord.product_master).all() if pm[0]]
+        available_varieties = [v[0] for v in db.query(TpsrRecord.variety).distinct().order_by(TpsrRecord.variety).all() if v[0]]
 
         return render_template(
             "tpsr.html",
@@ -1061,6 +1117,13 @@ def tpsr_view():
             per_page=per_page,
             total_pages=total_pages,
             search_query=search_query,
+            filter_ac=filter_ac,
+            filter_week=filter_week,
+            filter_pm=filter_pm,
+            filter_variety=filter_variety,
+            filter_block=filter_block,
+            available_pms=available_pms,
+            available_varieties=available_varieties,
             workbook_path="PostgreSQL Database",
         )
     finally:
@@ -1185,9 +1248,12 @@ def save_week_adjustment_api():
     block = str(payload.get("block") or "").strip()
     source_week = parse_week_code(payload.get("source_week"))
     harvest_week = parse_week_code(payload.get("harvest_week"))
-    value = to_int_or_none(payload.get("value"))
+    raw_value = payload.get("value")
+    value = to_int_or_none(raw_value)
     mode = normalize_text(payload.get("mode"))
     is_dump = payload.get("is_dump")
+    is_reset = bool(payload.get("reset")) or (raw_value in (None, "") and is_dump is None)
+    reset_all = bool(payload.get("reset_all"))
 
     if activity not in {"SIEMBRA", "PODA"}:
         return jsonify({"ok": False, "message": "Actividad invalida."}), 400
@@ -1212,31 +1278,39 @@ def save_week_adjustment_api():
         ).first()
 
         if existing:
-            if mode == "AGRONOMO":
+            if reset_all:
+                existing.agronomo_estimate = None
+                existing.real_closed = None
+                existing.is_dump = False
+            elif mode == "AGRONOMO":
                 existing.agronomo_estimate = value
             else:
                 existing.real_closed = value
-            if is_dump is not None:
-                existing.is_dump = bool(is_dump)
+                if is_dump is not None:
+                    existing.is_dump = bool(is_dump)
+                elif is_reset:
+                    existing.is_dump = False
+            
             existing.updated_at = datetime.utcnow()
 
             if existing.agronomo_estimate is None and existing.real_closed is None and not existing.is_dump:
                 db.delete(existing)
         else:
-            if value is not None or (is_dump is not None and bool(is_dump)):
-                new_adj = WeekAdjustmentDB(
-                    activity=activity,
-                    product_master_norm=pm_norm,
-                    variety_norm=v_norm,
-                    block=block,
-                    block_norm=b_norm,
-                    source_week=source_week,
-                    harvest_week=harvest_week,
-                    agronomo_estimate=value if mode == "AGRONOMO" else None,
-                    real_closed=value if mode == "REAL" else None,
-                    is_dump=bool(is_dump) if is_dump is not None else False,
-                )
-                db.add(new_adj)
+            if not is_reset and not reset_all:
+                if value is not None or (is_dump is not None and bool(is_dump)):
+                    new_adj = WeekAdjustmentDB(
+                        activity=activity,
+                        product_master_norm=pm_norm,
+                        variety_norm=v_norm,
+                        block=block,
+                        block_norm=b_norm,
+                        source_week=source_week,
+                        harvest_week=harvest_week,
+                        agronomo_estimate=value if mode == "AGRONOMO" else None,
+                        real_closed=value if mode == "REAL" else None,
+                        is_dump=bool(is_dump) if is_dump is not None else False,
+                    )
+                    db.add(new_adj)
 
         db.commit()
         invalidate_snapshot_cache()
@@ -1252,10 +1326,10 @@ def save_week_adjustment_api():
             harvest_week=harvest_week,
         ).first()
         if check:
-            if check.agronomo_estimate is not None:
-                weekly_status = "AGRONOMO"
             if check.real_closed is not None:
                 weekly_status = "REAL"
+            elif check.agronomo_estimate is not None:
+                weekly_status = "AGRONOMO"
             if check.is_dump:
                 weekly_status = "DUMP"
                 is_dump_val = True
@@ -1432,12 +1506,9 @@ def save_mass_adjustment_api():
 @app.post("/api/tpsr-actualizar")
 def update_tpsr_api():
     payload = request.get_json(silent=True) or {}
-    rec_id = to_int_or_none(payload.get("row_index"))
-    block = str(payload.get("block") or "").strip()
-    plants = to_int_or_none(payload.get("plants"))
-
-    if rec_id is None or rec_id < 1 or not block or plants is None or plants < 0:
-        return jsonify({"ok": False, "message": "Datos inválidos para actualizar."}), 400
+    rec_id = to_int_or_none(payload.get("row_index") or payload.get("id"))
+    if rec_id is None or rec_id < 1:
+        return jsonify({"ok": False, "message": "ID de registro inválido."}), 400
 
     db = SessionLocal()
     try:
@@ -1445,11 +1516,47 @@ def update_tpsr_api():
         if not rec:
             return jsonify({"ok": False, "message": "Registro no encontrado en PostgreSQL."}), 404
 
-        rec.block = block
-        rec.block_norm = normalize_text(block)
-        rec.plants = plants
-        rec.updated_at = datetime.utcnow()
+        if "activity" in payload and payload["activity"]:
+            act = normalize_text(payload["activity"])
+            if act in {"SIEMBRA", "PODA"}:
+                rec.activity = act
 
+        if "source_week" in payload and payload["source_week"]:
+            sw = parse_week_code(payload["source_week"])
+            if sw is not None:
+                rec.source_week = sw
+                rec.source_week_short = format_short_week(sw)
+
+        if "product_master" in payload and payload["product_master"]:
+            pm = str(payload["product_master"]).strip()
+            if pm:
+                rec.product_master = pm
+                rec.product_master_norm = normalize_text(pm)
+
+        if "variety" in payload and payload["variety"]:
+            var = str(payload["variety"]).strip()
+            if var:
+                rec.variety = var
+                rec.variety_norm = normalize_text(var)
+
+        if "block" in payload and payload["block"]:
+            blk = str(payload["block"]).strip()
+            if blk:
+                rec.block = blk
+                rec.block_norm = normalize_text(blk)
+
+        if "plants" in payload and payload["plants"] is not None:
+            pl = to_int_or_none(payload["plants"])
+            if pl is not None and pl >= 0:
+                rec.plants = pl
+
+        if "bed_location" in payload:
+            rec.bed_location = str(payload.get("bed_location") or "").strip()
+
+        if "pruning_number" in payload:
+            rec.pruning_number = str(payload.get("pruning_number") or "").strip()
+
+        rec.updated_at = datetime.utcnow()
         db.commit()
         invalidate_snapshot_cache()
         return jsonify({"ok": True, "message": "Registro TPSR actualizado correctamente en PostgreSQL."})
@@ -1460,10 +1567,56 @@ def update_tpsr_api():
         db.close()
 
 
+@app.post("/api/tpsr-crear")
+def create_tpsr_api():
+    payload = request.get_json(silent=True) or {}
+    act = normalize_text(payload.get("activity"))
+    sw = parse_week_code(payload.get("source_week"))
+    pm = str(payload.get("product_master") or "").strip()
+    var = str(payload.get("variety") or "").strip()
+    blk = str(payload.get("block") or "").strip()
+    plants = to_int_or_none(payload.get("plants"))
+
+    if act not in {"SIEMBRA", "PODA"}:
+        return jsonify({"ok": False, "message": "Actividad debe ser SIEMBRA o PODA."}), 400
+    if sw is None:
+        return jsonify({"ok": False, "message": "Semana origen inválida (ej. 2610 o 202610)."}), 400
+    if not pm or not var or not blk:
+        return jsonify({"ok": False, "message": "Producto maestro, variedad y bloque son obligatorios."}), 400
+    if plants is None or plants < 0:
+        return jsonify({"ok": False, "message": "Número de plantas inválido."}), 400
+
+    db = SessionLocal()
+    try:
+        new_rec = TpsrRecord(
+            source_week=sw,
+            source_week_short=format_short_week(sw),
+            activity=act,
+            product_master=pm,
+            product_master_norm=normalize_text(pm),
+            variety=var,
+            variety_norm=normalize_text(var),
+            block=blk,
+            block_norm=normalize_text(blk),
+            plants=plants,
+            bed_location=str(payload.get("bed_location") or "").strip(),
+            pruning_number=str(payload.get("pruning_number") or "").strip(),
+        )
+        db.add(new_rec)
+        db.commit()
+        invalidate_snapshot_cache()
+        return jsonify({"ok": True, "message": "Nuevo registro TPSR creado con éxito en PostgreSQL.", "id": new_rec.id})
+    except SQLAlchemyError as exc:
+        db.rollback()
+        return jsonify({"ok": False, "message": str(exc)}), 500
+    finally:
+        db.close()
+
+
 @app.post("/api/tpsr-eliminar")
 def delete_tpsr_api():
     payload = request.get_json(silent=True) or {}
-    rec_id = to_int_or_none(payload.get("row_index"))
+    rec_id = to_int_or_none(payload.get("row_index") or payload.get("id"))
 
     if rec_id is None or rec_id < 1:
         return jsonify({"ok": False, "message": "ID de registro inválido."}), 400
