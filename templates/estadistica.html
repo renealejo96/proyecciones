@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tablero Estadístico - Cierre Real y Curvas de Cosecha</title>
+    <title>Tablero Estadístico - Rendimiento Real por Bloque y Curvas de Cierre</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -88,7 +88,7 @@
             box-shadow: 0 3px 8px rgba(30, 58, 138, 0.3);
         }
 
-        /* HEADER & SLICERS (POWER BI STYLE) */
+        /* HEADER & SLICERS */
         .header-bar {
             display: flex;
             justify-content: space-between;
@@ -115,7 +115,7 @@
             color: var(--pbi-slate-600);
         }
 
-        /* SLICERS / FILTER BAR (POWER BI VISUAL) */
+        /* SLICERS / GLOBAL FILTERS */
         .slicers-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
@@ -192,11 +192,9 @@
             cursor: pointer;
         }
 
-        .btn-slicer-clear:hover {
-            background: var(--pbi-slate-100);
-        }
+        .btn-slicer-clear:hover { background: var(--pbi-slate-100); }
 
-        /* KPI CARDS (POWER BI EXECUTIVE TILES) */
+        /* KPI CARDS */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -257,8 +255,8 @@
             color: var(--pbi-slate-700);
         }
 
-        /* 3-COLUMN / 2-COLUMN CHARTS & MAIN VISUALS GRID */
-        .analytics-grid {
+        /* 3-COLUMN CHARTS GRID */
+        .analytics-grid-3 {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
@@ -266,11 +264,11 @@
         }
 
         @media (max-width: 1200px) {
-            .analytics-grid { grid-template-columns: 1fr 1fr; }
+            .analytics-grid-3 { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 768px) {
-            .analytics-grid { grid-template-columns: 1fr; }
+            .analytics-grid-3 { grid-template-columns: 1fr; }
         }
 
         .chart-card {
@@ -281,6 +279,10 @@
             box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
+        }
+
+        .chart-card.wide-card {
+            margin-bottom: 12px;
         }
 
         .chart-header {
@@ -315,10 +317,14 @@
         .chart-body {
             position: relative;
             width: 100%;
-            height: 230px;
+            height: 220px;
         }
 
-        /* DATA TABLE (PIVOT GRID / TABLA DINÁMICA STYLE) */
+        .chart-body.wide-body {
+            height: 240px;
+        }
+
+        /* DATA TABLE (PIVOT GRID WITH BLOCK DETAIL) */
         .table-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
@@ -343,37 +349,53 @@
             color: var(--pbi-blue);
         }
 
-        .table-controls {
+        /* INLINE TABLE FILTERS TOOLBAR */
+        .table-filters-toolbar {
+            background: var(--pbi-slate-50);
+            border: 1px solid var(--pbi-slate-200);
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
             display: flex;
-            gap: 6px;
+            gap: 8px;
+            flex-wrap: wrap;
             align-items: center;
         }
 
-        .btn-table-action {
-            background: var(--pbi-slate-100);
+        .t-filter-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--pbi-slate-600);
+        }
+
+        .t-filter-ctrl {
             border: 1px solid var(--pbi-slate-300);
-            border-radius: 5px;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 0.72rem;
+            outline: none;
+            background: #ffffff;
+        }
+
+        .btn-table-action {
+            background: #ffffff;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 4px;
             padding: 3px 8px;
             font-size: 0.72rem;
             font-weight: 600;
             color: var(--pbi-slate-700);
             cursor: pointer;
         }
-        .btn-table-action:hover { background: #e2e8f0; }
-
-        .table-search-input {
-            border: 1px solid var(--pbi-slate-300);
-            border-radius: 5px;
-            padding: 3px 8px;
-            font-size: 0.74rem;
-            outline: none;
-            width: 180px;
-        }
+        .btn-table-action:hover { background: var(--pbi-slate-100); }
 
         .matrix-table-wrap {
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 52vh;
+            max-height: 55vh;
             border: 1px solid var(--pbi-slate-200);
             border-radius: 6px;
         }
@@ -446,7 +468,7 @@
             user-select: none;
         }
 
-        /* CHILD LOT ROWS */
+        /* CHILD BLOCK ROWS */
         tr.group-child-row td {
             background: #ffffff;
             font-size: 0.72rem;
@@ -474,8 +496,11 @@
         .metric-real-pp {
             font-weight: 800;
             font-family: 'JetBrains Mono', monospace;
-            color: var(--pbi-emerald);
+            padding: 1px 4px;
+            border-radius: 3px;
         }
+        .metric-optimal { color: #166534; background: #dcfce7; }
+        .metric-low { color: #991b1b; background: #fee2e2; }
 
         .badge-status-closed {
             background: #dcfce7;
@@ -483,7 +508,25 @@
             border: 1px solid #86efac;
             font-size: 0.60rem;
             font-weight: 800;
-            padding: 1px 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .badge-status-harvest {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            font-size: 0.60rem;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .badge-status-pending {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            font-size: 0.60rem;
+            font-weight: 700;
+            padding: 1px 5px;
             border-radius: 3px;
         }
     </style>
@@ -502,12 +545,12 @@
         <!-- DASHBOARD TITLE -->
         <div class="header-bar">
             <div class="dashboard-title">
-                <h1>📊 Tablero Estadístico & Curvas de Cierre Real</h1>
-                <p>Análisis de rendimiento real, evolución de cosecha vs proyección y promedio de cierre por producto maestro y variedad.</p>
+                <h1>📊 Tablero Estadístico & Rendimiento por Bloque</h1>
+                <p>Monitoreo individual de bloques cerrados vs pendientes, curvas de cierre real y cumplimiento de meta de tallos por planta.</p>
             </div>
         </div>
 
-        <!-- POWER BI SLICERS / FILTERS CARD -->
+        <!-- GLOBAL FILTERS (POWER BI SLICERS) -->
         <form class="slicers-card" id="slicers-form" method="GET" action="/estadistica">
             <div class="slicer-group">
                 <label for="slicer-year">📅 Año:</label>
@@ -549,7 +592,7 @@
             <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
         </form>
 
-        <!-- KPI CARDS (POWER BI VISUAL TILES) -->
+        <!-- KPI CARDS -->
         <div class="kpi-grid">
             <div class="kpi-card kpi-emerald">
                 <div class="kpi-label">
@@ -557,7 +600,7 @@
                     <span class="kpi-badge">Total Real</span>
                 </div>
                 <div class="kpi-value" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
-                <div class="kpi-sub">Total en lotes cerrados</div>
+                <div class="kpi-sub">Total en bloques con cosecha</div>
             </div>
 
             <div class="kpi-card kpi-accent">
@@ -567,6 +610,15 @@
                 </div>
                 <div class="kpi-value" id="kpi-stems-pp">{{ stats.kpis.avg_real_stems_per_plant }}</div>
                 <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }}</strong></div>
+            </div>
+
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-label">
+                    <span>📦 Bloques Cerrados</span>
+                    <span class="kpi-badge">Cierres</span>
+                </div>
+                <div class="kpi-value" id="kpi-closed">{{ stats.kpis.total_closed_blocks }} <span style="font-size: 0.85rem; color: var(--pbi-slate-500);">/ {{ stats.kpis.total_lots }}</span></div>
+                <div class="kpi-sub">Bloques cerrados formalmente</div>
             </div>
 
             <div class="kpi-card kpi-amber">
@@ -586,31 +638,22 @@
                 <div class="kpi-value" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
                 <div class="kpi-sub">Tasa de merma estimada</div>
             </div>
-
-            <div class="kpi-card kpi-purple">
-                <div class="kpi-label">
-                    <span>🌾 Plantas Evaluadas</span>
-                    <span class="kpi-badge">Lotes</span>
-                </div>
-                <div class="kpi-value" id="kpi-plants">{{ '{:,}'.format(stats.kpis.total_plants) }}</div>
-                <div class="kpi-sub">{{ stats.kpis.total_lots }} lotes con cierre real</div>
-            </div>
         </div>
 
-        <!-- 3 POWER BI ANALYTICS CHARTS SECTION -->
-        <div class="analytics-grid">
+        <!-- 3 POWER BI ANALYTICS CHARTS -->
+        <div class="analytics-grid-3">
             <!-- CHART 1: RELATIVE HARVEST CURVE -->
             <div class="chart-card">
                 <div class="chart-header">
                     <h3>📈 Curva Real vs Ideal</h3>
-                    <span class="chart-tag">% Cosecha por Sem Relativa</span>
+                    <span class="chart-tag">% por Sem Relativa</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="relativeCurveChart"></canvas>
                 </div>
             </div>
 
-            <!-- CHART 2: CHRONOLOGICAL HARVEST EVOLUTION (WITH SECONDARY AXIS VARIATION %) -->
+            <!-- CHART 2: REAL VS ESTIMATE WITH SECONDARY AXIS -->
             <div class="chart-card">
                 <div class="chart-header">
                     <h3>📊 Real vs Proyectado & % Cumplimiento</h3>
@@ -621,11 +664,11 @@
                 </div>
             </div>
 
-            <!-- CHART 3: REAL STEMS PER PLANT VS TARGET META -->
+            <!-- CHART 3: STEMS PER PLANT BY BLOCK VS TARGET META -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>🎯 Rendimiento T/Pl vs Meta por Sem Cierre</h3>
-                    <span class="chart-tag">Tallos / Planta vs Meta</span>
+                    <h3>🎯 Rendimiento T/Pl vs Meta por Bloque</h3>
+                    <span class="chart-tag">Tallos / Planta por Bloque</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="stemsPpChart"></canvas>
@@ -633,86 +676,158 @@
             </div>
         </div>
 
-        <!-- PIVOT ACCORDION DATA TABLE (TABLA DINÁMICA [+/-] POR PRODUCTO MAESTRO) -->
+        <!-- CHART 4: WIDE INTEGRAL HYBRID LIFECYCLE CURVE -->
+        <div class="chart-card wide-card">
+            <div class="chart-header">
+                <h3>🌐 Curva Integral de Cosecha (Cierres Reales Históricos + Proyección de Bloques Pendientes)</h3>
+                <span class="chart-tag" style="background: #f0fdf4; color: #166534; border-color: #86efac;">Continuidad Real a Proyección Futura</span>
+            </div>
+            <div class="chart-body wide-body">
+                <canvas id="hybridHarvestChart"></canvas>
+            </div>
+        </div>
+
+        <!-- PIVOT ACCORDION DATA TABLE (BLOQUES INDIVIDUALES Y RENDIMIENTO) -->
         <div class="table-card">
             <div class="table-header-flex">
-                <h3>📋 Cierres Reales Agrupados por Producto Maestro (Tabla Dinámica)</h3>
-                <div class="table-controls">
+                <h3>📋 Desglose de Rendimiento Individual por Bloque y Producto</h3>
+                <div style="display: flex; gap: 6px;">
                     <button type="button" class="btn-table-action" id="btn-expand-all">➕ Desplegar Todo</button>
                     <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
-                    <input type="text" id="matrix-search" class="table-search-input" placeholder="🔍 Filtrar tabla...">
                 </div>
+            </div>
+
+            <!-- INLINE FILTERS TOOLBAR FOR MATRIX TABLE -->
+            <div class="table-filters-toolbar">
+                <div class="t-filter-item">
+                    <span>🔍 Bloque:</span>
+                    <input type="text" id="t-filter-block" class="t-filter-ctrl" placeholder="ej. 100" style="width: 70px;">
+                </div>
+                <div class="t-filter-item">
+                    <span>🌸 Variedad:</span>
+                    <input type="text" id="t-filter-variety" class="t-filter-ctrl" placeholder="Buscar variedad..." style="width: 120px;">
+                </div>
+                <div class="t-filter-item">
+                    <span>⚡ Actividad:</span>
+                    <select id="t-filter-ac" class="t-filter-ctrl">
+                        <option value="">(Todas)</option>
+                        <option value="SIEMBRA">Siembra</option>
+                        <option value="PODA">Poda</option>
+                    </select>
+                </div>
+                <div class="t-filter-item">
+                    <span>🏷️ Estado:</span>
+                    <select id="t-filter-status" class="t-filter-ctrl">
+                        <option value="">(Todos)</option>
+                        <option value="CERRADO">✅ Solo Cerrados</option>
+                        <option value="EN COSECHA">⏳ En Cosecha</option>
+                    </select>
+                </div>
+                <div class="t-filter-item">
+                    <span>📊 Rendimiento:</span>
+                    <select id="t-filter-perf" class="t-filter-ctrl">
+                        <option value="">(Todos)</option>
+                        <option value="LOW">🔴 Bajo Meta (&lt; Ideal)</option>
+                        <option value="OPTIMAL">🟢 Cumple Meta (&gt;= Ideal)</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-table-action" id="t-filter-reset">🔄 Limpiar Filtros</button>
             </div>
 
             <div class="matrix-table-wrap">
                 <table class="matrix-table" id="matrix-detail-table">
                     <thead>
                         <tr>
-                            <th class="col-left" style="width: 220px;">Producto / Variedad</th>
+                            <th class="col-left" style="width: 160px;">Bloque / Producto</th>
+                            <th class="col-left" style="width: 180px;">Variedad</th>
                             <th style="width: 65px;">Sem. Orig.</th>
                             <th style="width: 65px;">Actividad</th>
                             <th>Plantas</th>
-                            <th>Bloques</th>
                             <th>Tallos Reales</th>
                             <th>Real T/pl</th>
                             <th>Ideal T/pl</th>
                             <th>Ciclo Real</th>
                             <th>Ciclo Ideal</th>
                             <th>Desp. %</th>
+                            <th>Semanas Cosecha</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody id="matrix-tbody">
                         {% for grp in stats.grouped_products %}
-                            <!-- GROUP MASTER ROW (PRODUCTO MAESTRO CON [+]/[-]) -->
+                            <!-- GROUP MASTER ROW (PRODUCTO MAESTRO) -->
                             <tr class="group-master-row" data-pm="{{ grp.product_master }}" onclick="toggleGroup('{{ grp.product_master }}')">
                                 <td class="col-left">
                                     <span class="toggle-icon" id="icon-{{ grp.product_master }}">+</span>
                                     <strong>{{ grp.product_master }}</strong>
-                                    <span style="font-size: 0.65rem; color: var(--pbi-slate-500); font-weight: 600; margin-left: 4px;">({{ grp.total_lots }} lotes)</span>
+                                </td>
+                                <td class="col-left" style="color: var(--pbi-slate-600); font-weight: 600;">
+                                    {{ grp.total_blocks }} bloques ({{ grp.closed_blocks_count }} cerrados)
                                 </td>
                                 <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                 <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
                                 <td><strong>{{ '{:,}'.format(grp.total_plants) }}</strong></td>
-                                <td style="text-align: center;">{{ grp.total_lots }} lotes</td>
                                 <td style="color: var(--pbi-emerald);"><strong>{{ '{:,}'.format(grp.total_real_stems) }}</strong></td>
-                                <td><span class="metric-real-pp" style="font-size: 0.82rem;">{{ grp.avg_real_stems_pp }}</span></td>
+                                <td><span class="metric-real-pp {{ 'metric-optimal' if grp.avg_real_stems_pp >= grp.avg_ideal_stems_pp else 'metric-low' }}" style="font-size: 0.80rem;">{{ grp.avg_real_stems_pp }}</span></td>
                                 <td style="color: var(--pbi-slate-700); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
                                 <td><strong>{{ grp.avg_cycle_weeks }} sem</strong></td>
                                 <td style="color: var(--pbi-slate-600);">{{ grp.avg_ideal_cycle }} sem</td>
                                 <td>{{ grp.avg_waste_pct }}%</td>
-                                <td><span class="badge-status-closed">✅ Con Cierre</span></td>
+                                <td style="text-align: center; color: var(--pbi-slate-500);">-</td>
+                                <td>
+                                    {% if grp.closed_blocks_count == grp.total_blocks and grp.total_blocks > 0 %}
+                                        <span class="badge-status-closed">✅ Cerrado</span>
+                                    {% else %}
+                                        <span class="badge-status-harvest">{{ grp.closed_blocks_count }}/{{ grp.total_blocks }} Cerrados</span>
+                                    {% endif %}
+                                </td>
                             </tr>
 
-                            <!-- CHILD LOT ROWS (OCULTAS POR DEFECTO HASTA DAR CLIC EN [+]) -->
+                            <!-- CHILD INDIVIDUAL BLOCK ROWS -->
                             {% for row in grp.lot_rows %}
                                 <tr class="group-child-row child-of-{{ grp.product_master }}"
                                     style="display: none;"
                                     data-pm="{{ row.product_master }}"
+                                    data-block="{{ row.block }}"
                                     data-variety="{{ row.variety }}"
                                     data-variety-display="{{ row.variety_display }}"
                                     data-week="{{ row.source_week_short }}"
-                                    data-activity="{{ row.activity }}">
+                                    data-activity="{{ row.activity }}"
+                                    data-status="{{ row.status }}"
+                                    data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}">
                                     <td class="col-left" style="padding-left: 28px;">
-                                        ↳ <strong>{{ row.variety_display }}</strong>
+                                        ↳ <strong>Bloque {{ row.block }}</strong>
                                     </td>
+                                    <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
                                     <td><code>{{ row.source_week_short }}</code></td>
                                     <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
                                     <td>{{ '{:,}'.format(row.plants) }}</td>
-                                    <td title="{{ row.blocks_str }}">{{ row.blocks_count }} blq</td>
                                     <td><strong>{{ '{:,}'.format(row.real_stems) }}</strong></td>
-                                    <td><span class="metric-real-pp">{{ row.real_stems_per_plant }}</span></td>
+                                    <td>
+                                        <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
+                                            {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
+                                        </span>
+                                    </td>
                                     <td style="color: var(--pbi-slate-600);">{{ row.ideal_stems_per_plant }}</td>
                                     <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
                                     <td style="color: var(--pbi-slate-600);">{{ row.ideal_cycle_weeks }} sem</td>
                                     <td>{{ row.waste_pct }}%</td>
-                                    <td><span class="badge-status-closed">✅ Cierre</span></td>
+                                    <td style="font-size: 0.68rem; color: var(--pbi-slate-600);">{{ row.harvest_weeks_str }}</td>
+                                    <td>
+                                        {% if row.is_closed %}
+                                            <span class="badge-status-closed">✅ CERRADO</span>
+                                        {% elif row.has_real_data %}
+                                            <span class="badge-status-harvest">⏳ EN COSECHA</span>
+                                        {% else %}
+                                            <span class="badge-status-pending">⏳ PENDIENTE</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="12" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
-                                    No se encontraron lotes con cierres reales registrados para los filtros seleccionados.
+                                <td colspan="13" style="text-align: center; padding: 24px; color: var(--pbi-slate-500);">
+                                    No se encontraron bloques con cierres o cosechas para los filtros seleccionados.
                                 </td>
                             </tr>
                         {% endfor %}
@@ -728,6 +843,7 @@
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartChronoData = {{ stats.chart_chrono | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
+        const chartHybridData = {{ stats.chart_hybrid | tojson }};
 
         // DYNAMIC SLICER VARIETY POPULATION
         const slicerPm = document.getElementById('slicer-pm');
@@ -782,42 +898,74 @@
             });
         }
 
-        // TABLE SEARCH FILTER (AUTO-EXPANDS MATCHING GROUPS)
-        const searchInput = document.getElementById('matrix-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                const q = searchInput.value.toLowerCase().trim();
-                if (!q) {
-                    document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
-                    document.querySelectorAll('.group-child-row').forEach(r => r.style.display = 'none');
-                    document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '+');
-                    return;
-                }
+        // INLINE TABLE FILTERS HANDLER
+        const filterBlock = document.getElementById('t-filter-block');
+        const filterVar = document.getElementById('t-filter-variety');
+        const filterAc = document.getElementById('t-filter-ac');
+        const filterStatus = document.getElementById('t-filter-status');
+        const filterPerf = document.getElementById('t-filter-perf');
+        const filterReset = document.getElementById('t-filter-reset');
 
-                document.querySelectorAll('.group-master-row').forEach(masterRow => {
-                    const pm = masterRow.dataset.pm;
-                    const childRows = document.querySelectorAll(`.child-of-${pm}`);
-                    let anyChildMatch = false;
+        function applyTableFilters() {
+            const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
+            const varQ = (filterVar ? filterVar.value : '').toLowerCase().trim();
+            const acQ = (filterAc ? filterAc.value : '').trim();
+            const statusQ = (filterStatus ? filterStatus.value : '').trim();
+            const perfQ = (filterPerf ? filterPerf.value : '').trim();
 
-                    childRows.forEach(child => {
-                        const text = (child.dataset.pm + ' ' + child.dataset.variety + ' ' + child.dataset.varietyDisplay + ' ' + child.dataset.week + ' ' + child.dataset.activity).toLowerCase();
-                        const matches = text.includes(q);
-                        child.style.display = matches ? '' : 'none';
-                        if (matches) anyChildMatch = true;
-                    });
+            const isFiltering = blkQ || varQ || acQ || statusQ || perfQ;
 
-                    const masterMatches = pm.toLowerCase().includes(q);
-                    if (masterMatches || anyChildMatch) {
-                        masterRow.style.display = '';
-                        const icon = document.getElementById(`icon-${pm}`);
-                        if (icon) icon.textContent = '−';
-                        if (masterMatches && !anyChildMatch) {
-                            childRows.forEach(child => child.style.display = '');
-                        }
-                    } else {
-                        masterRow.style.display = 'none';
-                    }
+            document.querySelectorAll('.group-master-row').forEach(masterRow => {
+                const pm = masterRow.dataset.pm;
+                const childRows = document.querySelectorAll(`.child-of-${pm}`);
+                let visibleCount = 0;
+
+                childRows.forEach(child => {
+                    const rowBlk = (child.dataset.block || '').toLowerCase();
+                    const rowVar = (child.dataset.variety || '' + ' ' + child.dataset.varietyDisplay || '').toLowerCase();
+                    const rowAc = child.dataset.activity || '';
+                    const rowStatus = child.dataset.status || '';
+                    const rowPerf = child.dataset.perf || '';
+
+                    let match = true;
+                    if (blkQ && !rowBlk.includes(blkQ)) match = false;
+                    if (varQ && !rowVar.includes(varQ)) match = false;
+                    if (acQ && rowAc !== acQ) match = false;
+                    if (statusQ && rowStatus !== statusQ) match = false;
+                    if (perfQ && rowPerf !== perfQ) match = false;
+
+                    child.style.display = match ? '' : 'none';
+                    if (match) visibleCount++;
                 });
+
+                if (isFiltering) {
+                    masterRow.style.display = visibleCount > 0 ? '' : 'none';
+                    const icon = document.getElementById(`icon-${pm}`);
+                    if (icon) icon.textContent = visibleCount > 0 ? '−' : '+';
+                } else {
+                    masterRow.style.display = '';
+                    childRows.forEach(c => c.style.display = 'none');
+                    const icon = document.getElementById(`icon-${pm}`);
+                    if (icon) icon.textContent = '+';
+                }
+            });
+        }
+
+        [filterBlock, filterVar, filterAc, filterStatus, filterPerf].forEach(ctrl => {
+            if (ctrl) {
+                ctrl.addEventListener('input', applyTableFilters);
+                ctrl.addEventListener('change', applyTableFilters);
+            }
+        });
+
+        if (filterReset) {
+            filterReset.addEventListener('click', () => {
+                if (filterBlock) filterBlock.value = '';
+                if (filterVar) filterVar.value = '';
+                if (filterAc) filterAc.value = '';
+                if (filterStatus) filterStatus.value = '';
+                if (filterPerf) filterPerf.value = '';
+                applyTableFilters();
             });
         }
 
@@ -862,31 +1010,19 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: {
-                                font: { family: 'Inter', size: 10, weight: '700' },
-                                usePointStyle: true,
-                                boxWidth: 7,
-                            }
+                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
                         },
                         tooltip: {
-                            callbacks: {
-                                label: function(context) { return `${context.dataset.label}: ${context.parsed.y}%`; }
-                            }
+                            callbacks: { label: function(c) { return `${c.dataset.label}: ${c.parsed.y}%`; } }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                callback: function(value) { return value + '%'; },
-                                font: { family: 'JetBrains Mono', size: 9 }
-                            },
+                            ticks: { callback: function(v) { return v + '%'; }, font: { family: 'JetBrains Mono', size: 9 } },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
-                        x: {
-                            ticks: { font: { family: 'Inter', size: 9, weight: '600' } },
-                            grid: { display: false }
-                        }
+                        x: { ticks: { font: { family: 'Inter', size: 9, weight: '600' } }, grid: { display: false } }
                     }
                 }
             });
@@ -938,11 +1074,7 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: {
-                                font: { family: 'Inter', size: 10, weight: '700' },
-                                usePointStyle: true,
-                                boxWidth: 7,
-                            }
+                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
                         },
                         tooltip: {
                             callbacks: {
@@ -979,34 +1111,38 @@
                                 color: '#d97706'
                             }
                         },
-                        x: {
-                            ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } },
-                            grid: { display: false }
-                        }
+                        x: { ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } }, grid: { display: false } }
                     }
                 }
             });
         }
 
-        // 3. RENDER CHART 3: STEMS PER PLANT REAL VS TARGET META BY CLOSURE WEEK
+        // 3. RENDER CHART 3: STEMS PER PLANT BY BLOCK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
+            const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
+                const target = chartStemsPpData.target_stems_pp[i] || 0;
+                return v >= target ? '#059669' : '#dc2626';
+            });
+
             new Chart(ctxStemsPp, {
                 type: 'line',
                 data: {
                     labels: chartStemsPpData.labels,
                     datasets: [
                         {
-                            label: 'Real T/pl',
+                            label: 'Real T/pl Bloque',
                             data: chartStemsPpData.real_stems_pp,
-                            borderColor: '#059669',
-                            backgroundColor: 'rgba(5, 150, 105, 0.12)',
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.08)',
                             fill: true,
-                            tension: 0.3,
-                            borderWidth: 3,
+                            tension: 0.25,
+                            borderWidth: 2.5,
                             pointRadius: 5,
                             pointHoverRadius: 7,
-                            pointBackgroundColor: '#059669',
+                            pointBackgroundColor: pointColors,
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1.5,
                         },
                         {
                             label: 'Meta Ideal T/pl',
@@ -1015,8 +1151,7 @@
                             borderDash: [6, 4],
                             backgroundColor: 'transparent',
                             borderWidth: 2,
-                            pointRadius: 2,
-                            pointBackgroundColor: '#dc2626',
+                            pointRadius: 0,
                         }
                     ]
                 },
@@ -1027,17 +1162,79 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: {
-                                font: { family: 'Inter', size: 10, weight: '700' },
-                                usePointStyle: true,
-                                boxWidth: 7,
-                            }
+                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const blkCount = chartStemsPpData.blocks_count[context.dataIndex] || 0;
-                                    return `${context.dataset.label}: ${context.parsed.y} T/pl (${blkCount} blq cerrados)`;
+                                    const val = context.parsed.y;
+                                    const meta = chartStemsPpData.target_stems_pp[context.dataIndex] || 0;
+                                    const statusText = val >= meta ? '🟢 Cumple meta' : '🔴 Bajo meta';
+                                    return `${context.dataset.label}: ${val} T/pl (${statusText})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: function(v) { return v + ' T/pl'; }, font: { family: 'JetBrains Mono', size: 9 } },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: { ticks: { font: { family: 'JetBrains Mono', size: 8, weight: '600' } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 4. RENDER CHART 4: WIDE HYBRID LIFECYCLE HARVEST CURVE
+        const ctxHybrid = document.getElementById('hybridHarvestChart');
+        if (ctxHybrid && typeof Chart !== 'undefined') {
+            new Chart(ctxHybrid, {
+                type: 'line',
+                data: {
+                    labels: chartHybridData.labels,
+                    datasets: [
+                        {
+                            label: 'Cierre Real Histórico (Bloques Cerrados & Cosechados)',
+                            data: chartHybridData.real_stems,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.15)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#059669',
+                        },
+                        {
+                            label: 'Proyección Estimada de Bloques Pendientes',
+                            data: chartHybridData.projected_stems,
+                            borderColor: '#3b82f6',
+                            borderDash: [5, 4],
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: '#3b82f6',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 8 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} tallos`;
                                 }
                             }
                         }
@@ -1046,15 +1243,12 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value) { return value + ' T/pl'; },
+                                callback: function(v) { return v >= 1000 ? (v/1000) + 'k' : v; },
                                 font: { family: 'JetBrains Mono', size: 9 }
                             },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
-                        x: {
-                            ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } },
-                            grid: { display: false }
-                        }
+                        x: { ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } }, grid: { display: false } }
                     }
                 }
             });
