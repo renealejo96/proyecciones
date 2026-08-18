@@ -1036,7 +1036,8 @@
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
                                         {% set is_cell_dump = row.is_dump[week.label] if row.is_dump and week.label in row.is_dump else False %}
-                                        {% if status == 'DUMP' or is_cell_dump %}
+                                        {% set cell_dump_stems = row.dump_stems[week.label] if row.dump_stems and week.label in row.dump_stems else 0 %}
+                                        {% if status == 'DUMP' or is_cell_dump or cell_dump_stems > 0 %}
                                             {% set cell_cls = 'status-dump' %}
                                             {% set cell_stat = 'DUMP' %}
                                         {% elif status == 'REAL' %}
@@ -1049,9 +1050,15 @@
                                             {% set cell_cls = 'status-model' %}
                                             {% set cell_stat = 'MODELO' %}
                                         {% endif %}
-                                        <td class="week-cell col-week-header {{ cell_cls }} {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
+                                        <td class="week-cell col-week-header {{ cell_cls }} {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}"
+                                            data-week-label="{{ week.label }}"
+                                            data-week-code="{{ row.week_code_by_label[week.label] }}"
+                                            data-status="{{ cell_stat }}"
+                                            data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP' or cell_dump_stems > 0) else 'false' }}"
+                                            data-dump-stems="{{ cell_dump_stems }}"
+                                            title="{{ '🗑️ DUMP: ' ~ cell_dump_stems ~ ' descartados' if cell_dump_stems > 0 else ('🌱 Valor agrónomo' if cell_stat == 'AGRONOMO' else ('🌾 Estimado fábrica' if page_mode == 'AGRONOMO' else '📊 Cierre real')) }}">
                                             {% if page_mode == 'REAL' %}
-                                                <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
+                                                <button type="button" class="btn-dump-cell" title="Registrar DUMP parcial o total (Descarte por ventas)">🗑️</button>
                                             {% endif %}
                                             <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
                                         </td>
@@ -1075,8 +1082,57 @@
                     </tbody>
                 </table>
             </div>
-        </section>
+        <!-- DUMP ENTRY MODAL (REGISTRO DE DESCARTE PARCIAL O TOTAL) -->
+        <div id="dump-modal-overlay" class="modal-overlay" style="display: none;">
+            <div class="modal-card" style="max-width: 440px; border-top: 5px solid #ef4444; padding: 18px 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                    <div>
+                        <h3 style="margin: 0; color: #b91c1c; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
+                            <span>🗑️</span> Registro de DUMP / Descarte
+                        </h3>
+                        <div id="dump-modal-context" style="margin-top: 4px; font-size: 0.76rem; color: #475569; font-weight: 600;">
+                            <!-- Bloque 13A | Sem. Cosecha 2632 | Skyler White -->
+                        </div>
+                    </div>
+                    <button type="button" class="btn-cancel" onclick="closeDumpModal()" style="padding: 2px 8px; font-size: 0.8rem; border-radius: 4px;">✕</button>
+                </div>
 
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 0.74rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 3px;">
+                            🌱 Total Tallos Cosechados / Producidos en Planta:
+                        </label>
+                        <input type="number" id="dump-input-total" class="edit-input" style="width: 100%; font-size: 1rem; font-weight: 800; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 5px; background: #ffffff;" min="0" step="1">
+                        <small style="color: #64748b; font-size: 0.68rem; display: block; margin-top: 2px;">
+                            💡 Suma completa cosechada (aporta a los Tallos/Planta agronómicos del bloque).
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 0.74rem; font-weight: 800; color: #b91c1c; display: block; margin-bottom: 3px;">
+                            🗑️ Tallos en DUMP (Descarte por Ventas / Calidad):
+                        </label>
+                        <input type="number" id="dump-input-dumps" class="edit-input" style="width: 100%; font-size: 1rem; font-weight: 800; color: #b91c1c; padding: 6px 8px; border: 1px solid #fca5a5; background: #fff5f5; border-radius: 5px;" min="0" step="1">
+                        
+                        <div style="display: flex; gap: 6px; margin-top: 6px;">
+                            <button type="button" class="btn-cancel" onclick="setDumpPercent(1.0)" style="font-size: 0.70rem; padding: 3px 8px;">100% Dump</button>
+                            <button type="button" class="btn-cancel" onclick="setDumpPercent(0.5)" style="font-size: 0.70rem; padding: 3px 8px;">50% Dump</button>
+                            <button type="button" class="btn-cancel" onclick="setDumpPercent(0.0)" style="font-size: 0.70rem; padding: 3px 8px;">0 (Sin Dump)</button>
+                        </div>
+                    </div>
+
+                    <div id="dump-exportable-calc-box" style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; color: #166534; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+                        <span>🌸 Cosecha Neta Exportable:</span>
+                        <span id="dump-exportable-calc-val" style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">0 tallos</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 8px;">
+                    <button type="button" class="btn-cancel" onclick="closeDumpModal()">Cancelar</button>
+                    <button type="button" class="btn-save" id="btn-save-dump-action" style="background: #dc2626; color: #ffffff; padding: 7px 16px;">💾 Guardar Registro</button>
+                </div>
+            </div>
+        </div>
 
     </main>
 
@@ -1518,14 +1574,15 @@
                     const val = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
                     const status = cell.dataset.status;
                     const isDump = (status === 'DUMP' || cell.dataset.isDump === 'true');
+                    const dumpStemsVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || (isDump ? val : 0)));
 
                     masterWeekTotals[label] += val;
                     varietyTotalsMap[variety].weeks[label] += val;
                     masterGrandTotal += val;
 
-                    if (isDump) {
-                        masterDumpTotal += val;
-                        summaryData[key].dump[activity][label] += val;
+                    if (isDump || dumpStemsVal > 0) {
+                        masterDumpTotal += dumpStemsVal;
+                        summaryData[key].dump[activity][label] += dumpStemsVal;
                     }
 
                     const modelVal = rowResult ? (rowResult.modelByWeek[label] || 0) : val;
@@ -1619,17 +1676,72 @@
             }
         }
 
-        async function toggleDumpCell(row, cell) {
-            const input = cell.querySelector('.week-input');
-            const currentIsDump = (cell.dataset.isDump === 'true' || cell.dataset.status === 'DUMP');
-            const nextIsDump = !currentIsDump;
+        let activeDumpTarget = null;
 
-            const rawVal = input.value !== undefined ? String(input.value).trim() : '';
-            let value = null;
-            if (rawVal !== '') {
-                value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
-                input.value = String(value);
+        function updateDumpExportablePreview() {
+            const totalInput = document.getElementById('dump-input-total');
+            const dumpsInput = document.getElementById('dump-input-dumps');
+            const previewEl = document.getElementById('dump-exportable-calc-val');
+            if (!totalInput || !dumpsInput || !previewEl) return;
+
+            const total = Math.max(0, Math.round(Number.parseFloat(totalInput.value) || 0));
+            const dumps = Math.max(0, Math.round(Number.parseFloat(dumpsInput.value) || 0));
+            const exportable = Math.max(0, total - dumps);
+            previewEl.textContent = `${exportable.toLocaleString()} tallos`;
+        }
+
+        function setDumpPercent(pct) {
+            const totalInput = document.getElementById('dump-input-total');
+            const dumpsInput = document.getElementById('dump-input-dumps');
+            if (!totalInput || !dumpsInput) return;
+            const total = Math.max(0, Math.round(Number.parseFloat(totalInput.value) || 0));
+            dumpsInput.value = Math.round(total * pct);
+            updateDumpExportablePreview();
+        }
+
+        function openDumpModal(row, cell) {
+            activeDumpTarget = { row, cell };
+            const input = cell.querySelector('.week-input');
+            const totalVal = Math.max(0, Math.round(Number.parseFloat(input?.value) || 0));
+            const currentDumps = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || ((cell.dataset.isDump === 'true' || cell.dataset.status === 'DUMP') ? totalVal : 0)));
+
+            const ctxEl = document.getElementById('dump-modal-context');
+            if (ctxEl) {
+                ctxEl.innerHTML = `<strong>Bloque:</strong> ${row.dataset.block} &nbsp;|&nbsp; <strong>Sem. Cosecha:</strong> ${cell.dataset.weekLabel} &nbsp;|&nbsp; <strong>Variedad:</strong> ${row.dataset.variety}`;
             }
+
+            const totalInput = document.getElementById('dump-input-total');
+            const dumpsInput = document.getElementById('dump-input-dumps');
+            if (totalInput) totalInput.value = totalVal;
+            if (dumpsInput) dumpsInput.value = currentDumps;
+
+            updateDumpExportablePreview();
+
+            const overlay = document.getElementById('dump-modal-overlay');
+            if (overlay) overlay.style.display = 'flex';
+            if (dumpsInput) {
+                dumpsInput.focus();
+                dumpsInput.select();
+            }
+        }
+
+        function closeDumpModal() {
+            activeDumpTarget = null;
+            const overlay = document.getElementById('dump-modal-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        async function saveDumpModal() {
+            if (!activeDumpTarget) return;
+            const { row, cell } = activeDumpTarget;
+            const totalInput = document.getElementById('dump-input-total');
+            const dumpsInput = document.getElementById('dump-input-dumps');
+            const total = Math.max(0, Math.round(Number.parseFloat(totalInput.value) || 0));
+            const dumps = Math.max(0, Math.round(Number.parseFloat(dumpsInput.value) || 0));
+            const isDump = (dumps > 0);
+
+            const input = cell.querySelector('.week-input');
+            if (input) input.value = String(total);
 
             const body = {
                 activity: row.dataset.activity,
@@ -1638,9 +1750,10 @@
                 block: row.dataset.block,
                 source_week: String(row.dataset.sourceWeek),
                 harvest_week: String(cell.dataset.weekCode),
-                value: value,
+                value: total,
+                dump_stems: dumps,
                 mode: 'REAL',
-                is_dump: nextIsDump,
+                is_dump: isDump,
             };
 
             try {
@@ -1651,15 +1764,27 @@
                 });
                 const result = await parseApiResponse(response);
                 if (!response.ok || !result.ok) {
-                    throw new Error(result.message || 'No se pudo actualizar estado DUMP.');
+                    throw new Error(result.message || 'No se pudo guardar el registro de DUMP.');
                 }
-                cell.dataset.isDump = nextIsDump ? 'true' : 'false';
-                cell.dataset.status = result.weekly_status || (nextIsDump ? 'DUMP' : 'REAL');
+
+                cell.dataset.dumpStems = String(dumps);
+                cell.dataset.isDump = isDump ? 'true' : 'false';
+                cell.dataset.status = result.weekly_status || (isDump ? 'DUMP' : 'REAL');
+                if (dumps > 0) {
+                    cell.title = `🗑️ DUMP: ${dumps.toLocaleString()} descartados | ${(total - dumps).toLocaleString()} exportables | Total: ${total.toLocaleString()}`;
+                } else {
+                    cell.title = `📊 Cierre real: ${total.toLocaleString()} tallos exportables`;
+                }
+
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
+                recalcRow(row);
                 recalcAll();
+                closeDumpModal();
+                showToast(dumps > 0 ? `🗑️ ${dumps.toLocaleString()} tallos en DUMP registrados (${total.toLocaleString()} total).` : `✅ Cosecha de ${total.toLocaleString()} tallos guardada sin dump.`);
             } catch (error) {
-                console.error("Error toggling dump status:", error);
+                console.error("Error guardando DUMP:", error);
+                alert("Error al guardar DUMP: " + error.message);
             }
         }
 
@@ -1954,15 +2079,23 @@
         });
 
         document.querySelectorAll('.btn-dump-cell').forEach((btn) => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const cell = btn.closest('.week-cell');
                 const row = btn.closest('.projection-row');
                 if (cell && row) {
-                    await toggleDumpCell(row, cell);
+                    openDumpModal(row, cell);
                 }
             });
         });
+
+        const dumpInputTotal = document.getElementById('dump-input-total');
+        const dumpInputDumps = document.getElementById('dump-input-dumps');
+        if (dumpInputTotal) dumpInputTotal.addEventListener('input', updateDumpExportablePreview);
+        if (dumpInputDumps) dumpInputDumps.addEventListener('input', updateDumpExportablePreview);
+
+        const btnSaveDumpAction = document.getElementById('btn-save-dump-action');
+        if (btnSaveDumpAction) btnSaveDumpAction.addEventListener('click', saveDumpModal);
 
         // DOUBLE CLICK & DOUBLE TAP TO RESTORE (BOTH IN AGRONOMO AND REAL TABS)
         document.querySelectorAll('.week-cell').forEach((cell) => {

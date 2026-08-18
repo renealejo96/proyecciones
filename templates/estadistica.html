@@ -890,7 +890,14 @@
                                         <td><code>{{ row.source_week_short }}</code></td>
                                         <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
                                         <td>{{ '{:,}'.format(row.plants) }}</td>
-                                        <td style="color: var(--pbi-navy);"><strong>{{ '{:,}'.format(row.total_production) }}</strong></td>
+                                        <td style="color: var(--pbi-navy);">
+                                            <strong>{{ '{:,}'.format(row.total_production) }}</strong>
+                                            {% if row.dump_stems and row.dump_stems > 0 %}
+                                                <div style="font-size: 0.62rem; color: #b91c1c; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
+                                                    🗑️ {{ '{:,}'.format(row.dump_stems) }} dump
+                                                </div>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
                                                 {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
@@ -921,9 +928,17 @@
                                             data-week="{{ row.source_week_short }}">
                                             <td class="col-left" style="padding-left: 56px; color: var(--pbi-purple); font-weight: 700;">
                                                 ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
+                                                {% if hw.dump_stems and hw.dump_stems > 0 %}
+                                                    <span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-size: 0.62rem; font-weight: 700; border: 1px solid #fca5a5;">
+                                                        🗑️ {{ '{:,}'.format(hw.dump_stems) }} Dumps
+                                                    </span>
+                                                {% endif %}
                                             </td>
                                             <td class="col-left" style="color: var(--pbi-slate-500); font-size: 0.68rem;">
                                                 Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
+                                                {% if hw.dump_stems and hw.dump_stems > 0 %}
+                                                    &nbsp;|&nbsp; <span style="color: #166534; font-weight: 700;">🌸 {{ '{:,}'.format(hw.stems - hw.dump_stems) }} Exportables</span>
+                                                {% endif %}
                                             </td>
                                             <td style="text-align: center; color: var(--pbi-slate-400);">{{ row.source_week_short }}</td>
                                             <td style="text-align: center; color: var(--pbi-slate-400);">-</td>
@@ -1222,6 +1237,7 @@
                     'Plantas',
                     'Tallos Exportables',
                     'Total Produccion',
+                    'Tallos DUMP',
                     'Real Tallos/Planta',
                     'Ideal Tallos/Planta',
                     'Ciclo Real (sem)',
@@ -1236,7 +1252,7 @@
 
                 filtered.forEach(r => {
                     const harvestDetail = (r.harvest_breakdown || []).map(hw => 
-                        `Sem ${hw.harvest_week_short}: ${hw.stems} [${hw.source}]`
+                        `Sem ${hw.harvest_week_short}: ${hw.stems} ${hw.dump_stems ? '(' + hw.dump_stems + ' Dump)' : ''} [${hw.source}]`
                     ).join('; ');
 
                     const rowValues = [
@@ -1248,6 +1264,7 @@
                         r.plants || 0,
                         r.exportable_stems || 0,
                         r.total_production || 0,
+                        r.dump_stems || 0,
                         r.real_stems_per_plant || 0,
                         r.ideal_stems_per_plant || 0,
                         r.real_cycle_weeks || 0,

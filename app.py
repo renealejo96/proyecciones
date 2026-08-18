@@ -158,7 +158,8 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             ): {
                 "agronomo_estimate": w.agronomo_estimate,
                 "real_closed": w.real_closed,
-                "is_dump": bool(w.is_dump),
+                "dump_stems": w.dump_stems or 0,
+                "is_dump": bool(w.is_dump or (w.dump_stems and w.dump_stems > 0)),
             }
             for w in week_adjs
         }
@@ -375,6 +376,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                         "exportable_stems": int(exportable_stems),
                         "weekly_status": weekly_status,
                         "is_dump": is_dump,
+                        "dump_stems": int(week_override.get("dump_stems", 0) or 0),
                         "block_closed": block_closed,
                     }
                 )
@@ -707,6 +709,17 @@ def aggregate_for_week(
                 ): bool(getattr(row, "is_dump", False))
                 for row in projection_grouped.itertuples(index=False)
             }
+            projection_dump_stems_lookup = {
+                (
+                    row.product_master,
+                    row.variety,
+                    row.activity,
+                    row.source_week,
+                    row.block,
+                    row.harvest_week,
+                ): int(getattr(row, "dump_stems", 0) or 0)
+                for row in projection_grouped.itertuples(index=False)
+            }
             matrix_rows = []
             for row in source_grouped.itertuples(index=False):
                 weekly_projection = {
@@ -751,6 +764,20 @@ def aggregate_for_week(
                     )
                     for column in week_columns
                 }
+                dump_stems_by_week = {
+                    column["label"]: projection_dump_stems_lookup.get(
+                        (
+                            row.product_master,
+                            row.variety,
+                            row.activity,
+                            row.source_week,
+                            row.block,
+                            column["week_code"],
+                        ),
+                        0,
+                    )
+                    for column in week_columns
+                }
                 week_code_by_label = {
                     column["label"]: column["week_code"] for column in week_columns
                 }
@@ -787,6 +814,7 @@ def aggregate_for_week(
                         "weekly_projection": weekly_projection,
                         "weekly_status": weekly_status,
                         "is_dump": is_dump_by_week,
+                        "dump_stems": dump_stems_by_week,
                         "week_code_by_label": week_code_by_label,
                         "window_total": int(sum(weekly_projection.values())),
                         "block_closed": bool(row.block_closed),
@@ -1369,6 +1397,7 @@ def get_statistics_data(
             adjs = adj_map_by_block.get(k_norm, [])
             adj_real_map = {a.harvest_week: a.real_closed for a in adjs if a.real_closed is not None}
             adj_agro_map = {a.harvest_week: a.agronomo_estimate for a in adjs if a.agronomo_estimate is not None}
+            adj_dump_map = {a.harvest_week: (a.dump_stems or 0) for a in adjs}
 
             # Build complete curve weeks
             all_hw_set = set()
@@ -1404,10 +1433,12 @@ def get_statistics_data(
 
                 block_total_production += val
                 hw_pp = round(val / plants, 2) if plants > 0 else 0.0
+                d_stems = adj_dump_map.get(hw, 0)
                 harvest_breakdown.append({
                     "harvest_week": hw,
                     "harvest_week_short": hw_short,
                     "stems": val,
+                    "dump_stems": d_stems,
                     "stems_pp": hw_pp,
                     "source": src,
                 })
@@ -1446,9 +1477,11 @@ def get_statistics_data(
 
             # Include block in summary
             if plants > 0:
+                block_dumps = sum(item["dump_stems"] for item in harvest_breakdown)
                 total_plants_sum += plants
                 total_production_sum += block_total_production
                 total_real_closed_sum += block_real_stems
+                total_dumps_sum += block_dumps
                 real_stems_per_plant_list.append(block_t_pl)
                 ideal_stems_per_plant_list.append(effective_stems_pp)
                 waste_list.append(effective_waste_rate * 100.0)
@@ -1468,6 +1501,7 @@ def get_statistics_data(
                     "exportable_stems": base_exportable,
                     "total_production": block_total_production,
                     "real_stems": block_real_stems,
+                    "dump_stems": block_dumps,
                     "real_stems_per_plant": block_t_pl,
                     "ideal_stems_per_plant": round(effective_stems_pp, 1),
                     "is_below_target": is_below_target,
@@ -1828,9 +1862,11 @@ def save_week_adjustment_api():
     harvest_week = parse_week_code(payload.get("harvest_week"))
     raw_value = payload.get("value")
     value = to_int_or_none(raw_value)
+    dump_stems_raw = payload.get("dump_stems")
+    dump_stems = to_int_or_none(dump_stems_raw)
     mode = normalize_text(payload.get("mode"))
     is_dump = payload.get("is_dump")
-    is_reset = bool(payload.get("reset")) or (raw_value in (None, "") and is_dump is None)
+    is_reset = bool(payload.get("reset")) or (raw_value in (None, "") and is_dump is None and dump_stems is None)
     reset_all = bool(payload.get("reset_all"))
 
     if activity not in {"SIEMBRA", "PODA"}:
@@ -1859,23 +1895,33 @@ def save_week_adjustment_api():
             if reset_all:
                 existing.agronomo_estimate = None
                 existing.real_closed = None
+                existing.dump_stems = 0
                 existing.is_dump = False
             elif mode == "AGRONOMO":
                 existing.agronomo_estimate = value
+                if dump_stems is not None:
+                    existing.dump_stems = dump_stems
+                    existing.is_dump = (dump_stems > 0) or bool(is_dump)
             else:
                 existing.real_closed = value
-                if is_dump is not None:
+                if dump_stems is not None:
+                    existing.dump_stems = dump_stems
+                    existing.is_dump = (dump_stems > 0) or bool(is_dump)
+                elif is_dump is not None:
                     existing.is_dump = bool(is_dump)
+                    if is_dump and (not existing.dump_stems or existing.dump_stems == 0) and value:
+                        existing.dump_stems = value
                 elif is_reset:
                     existing.is_dump = False
+                    existing.dump_stems = 0
             
             existing.updated_at = datetime.utcnow()
 
-            if existing.agronomo_estimate is None and existing.real_closed is None and not existing.is_dump:
+            if existing.agronomo_estimate is None and existing.real_closed is None and not existing.is_dump and (not existing.dump_stems or existing.dump_stems == 0):
                 db.delete(existing)
         else:
             if not is_reset and not reset_all:
-                if value is not None or (is_dump is not None and bool(is_dump)):
+                if value is not None or (is_dump is not None and bool(is_dump)) or (dump_stems is not None and dump_stems > 0):
                     new_adj = WeekAdjustmentDB(
                         activity=activity,
                         product_master_norm=pm_norm,
@@ -1886,7 +1932,8 @@ def save_week_adjustment_api():
                         harvest_week=harvest_week,
                         agronomo_estimate=value if mode == "AGRONOMO" else None,
                         real_closed=value if mode == "REAL" else None,
-                        is_dump=bool(is_dump) if is_dump is not None else False,
+                        dump_stems=dump_stems if dump_stems is not None else (value if is_dump else 0),
+                        is_dump=bool(is_dump or (dump_stems and dump_stems > 0)),
                     )
                     db.add(new_adj)
 
@@ -1895,6 +1942,7 @@ def save_week_adjustment_api():
 
         weekly_status = "MODELO"
         is_dump_val = False
+        res_dump_stems = 0
         check = db.query(WeekAdjustmentDB).filter_by(
             activity=activity,
             product_master_norm=pm_norm,
@@ -1908,15 +1956,17 @@ def save_week_adjustment_api():
                 weekly_status = "REAL"
             elif check.agronomo_estimate is not None:
                 weekly_status = "AGRONOMO"
-            if check.is_dump:
+            if check.is_dump or (check.dump_stems and check.dump_stems > 0):
                 weekly_status = "DUMP"
                 is_dump_val = True
+            res_dump_stems = check.dump_stems or 0
 
         return jsonify({
             "ok": True,
-            "message": "Dato semanal guardado en PostgreSQL.",
             "weekly_status": weekly_status,
             "is_dump": is_dump_val,
+            "dump_stems": res_dump_stems,
+            "value": check.real_closed if (check and check.real_closed is not None) else (check.agronomo_estimate if check else None),
         })
     except SQLAlchemyError as exc:
         db.rollback()

@@ -108,6 +108,7 @@ class WeekAdjustmentDB(Base):
     harvest_week = Column(Integer, nullable=False)
     agronomo_estimate = Column(Integer, nullable=True)
     real_closed = Column(Integer, nullable=True)
+    dump_stems = Column(Integer, default=0, nullable=True)
     is_dump = Column(Boolean, default=False, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
