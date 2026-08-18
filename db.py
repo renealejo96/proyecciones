@@ -127,6 +127,28 @@ class BlockClosureDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class EstimateAuditDB(Base):
+    __tablename__ = "estimate_audits"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    product_master = Column(String(100), nullable=False)
+    product_master_norm = Column(String(100), nullable=False, index=True)
+    variety = Column(String(100), nullable=False)
+    variety_norm = Column(String(100), nullable=False, index=True)
+    block = Column(String(50), nullable=False, index=True)
+    block_norm = Column(String(50), nullable=False, index=True)
+    activity = Column(String(50), nullable=False, index=True)
+    source_week = Column(Integer, nullable=False, index=True)
+    harvest_week = Column(Integer, nullable=False, index=True)
+    mode = Column(String(50), default="AGRONOMO")  # 'AGRONOMO' or 'REAL'
+    action = Column(String(50), default="EDIT")    # 'EDIT', 'RESTORE', 'RESET', 'DELETE', 'INITIAL'
+    previous_value = Column(Integer, nullable=True)
+    new_value = Column(Integer, nullable=True)
+    dump_stems = Column(Integer, nullable=True, default=0)
+    notes = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class AppMetaDB(Base):
     __tablename__ = "app_meta"
 
@@ -248,6 +270,35 @@ def init_db():
         if not meta:
             meta = AppMetaDB(key="data_version", value="1")
             db.add(meta)
+            db.commit()
+
+        # Seed baseline audit history from current adjustments if table is empty
+        audit_count = db.query(EstimateAuditDB).count()
+        if audit_count == 0:
+            existing_adjs = db.query(WeekAdjustmentDB).all()
+            for a in existing_adjs:
+                val = a.agronomo_estimate if a.agronomo_estimate is not None else a.real_closed
+                if val is not None or a.is_dump or a.dump_stems:
+                    db.add(
+                        EstimateAuditDB(
+                            product_master=a.product_master_norm,
+                            product_master_norm=a.product_master_norm,
+                            variety=a.variety_norm,
+                            variety_norm=a.variety_norm,
+                            block=a.block,
+                            block_norm=a.block_norm,
+                            activity=a.activity,
+                            source_week=a.source_week,
+                            harvest_week=a.harvest_week,
+                            mode="AGRONOMO" if a.agronomo_estimate is not None else "REAL",
+                            action="INITIAL",
+                            previous_value=None,
+                            new_value=val,
+                            dump_stems=a.dump_stems or 0,
+                            notes="Registro inicial",
+                            created_at=a.updated_at or datetime.utcnow(),
+                        )
+                    )
             db.commit()
     except Exception:
         db.rollback()

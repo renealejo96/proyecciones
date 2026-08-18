@@ -17,6 +17,7 @@ from db import (
     AppMetaDB,
     BlockClosureDB,
     CycleDefinitionDB,
+    EstimateAuditDB,
     MassAdjustmentDB,
     RowAdjustmentDB,
     SessionLocal,
@@ -38,6 +39,34 @@ app = Flask(__name__)
 
 # Automatically create tables and seed Postgres if empty on startup
 seed_data_from_excel_if_empty(WORKBOOK_PATH)
+
+
+def merge_bed_locations(bed_locs: list[str]) -> str:
+    if not bed_locs:
+        return ""
+    clean_locs = [b.strip() for b in bed_locs if b and str(b).strip() and str(b).strip() not in ("None", "nan", "-")]
+    if not clean_locs:
+        return ""
+    if len(clean_locs) == 1:
+        return clean_locs[0]
+
+    nums = []
+    has_unparsed = False
+    for loc in clean_locs:
+        parts = re.findall(r"\d+", loc)
+        if parts:
+            nums.extend(int(p) for p in parts)
+        else:
+            has_unparsed = True
+
+    if nums and not has_unparsed:
+        min_n = min(nums)
+        max_n = max(nums)
+        if min_n == max_n:
+            return f"{min_n}"
+        return f"{min_n} a {max_n}"
+
+    return ", ".join(sorted(set(clean_locs)))
 
 
 def shift_week(week_code: int, delta_weeks: int) -> int:
@@ -200,9 +229,12 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                     "variety_norm": variety_norm,
                     "block": block,
                     "block_norm": block_norm,
+                    "bed_locations": [rec.bed_location] if rec.bed_location else [],
                 }
             else:
                 consolidated_dict[key]["plants"] += plants
+                if rec.bed_location and rec.bed_location not in consolidated_dict[key]["bed_locations"]:
+                    consolidated_dict[key]["bed_locations"].append(rec.bed_location)
 
         source_rows = []
         projection_rows = []
@@ -218,6 +250,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             variety_norm = item["variety_norm"]
             block = item["block"]
             block_norm = item["block_norm"]
+            bed_location_str = merge_bed_locations(item.get("bed_locations", []))
 
             cycle_key = (product_master_norm, variety_norm, activity)
             cycle = cycle_map.get(cycle_key)
@@ -237,7 +270,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                     "source_week_short": format_short_week(source_week),
                     "block": block,
                     "plants": plants,
-                    "bed_location": "",
+                    "bed_location": bed_location_str,
                     "pruning_number": "",
                     "cycle_found": cycle is not None,
                     "cycle_weeks": None,
@@ -365,6 +398,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                         "variety": variety,
                         "block": block,
                         "plants": plants,
+                        "bed_location": bed_location_str,
                         "source_week": source_week,
                         "source_week_short": format_short_week(source_week),
                         "harvest_week": harvest_week,
@@ -641,6 +675,7 @@ def aggregate_for_week(
                 .agg(
                     {
                         "plants": "sum",
+                        "bed_location": "first",
                         "cycle_weeks": "first",
                         "stems_per_plant": "first",
                         "waste_rate": "first",
@@ -793,6 +828,7 @@ def aggregate_for_week(
                         "variety_display": format_variety_display(row.variety),
                         "product_master": row.product_master,
                         "activity": row.activity,
+                        "bed_location": "" if pd.isna(getattr(row, "bed_location", "")) else str(getattr(row, "bed_location", "")).strip(),
                         "source_week": row.source_week,
                         "source_week_short": row.source_week_short,
                         "harvest_start_week": harvest_start_week,
@@ -2011,7 +2047,9 @@ def save_week_adjustment_api():
             harvest_week=harvest_week,
         ).first()
 
+        prev_val = None
         if existing:
+            prev_val = existing.agronomo_estimate if mode == "AGRONOMO" else existing.real_closed
             if reset_all:
                 existing.agronomo_estimate = None
                 existing.real_closed = None
@@ -2057,6 +2095,30 @@ def save_week_adjustment_api():
                     )
                     db.add(new_adj)
 
+        # Record action in EstimateAuditDB
+        action_type = "RESET" if (reset_all or is_reset) else "EDIT"
+        new_val = None if (reset_all or is_reset) else value
+        if prev_val != new_val or is_dump is not None or dump_stems is not None:
+            audit_entry = EstimateAuditDB(
+                product_master=product_master,
+                product_master_norm=pm_norm,
+                variety=variety,
+                variety_norm=v_norm,
+                block=block,
+                block_norm=b_norm,
+                activity=activity,
+                source_week=source_week,
+                harvest_week=harvest_week,
+                mode=mode,
+                action=action_type,
+                previous_value=prev_val,
+                new_value=new_val,
+                dump_stems=dump_stems if dump_stems is not None else 0,
+                notes=f"Guardado {mode} ({'Reseteo' if is_reset else 'Edición'})",
+                created_at=datetime.utcnow(),
+            )
+            db.add(audit_entry)
+
         db.commit()
         invalidate_snapshot_cache()
 
@@ -2087,6 +2149,178 @@ def save_week_adjustment_api():
             "is_dump": is_dump_val,
             "dump_stems": res_dump_stems,
             "value": check.real_closed if (check and check.real_closed is not None) else (check.agronomo_estimate if check else None),
+        })
+    except SQLAlchemyError as exc:
+        db.rollback()
+        return jsonify({"ok": False, "message": str(exc)}), 500
+    finally:
+        db.close()
+
+
+@app.get("/api/historial-estimaciones")
+def get_estimate_history_api():
+    block_filter = request.args.get("block", "").strip()
+    source_week_filter = parse_week_code(request.args.get("source_week"))
+    harvest_week_filter = parse_week_code(request.args.get("harvest_week"))
+    product_filter = request.args.get("product", "").strip()
+    variety_filter = request.args.get("variety", "").strip()
+    mode_filter = request.args.get("mode", "").strip().upper()
+    limit = max(1, min(500, int(request.args.get("limit") or 100)))
+
+    db = SessionLocal()
+    try:
+        query = db.query(EstimateAuditDB)
+        if block_filter:
+            query = query.filter(EstimateAuditDB.block_norm == normalize_text(block_filter))
+        if source_week_filter:
+            query = query.filter(EstimateAuditDB.source_week == source_week_filter)
+        if harvest_week_filter:
+            query = query.filter(EstimateAuditDB.harvest_week == harvest_week_filter)
+        if product_filter and product_filter.upper() != "ALL":
+            query = query.filter(EstimateAuditDB.product_master_norm == normalize_text(product_filter))
+        if variety_filter and variety_filter.upper() != "ALL":
+            query = query.filter(EstimateAuditDB.variety_norm == normalize_text(variety_filter))
+        if mode_filter and mode_filter in ("AGRONOMO", "REAL"):
+            query = query.filter(EstimateAuditDB.mode == mode_filter)
+
+        audits = query.order_by(EstimateAuditDB.id.desc()).limit(limit).all()
+
+        results = [
+            {
+                "id": a.id,
+                "product_master": a.product_master,
+                "variety": a.variety,
+                "variety_display": format_variety_display(a.variety),
+                "block": a.block,
+                "activity": a.activity,
+                "source_week": a.source_week,
+                "source_week_short": format_short_week(a.source_week),
+                "harvest_week": a.harvest_week,
+                "harvest_week_short": format_short_week(a.harvest_week),
+                "mode": a.mode,
+                "action": a.action,
+                "previous_value": a.previous_value,
+                "new_value": a.new_value,
+                "dump_stems": a.dump_stems,
+                "notes": a.notes or "",
+                "created_at": a.created_at.strftime("%Y-%m-%d %H:%M:%S") if a.created_at else "",
+            }
+            for a in audits
+        ]
+        return jsonify({"ok": True, "count": len(results), "history": results})
+    except SQLAlchemyError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 500
+    finally:
+        db.close()
+
+
+@app.post("/api/restaurar-estimacion")
+def restore_estimate_api():
+    payload = request.get_json(silent=True) or {}
+    audit_id = to_int_or_none(payload.get("audit_id"))
+    
+    activity = normalize_text(payload.get("activity"))
+    product_master = str(payload.get("product_master") or "").strip()
+    variety = str(payload.get("variety") or "").strip()
+    block = str(payload.get("block") or "").strip()
+    source_week = parse_week_code(payload.get("source_week"))
+    harvest_week = parse_week_code(payload.get("harvest_week"))
+    value = to_int_or_none(payload.get("value"))
+    mode = normalize_text(payload.get("mode") or "AGRONOMO")
+    if mode not in ("AGRONOMO", "REAL"):
+        mode = "AGRONOMO"
+
+    db = SessionLocal()
+    try:
+        if audit_id:
+            audit = db.query(EstimateAuditDB).filter_by(id=audit_id).first()
+            if not audit:
+                return jsonify({"ok": False, "message": "Registro de auditoría no encontrado."}), 404
+            activity = audit.activity
+            product_master = audit.product_master
+            variety = audit.variety
+            block = audit.block
+            source_week = audit.source_week
+            harvest_week = audit.harvest_week
+            if value is None:
+                value = audit.previous_value if audit.previous_value is not None else audit.new_value
+            mode = audit.mode
+
+        if not activity or not product_master or not variety or not block or source_week is None or harvest_week is None:
+            return jsonify({"ok": False, "message": "Faltan parámetros requeridos para restaurar."}), 400
+
+        pm_norm = normalize_text(product_master)
+        v_norm = normalize_text(variety)
+        b_norm = normalize_text(block)
+
+        existing = db.query(WeekAdjustmentDB).filter_by(
+            activity=activity,
+            product_master_norm=pm_norm,
+            variety_norm=v_norm,
+            block_norm=b_norm,
+            source_week=source_week,
+            harvest_week=harvest_week,
+        ).first()
+
+        prev_val = None
+        if existing:
+            prev_val = existing.agronomo_estimate if mode == "AGRONOMO" else existing.real_closed
+            if mode == "AGRONOMO":
+                existing.agronomo_estimate = value
+            else:
+                existing.real_closed = value
+            existing.updated_at = datetime.utcnow()
+        else:
+            new_adj = WeekAdjustmentDB(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block=block,
+                block_norm=b_norm,
+                source_week=source_week,
+                harvest_week=harvest_week,
+                agronomo_estimate=value if mode == "AGRONOMO" else None,
+                real_closed=value if mode == "REAL" else None,
+                dump_stems=0,
+                is_dump=False,
+            )
+            db.add(new_adj)
+
+        # Log restoration in audit
+        restore_audit = EstimateAuditDB(
+            product_master=product_master,
+            product_master_norm=pm_norm,
+            variety=variety,
+            variety_norm=v_norm,
+            block=block,
+            block_norm=b_norm,
+            activity=activity,
+            source_week=source_week,
+            harvest_week=harvest_week,
+            mode=mode,
+            action="RESTORE",
+            previous_value=prev_val,
+            new_value=value,
+            dump_stems=0,
+            notes=f"Restaurado a {value} tallos",
+            created_at=datetime.utcnow(),
+        )
+        db.add(restore_audit)
+
+        db.commit()
+        invalidate_snapshot_cache()
+
+        return jsonify({
+            "ok": True,
+            "message": f"Valor {value} tallos restaurado con éxito para bloque {block} en semana {format_short_week(harvest_week)}.",
+            "value": value,
+            "weekly_status": mode,
+            "block": block,
+            "source_week": source_week,
+            "harvest_week": harvest_week,
+            "activity": activity,
+            "variety": variety,
+            "product_master": product_master,
         })
     except SQLAlchemyError as exc:
         db.rollback()

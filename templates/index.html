@@ -520,33 +520,60 @@
 
         /* OFFSETS FOR STICKY COLUMNS:
            1: Cierre (28px, left: 0)
-           2: AC (32px, left: 28px)
-           3: Sem. Origen (46px, left: 60px)
-           4: Bloque (48px, left: 106px)
-           5: Variedad (140px, left: 154px)
-           6: Sem. Cosecha (48px, left: 294px)
-           7: Plantas (54px, left: 342px)
+           2: AC (30px, left: 28px)
+           ubi: Ubi / Camas (50px, left: 58px)
+           3: Sem. Origen (44px, left: 108px)
+           4: Bloque (46px, left: 152px)
+           5: Variedad (135px, left: 198px)
+           6: Sem. Cosecha (46px, left: 333px)
+           7: Plantas (52px, left: 379px)
            --- Parameters (when visible) ---
-           8: Ciclo Ideal (44px, left: 396px)
-           9: Ciclo Ajust. (48px, left: 440px)
-           10: T/pl Ideal (44px, left: 488px)
-           11: T/pl Ajust. (48px, left: 532px)
+           8: Ciclo Ideal (44px, left: 431px)
+           9: Ciclo Ajust. (46px, left: 475px)
+           10: T/pl Ideal (44px, left: 521px)
+           11: T/pl Ajust. (46px, left: 565px)
         */
         .sticky-1 { left: 0px; width: 28px; min-width: 28px; max-width: 28px; }
-        .sticky-2 { left: 28px; width: 32px; min-width: 32px; max-width: 32px; }
-        .sticky-3 { left: 60px; width: 46px; min-width: 46px; max-width: 46px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-        .sticky-4 { left: 106px; width: 48px; min-width: 48px; max-width: 48px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
-        .sticky-5 { left: 154px; width: 140px; min-width: 140px; max-width: 140px; text-align: left; padding: 2px 5px !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .sticky-6 { left: 294px; width: 48px; min-width: 48px; max-width: 48px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1e40af; font-size: 0.72rem; }
-        .sticky-7 { left: 342px; width: 54px; min-width: 54px; max-width: 54px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-        .sticky-8 { left: 396px; width: 44px; min-width: 44px; max-width: 44px; }
-        .sticky-9 { left: 440px; width: 48px; min-width: 48px; max-width: 48px; padding: 2px 2px !important; }
-        .sticky-10 { left: 488px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-2 { left: 28px; width: 30px; min-width: 30px; max-width: 30px; }
+        .sticky-ubi { 
+            left: 58px; 
+            width: 50px; 
+            min-width: 50px; 
+            max-width: 50px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.68rem; 
+            font-weight: 600; 
+            color: var(--slate-700); 
+            padding: 1px 2px !important; 
+            text-align: center; 
+        }
+        .badge-ubi {
+            display: inline-block;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            padding: 0 2px;
+            font-size: 0.67rem;
+            color: #1e293b;
+            max-width: 46px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+        .sticky-3 { left: 108px; width: 44px; min-width: 44px; max-width: 44px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .sticky-4 { left: 152px; width: 46px; min-width: 46px; max-width: 46px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
+        .sticky-5 { left: 198px; width: 135px; min-width: 135px; max-width: 135px; text-align: left; padding: 2px 4px !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sticky-6 { left: 333px; width: 46px; min-width: 46px; max-width: 46px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1e40af; font-size: 0.72rem; }
+        .sticky-7 { left: 379px; width: 52px; min-width: 52px; max-width: 52px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .sticky-8 { left: 431px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-9 { left: 475px; width: 46px; min-width: 46px; max-width: 46px; padding: 2px 2px !important; }
+        .sticky-10 { left: 521px; width: 44px; min-width: 44px; max-width: 44px; }
         .sticky-11 { 
-            left: 532px; 
-            width: 48px; 
-            min-width: 48px; 
-            max-width: 48px;
+            left: 565px; 
+            width: 46px; 
+            min-width: 46px; 
+            max-width: 46px;
             padding: 2px 2px !important;
             box-shadow: var(--shadow-sticky);
             border-right: 2px solid #64748b !important;
@@ -886,6 +913,7 @@
                         <div class="dropdown-menu" id="ops-dropdown-menu">
                             <button type="button" class="dropdown-item" id="menu-save-all">💾 Guardar Todo en Excel</button>
                             <button type="button" class="dropdown-item" id="menu-toggle-params">👁️ Mostrar / Ocultar Parámetros</button>
+                            <button type="button" class="dropdown-item" id="menu-audit-history">📜 Historial y Restaurar Estimaciones</button>
                             <button type="button" class="dropdown-item" onclick="location.href='/?sync_db=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">🗄️ Sincronizar PostgreSQL</button>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">🌾 Vista Llenado Agrónomo</a>
@@ -919,6 +947,7 @@
                 <div class="chips">
                     <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Mostrar u ocultar columnas de parámetros (Ciclos, T/pl, Desperdicio, Totales)">👁️ Ocultar Parámetros</button>
                     <button type="button" id="reset-filters-btn" class="toggle-params-btn" style="color: var(--slate-600);" title="Limpiar los filtros rápidos de columna">🔄 Limpiar Filtros</button>
+                    <button type="button" id="btn-open-audit-history" class="toggle-params-btn" style="background: #f0fdf4; border-color: #86efac; color: #15803d; font-weight: 700;" title="Ver auditoría de cambios y restaurar estimaciones anteriores">📜 Historial y Restaurar</button>
                     <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
                     <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
                     <div class="chip">Podas: <span id="chip-total-podas">{{ weekly_view.totals_by_activity.PODA }}</span></div>
@@ -933,7 +962,7 @@
                 <table class="projection-table master-table">
                     <thead>
                         <tr class="totals-row">
-                            <th colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
+                            <th colspan="12" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="5" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
                                 <th class="js-week-total col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
@@ -950,6 +979,12 @@
                                         <option value="SIEMBRA">S</option>
                                         <option value="PODA">P</option>
                                     </select>
+                                </div>
+                            </th>
+                            <th class="sticky-col sticky-ubi" title="Ubicación de Camas (de qué cama a qué cama)">
+                                <div class="header-filter-cell">
+                                    <span>Ubi</span>
+                                    <input type="text" id="h-filter-ubi" class="h-filter-ctrl" placeholder="🔍" style="width: 38px;">
                                 </div>
                             </th>
                             <th class="sticky-col sticky-3" title="Semana origen de Siembra o Poda">
@@ -1017,9 +1052,11 @@
                                     data-variety="{{ variety.variety }}"
                                     data-variety-display="{{ row.variety_display or variety.variety_display or variety.variety }}"
                                     data-block="{{ row.block }}"
+                                    data-bed-location="{{ row.bed_location }}"
                                     data-curve="{{ row.curve_csv }}">
                                     <td class="sticky-col sticky-1"><input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }}></td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
+                                    <td class="sticky-col sticky-ubi" title="Camas: {{ row.bed_location }}"><span class="badge-ubi">{{ row.bed_location or '-' }}</span></td>
                                     <td class="sticky-col sticky-3">{{ row.source_week_short }}</td>
                                     <td class="sticky-col sticky-4 block-col">{{ row.block }}</td>
                                     <td class="sticky-col sticky-5" title="{{ row.variety }}">{{ row.variety_display or variety.variety_display or variety.variety }}</td>
@@ -1072,7 +1109,7 @@
 
                             <!-- IN-TABLE VARIETY SUBTOTAL ROW -->
                             <tr class="variety-subtotal-row" data-variety="{{ variety.variety }}">
-                                <td colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
+                                <td colspan="12" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
                                     <strong>📊 Subtotal {{ variety.variety_display or variety.variety }}</strong>
                                 </td>
                                 <td colspan="5" class="param-col"></td>
@@ -1135,6 +1172,104 @@
                 <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 8px;">
                     <button type="button" class="btn-cancel" onclick="closeDumpModal()">Cancelar</button>
                     <button type="button" class="btn-save" id="btn-save-dump-action" style="background: #dc2626; color: #ffffff; padding: 7px 16px;">💾 Guardar Registro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIT & ESTIMATION HISTORY MODAL (HISTORIAL Y RESTAURACIÓN) -->
+        <div id="audit-history-modal-overlay" class="modal-overlay" style="display: none;">
+            <div class="modal-card" style="max-width: 860px; width: 96%; max-height: 90vh; display: flex; flex-direction: column; border-top: 5px solid #059669; padding: 18px 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid var(--slate-200); padding-bottom: 8px;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 8px;">
+                            <span>📜</span> Historial y Restauración de Estimaciones
+                        </h3>
+                        <p style="margin: 3px 0 0 0; font-size: 0.76rem; color: var(--slate-500);">
+                            Consulta todos los cambios y estimaciones guardadas por el agrónomo o datos reales. Puedes restaurar valores anteriores en cualquier momento.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-close-modal" id="btn-close-audit-modal" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--slate-400);">✕</button>
+                </div>
+
+                <!-- QUICK FILTER BAR IN MODAL -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--slate-700); margin-bottom: 2px;">Bloque:</label>
+                        <input type="text" id="audit-filter-block" placeholder="Ej: 74" style="width: 80px; padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--slate-300); border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--slate-700); margin-bottom: 2px;">Sem. Origen:</label>
+                        <input type="text" id="audit-filter-sw" placeholder="Ej: 2618" style="width: 80px; padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--slate-300); border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--slate-700); margin-bottom: 2px;">Sem. Cosecha:</label>
+                        <input type="text" id="audit-filter-hw" placeholder="Ej: 2631" style="width: 80px; padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--slate-300); border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--slate-700); margin-bottom: 2px;">Modo:</label>
+                        <select id="audit-filter-mode" style="padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--slate-300); border-radius: 4px;">
+                            <option value="">(Todos)</option>
+                            <option value="AGRONOMO">🌱 Agrónomo (Verde)</option>
+                            <option value="REAL">📊 Real (Amarillo)</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btn-search-audit" style="padding: 5px 12px; background: #059669; color: #fff; font-weight: 700; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">🔍 Buscar</button>
+                    <button type="button" id="btn-clear-audit-filters" style="padding: 5px 10px; background: #e2e8f0; color: var(--slate-700); font-weight: 600; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Limpiar</button>
+                </div>
+
+                <!-- DIRECT RESTORE / INPUT TOOL (MANUAL FALLBACK) -->
+                <details style="margin-bottom: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px;">
+                    <summary style="font-size: 0.78rem; font-weight: 700; color: #166534; cursor: pointer;">
+                        ➕ Ingreso / Restauración Directa Manual de Estimación en Verde (Agrónomo)
+                    </summary>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-top: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 0.70rem; font-weight: 700;">Bloque:</label>
+                            <input type="text" id="manual-restore-block" placeholder="74" style="width: 70px; padding: 4px 6px; font-size: 0.78rem; border: 1px solid #86efac; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.70rem; font-weight: 700;">Sem. Cosecha:</label>
+                            <input type="text" id="manual-restore-hw" placeholder="2631" style="width: 70px; padding: 4px 6px; font-size: 0.78rem; border: 1px solid #86efac; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.70rem; font-weight: 700;">Tallos Estimados:</label>
+                            <input type="number" id="manual-restore-val" placeholder="5000" style="width: 90px; padding: 4px 6px; font-size: 0.78rem; border: 1px solid #86efac; border-radius: 4px;">
+                        </div>
+                        <button type="button" id="btn-manual-restore-save" style="padding: 5px 12px; background: #15803d; color: #fff; font-weight: 700; font-size: 0.78rem; border: none; border-radius: 4px; cursor: pointer;">
+                            🌱 Guardar Estimación en Verde
+                        </button>
+                    </div>
+                </details>
+
+                <!-- HISTORY LOG TABLE -->
+                <div style="flex: 1; overflow-y: auto; max-height: 380px; border: 1px solid var(--slate-200); border-radius: 6px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left;">
+                        <thead style="background: #065f46; color: #ffffff; position: sticky; top: 0; z-index: 5;">
+                            <tr>
+                                <th style="padding: 6px 8px;">Fecha/Hora</th>
+                                <th style="padding: 6px 8px;">Bloque</th>
+                                <th style="padding: 6px 8px;">Variedad</th>
+                                <th style="padding: 6px 8px;">AC</th>
+                                <th style="padding: 6px 8px;">Sem. Orig.</th>
+                                <th style="padding: 6px 8px;">Sem. Cose.</th>
+                                <th style="padding: 6px 8px;">Modo</th>
+                                <th style="padding: 6px 8px;">Acción</th>
+                                <th style="padding: 6px 8px;">Anterior</th>
+                                <th style="padding: 6px 8px;">Nuevo</th>
+                                <th style="padding: 6px 8px; text-align: center;">Restaurar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-history-tbody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; padding: 20px; color: var(--slate-400);">Cargando historial de estimaciones...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span id="audit-history-status-text" style="font-size: 0.75rem; color: var(--slate-500); font-weight: 600;"></span>
+                    <button type="button" class="btn-cancel" id="btn-close-audit-modal-footer" style="padding: 6px 14px; background: var(--slate-200); border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -1481,6 +1616,7 @@
             const filterBlockVal = (document.getElementById('h-filter-block')?.value || '').toLowerCase().trim();
             const filterVarietyVal = (document.getElementById('h-filter-variety')?.value || '').trim();
             const filterAcVal = (document.getElementById('h-filter-ac')?.value || '').trim();
+            const filterUbiVal = (document.getElementById('h-filter-ubi')?.value || '').toLowerCase().trim();
             const filterWeekVal = (document.getElementById('h-filter-week')?.value || '').toLowerCase().trim();
             const filterHarvestWeekVal = (document.getElementById('h-filter-harvest-week')?.value || '').toLowerCase().trim();
 
@@ -1502,6 +1638,7 @@
                 const varietyName = row.dataset.variety || '';
                 const varietyDisplay = row.dataset.varietyDisplay || '';
                 const activityName = row.dataset.activity || '';
+                const ubiVal = (row.dataset.bedLocation || '').toLowerCase().trim();
                 const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase().trim();
                 const harvestWeekShort = (row.dataset.harvestWeekShort || '').toLowerCase().trim();
 
@@ -1534,8 +1671,9 @@
 
                 const matchVariety = !filterVarietyVal || (varietyName === filterVarietyVal || varietyDisplay === filterVarietyVal);
                 const matchAc = !filterAcVal || activityName === filterAcVal;
+                const matchUbi = !filterUbiVal || ubiVal.includes(filterUbiVal);
 
-                const isVisible = matchBlock && matchVariety && matchAc && matchWeek && matchHarvestWeek;
+                const isVisible = matchBlock && matchVariety && matchAc && matchUbi && matchWeek && matchHarvestWeek;
                 row.style.display = isVisible ? '' : 'none';
 
                 if (!isVisible) return;
@@ -1951,7 +2089,7 @@
 
         // Interactive Column Header Filters Event Listeners (Debounced for ultra-fast response)
         const debouncedRecalc = debounce(() => recalcAll(false), 80);
-        ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
+        ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-ubi', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
             const ctrl = document.getElementById(id);
             if (ctrl) {
                 ctrl.addEventListener('input', debouncedRecalc);
@@ -1962,7 +2100,7 @@
         const resetFiltersBtn = document.getElementById('reset-filters-btn');
         if (resetFiltersBtn) {
             resetFiltersBtn.addEventListener('click', () => {
-                ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
+                ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-ubi', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
                     const ctrl = document.getElementById(id);
                     if (ctrl) ctrl.value = '';
                 });
@@ -1981,7 +2119,7 @@
                 wrap.classList.toggle('hide-params', !paramsVisible);
             });
             document.querySelectorAll('.totals-title-col').forEach((th) => {
-                th.colSpan = paramsVisible ? 11 : 7;
+                th.colSpan = paramsVisible ? 12 : 8;
             });
             if (toggleParamsBtn) {
                 toggleParamsBtn.textContent = paramsVisible ? '👁️ Ocultar Parámetros' : '👁️ Mostrar Parámetros';
@@ -2181,6 +2319,205 @@
                 field.addEventListener('change', () => filtersForm.submit());
             }
         });
+
+        // AUDIT & ESTIMATION HISTORY MODAL HANDLERS
+        const openAuditBtn = document.getElementById('btn-open-audit-history');
+        const menuAuditBtn = document.getElementById('menu-audit-history');
+        const auditModal = document.getElementById('audit-history-modal-overlay');
+        const closeAuditBtn = document.getElementById('btn-close-audit-modal');
+        const closeAuditFooterBtn = document.getElementById('btn-close-audit-modal-footer');
+        const searchAuditBtn = document.getElementById('btn-search-audit');
+        const clearAuditBtn = document.getElementById('btn-clear-audit-filters');
+        const auditTbody = document.getElementById('audit-history-tbody');
+        const auditStatusText = document.getElementById('audit-history-status-text');
+
+        async function loadAuditHistory(blockPrefill = '') {
+            if (blockPrefill) {
+                const blockInp = document.getElementById('audit-filter-block');
+                if (blockInp) blockInp.value = blockPrefill;
+            }
+            const block = document.getElementById('audit-filter-block')?.value.trim() || '';
+            const sw = document.getElementById('audit-filter-sw')?.value.trim() || '';
+            const hw = document.getElementById('audit-filter-hw')?.value.trim() || '';
+            const mode = document.getElementById('audit-filter-mode')?.value.trim() || '';
+
+            if (auditTbody) {
+                auditTbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: var(--slate-500);">⏳ Consultando historial de estimaciones...</td></tr>`;
+            }
+
+            try {
+                const params = new URLSearchParams();
+                if (block) params.set('block', block);
+                if (sw) params.set('source_week', sw);
+                if (hw) params.set('harvest_week', hw);
+                if (mode) params.set('mode', mode);
+                params.set('limit', '200');
+
+                const res = await fetch(`/api/historial-estimaciones?${params.toString()}`);
+                const data = await res.json();
+                if (!data.ok || !data.history || data.history.length === 0) {
+                    if (auditTbody) auditTbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 25px; color: var(--slate-400);">No se encontraron registros de modificaciones para los filtros seleccionados.</td></tr>`;
+                    if (auditStatusText) auditStatusText.textContent = '0 registros encontrados.';
+                    return;
+                }
+
+                if (auditStatusText) auditStatusText.textContent = `${data.history.length} registro(s) encontrado(s).`;
+
+                if (auditTbody) {
+                    auditTbody.innerHTML = data.history.map(item => {
+                        const isRestoreable = item.previous_value !== null || item.new_value !== null;
+                        const targetVal = item.previous_value !== null ? item.previous_value : item.new_value;
+                        const modeBadge = item.mode === 'AGRONOMO'
+                            ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.70rem;">🌱 Agrónomo</span>`
+                            : `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.70rem;">📊 Real</span>`;
+                        
+                        const actionBadge = item.action === 'RESTORE'
+                            ? `<span style="color: #059669; font-weight: 800;">🔄 Restaurado</span>`
+                            : (item.action === 'RESET' ? `<span style="color: #dc2626; font-weight: 700;">❌ Reseteado</span>` : `<span style="color: #2563eb; font-weight: 600;">✏️ Guardado</span>`);
+
+                        return `
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 6px 8px; font-family: monospace; font-size: 0.70rem; color: var(--slate-500);">${item.created_at}</td>
+                                <td style="padding: 6px 8px; font-weight: 800; color: var(--header-bg);">${item.block}</td>
+                                <td style="padding: 6px 8px; font-weight: 600;">${item.variety_display || item.variety}</td>
+                                <td style="padding: 6px 8px;"><span class="badge-ac ${item.activity === 'SIEMBRA' ? 'badge-s' : 'badge-p'}">${item.activity === 'SIEMBRA' ? 'S' : 'P'}</span></td>
+                                <td style="padding: 6px 8px; font-family: monospace;">${item.source_week_short}</td>
+                                <td style="padding: 6px 8px; font-family: monospace; font-weight: 700; color: #1e40af;">${item.harvest_week_short}</td>
+                                <td style="padding: 6px 8px;">${modeBadge}</td>
+                                <td style="padding: 6px 8px;">${actionBadge}</td>
+                                <td style="padding: 6px 8px; font-family: monospace; color: #64748b;">${item.previous_value !== null ? item.previous_value.toLocaleString() : '-'}</td>
+                                <td style="padding: 6px 8px; font-family: monospace; font-weight: 800; color: #0f172a;">${item.new_value !== null ? item.new_value.toLocaleString() : '-'}</td>
+                                <td style="padding: 6px 8px; text-align: center;">
+                                    ${isRestoreable && targetVal !== null ? `
+                                        <button type="button" class="btn-restore-item" data-id="${item.id}" data-val="${targetVal}" data-block="${item.block}" data-hw="${item.harvest_week_short}" style="background: #10b981; color: #ffffff; border: none; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.70rem; cursor: pointer; transition: all 0.15s ease;">
+                                            🟢 Restaurar (${targetVal.toLocaleString()})
+                                        </button>
+                                    ` : '-'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    // Wire click handlers for restore buttons
+                    auditTbody.querySelectorAll('.btn-restore-item').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const auditId = btn.dataset.id;
+                            const val = btn.dataset.val;
+                            const blk = btn.dataset.block;
+                            const hw = btn.dataset.hw;
+
+                            if (!confirm(`¿Deseas restaurar la estimación de ${val} tallos para el Bloque ${blk} en la semana ${hw}?`)) {
+                                return;
+                            }
+
+                            btn.disabled = true;
+                            btn.textContent = '⏳ Restaurando...';
+
+                            try {
+                                const res = await fetch('/api/restaurar-estimacion', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ audit_id: Number(auditId) }),
+                                });
+                                const resData = await res.json();
+                                if (!res.ok || !resData.ok) {
+                                    throw new Error(resData.message || 'Error al restaurar');
+                                }
+
+                                showToast(`✅ ${resData.message}`);
+                                btn.textContent = '✅ Restaurado';
+                                btn.style.background = '#059669';
+
+                                // Update in-page matrix table cell if visible
+                                const targetCell = document.querySelector(`.projection-row[data-block="${blk}"] .week-cell[data-week-label="${hw}"]`);
+                                if (targetCell) {
+                                    const input = targetCell.querySelector('.week-input');
+                                    if (input) input.value = String(resData.value);
+                                    targetCell.dataset.status = resData.weekly_status || 'AGRONOMO';
+                                    normalizeWeeklyCellClass(targetCell);
+                                    recalcAll();
+                                }
+
+                                // Reload audit history after 600ms
+                                setTimeout(() => loadAuditHistory(), 600);
+                            } catch (err) {
+                                alert('Error: ' + err.message);
+                                btn.disabled = false;
+                                btn.textContent = '❌ Error';
+                            }
+                        });
+                    });
+                }
+
+            } catch (err) {
+                console.error("Error loading audit history:", err);
+                if (auditTbody) auditTbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: #dc2626;">Error al cargar historial: ${err.message}</td></tr>`;
+            }
+        }
+
+        function openAuditModal(prefillBlock = '') {
+            if (auditModal) auditModal.style.display = 'flex';
+            loadAuditHistory(prefillBlock);
+        }
+
+        function closeAuditModal() {
+            if (auditModal) auditModal.style.display = 'none';
+        }
+
+        if (openAuditBtn) openAuditBtn.addEventListener('click', () => openAuditModal());
+        if (menuAuditBtn) menuAuditBtn.addEventListener('click', () => openAuditModal());
+        if (closeAuditBtn) closeAuditBtn.addEventListener('click', closeAuditModal);
+        if (closeAuditFooterBtn) closeAuditFooterBtn.addEventListener('click', closeAuditModal);
+        if (searchAuditBtn) searchAuditBtn.addEventListener('click', () => loadAuditHistory());
+        if (clearAuditBtn) {
+            clearAuditBtn.addEventListener('click', () => {
+                ['audit-filter-block', 'audit-filter-sw', 'audit-filter-hw', 'audit-filter-mode'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                loadAuditHistory();
+            });
+        }
+
+        // Manual quick restore inside modal
+        const manualRestoreSaveBtn = document.getElementById('btn-manual-restore-save');
+        if (manualRestoreSaveBtn) {
+            manualRestoreSaveBtn.addEventListener('click', async () => {
+                const blk = document.getElementById('manual-restore-block')?.value.trim();
+                const hw = document.getElementById('manual-restore-hw')?.value.trim();
+                const val = document.getElementById('manual-restore-val')?.value.trim();
+
+                if (!blk || !hw || !val) {
+                    alert('Por favor ingresa bloque, semana de cosecha y tallos.');
+                    return;
+                }
+
+                const matchingRow = document.querySelector(`.projection-row[data-block="${blk}"]`);
+                if (!matchingRow) {
+                    alert(`No se encontró el bloque ${blk} en la matriz actual. Asegúrate de estar en el producto correcto.`);
+                    return;
+                }
+
+                const parsedVal = parseInt(val, 10);
+                if (isNaN(parsedVal)) {
+                    alert('El valor de tallos debe ser un número entero.');
+                    return;
+                }
+
+                const cell = matchingRow.querySelector(`.week-cell[data-week-label="${hw}"]`);
+                if (cell) {
+                    const input = cell.querySelector('.week-input');
+                    if (input) input.value = String(parsedVal);
+                    cell.dataset.status = 'AGRONOMO';
+                    await saveWeekCell(matchingRow, cell);
+                    recalcAll();
+                    showToast(`🌱 Estimación de ${parsedVal.toLocaleString()} tallos guardada en verde para bloque ${blk} sem ${hw}.`);
+                    loadAuditHistory(blk);
+                } else {
+                    alert(`No se encontró la columna de semana ${hw} en el horizonte actual.`);
+                }
+            });
+        }
 
         populateFilterDatalists();
         recalcAll();
