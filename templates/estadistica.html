@@ -616,7 +616,7 @@
             <div class="slicer-group">
                 <label for="slicer-year">📅 Año:</label>
                 <select name="year" id="slicer-year" class="slicer-select">
-                    <option value="">(Todos los Años)</option>
+                    <option value="ALL" {{ 'selected' if not stats.selected_year else '' }}>(Todos los Años)</option>
                     {% for y in stats.available_years %}
                         <option value="{{ y }}" {{ 'selected' if stats.selected_year == y else '' }}>{{ y }}</option>
                     {% endfor %}
@@ -626,7 +626,7 @@
             <div class="slicer-group">
                 <label for="slicer-pm">🌿 Producto Maestro:</label>
                 <select name="pm" id="slicer-pm" class="slicer-select">
-                    <option value="">(Todos los Productos)</option>
+                    <option value="ALL" {{ 'selected' if not stats.selected_pm else '' }}>(Todos los Productos)</option>
                     {% for pm in stats.available_pms %}
                         <option value="{{ pm }}" {{ 'selected' if stats.selected_pm == pm else '' }}>{{ pm }}</option>
                     {% endfor %}
@@ -799,11 +799,12 @@
                         </tr>
                     </thead>
                     <tbody id="matrix-tbody">
+                        {% set is_single_pm = (stats.grouped_products | length) == 1 %}
                         {% for grp in stats.grouped_products %}
                             <!-- LEVEL 1: MASTER PRODUCT ROW -->
                             <tr class="group-master-row" data-pm="{{ grp.product_master }}" onclick="togglePmGroup('{{ grp.product_master }}')">
                                 <td class="col-left">
-                                    <span class="toggle-icon" id="icon-pm-{{ grp.product_master }}">+</span>
+                                    <span class="toggle-icon" id="icon-pm-{{ grp.product_master }}">{{ '−' if is_single_pm else '+' }}</span>
                                     <strong>{{ grp.product_master }}</strong>
                                 </td>
                                 <td class="col-left" style="color: var(--pbi-slate-600); font-weight: 600;">
@@ -831,7 +832,7 @@
                             {% for sw_group in grp.source_week_groups %}
                                 {% set sw_uid = grp.product_master ~ '-' ~ sw_group.source_week ~ '-' ~ sw_group.activity %}
                                 <tr class="group-sw-row sw-of-{{ grp.product_master }}"
-                                    style="display: none;"
+                                    style="{{ '' if is_single_pm else 'display: none;' }}"
                                     data-pm="{{ grp.product_master }}"
                                     data-sw-uid="{{ sw_uid }}"
                                     data-week="{{ sw_group.source_week_short }}"
@@ -980,7 +981,6 @@
         const selectedVariety = {{ stats.selected_variety | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
-        const flatTableRows = {{ stats.table_rows | tojson }};
 
         // DYNAMIC SLICER VARIETY POPULATION
         const slicerPm = document.getElementById('slicer-pm');
@@ -988,7 +988,7 @@
 
         function updateSlicerVarietyDropdown(selectedPm, currentVal = '') {
             if (!slicerVariety) return;
-            const vars = (selectedPm && pmVarietiesMap[selectedPm]) ? pmVarietiesMap[selectedPm] : Object.values(pmVarietiesMap).flat();
+            const vars = (selectedPm && selectedPm !== 'ALL' && pmVarietiesMap[selectedPm]) ? pmVarietiesMap[selectedPm] : Object.values(pmVarietiesMap).flat();
             const uniqueVars = Array.from(new Set(vars)).sort();
 
             let html = '<option value="">(Todas las Variedades)</option>';
@@ -1101,7 +1101,7 @@
             });
         }
 
-        // INLINE TABLE FILTERS HANDLER
+        // HIGH-PERFORMANCE INLINE TABLE FILTERS WITH DEBOUNCING
         const filterBlock = document.getElementById('t-filter-block');
         const filterWeek = document.getElementById('t-filter-week');
         const filterVar = document.getElementById('t-filter-variety');
@@ -1109,6 +1109,12 @@
         const filterStatus = document.getElementById('t-filter-status');
         const filterPerf = document.getElementById('t-filter-perf');
         const filterReset = document.getElementById('t-filter-reset');
+
+        let filterDebounceTimer = null;
+        function queueFilterApplication() {
+            if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
+            filterDebounceTimer = setTimeout(applyTableFilters, 100);
+        }
 
         function applyTableFilters() {
             const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
@@ -1118,7 +1124,7 @@
             const statusQ = (filterStatus ? filterStatus.value : '').trim();
             const perfQ = (filterPerf ? filterPerf.value : '').trim();
 
-            const isFiltering = blkQ || weekQ || varQ || acQ || statusQ || perfQ;
+            const isFiltering = !!(blkQ || weekQ || varQ || acQ || statusQ || perfQ);
 
             document.querySelectorAll('.group-master-row').forEach(masterRow => {
                 const pm = masterRow.dataset.pm;
@@ -1162,7 +1168,9 @@
                         if (iconSw) iconSw.textContent = swVisibleCount > 0 ? '−' : '+';
                         if (swVisibleCount > 0) pmVisibleCount++;
                     } else {
-                        swRow.style.display = 'none';
+                        // Keep visible if single product
+                        const isSinglePm = {{ 'true' if (stats.grouped_products | length) == 1 else 'false' }};
+                        swRow.style.display = isSinglePm ? '' : 'none';
                         blkRows.forEach(b => b.style.display = 'none');
                         const iconSw = document.getElementById(`icon-sw-${swUid}`);
                         if (iconSw) iconSw.textContent = '+';
@@ -1176,14 +1184,21 @@
                 } else {
                     masterRow.style.display = '';
                     const iconPm = document.getElementById(`icon-pm-${pm}`);
-                    if (iconPm) iconPm.textContent = '+';
+                    if (iconPm) {
+                        const isSinglePm = {{ 'true' if (stats.grouped_products | length) == 1 else 'false' }};
+                        iconPm.textContent = isSinglePm ? '−' : '+';
+                    }
                 }
             });
         }
 
-        [filterBlock, filterWeek, filterVar, filterAc, filterStatus, filterPerf].forEach(ctrl => {
+        [filterBlock, filterWeek, filterVar].forEach(ctrl => {
             if (ctrl) {
-                ctrl.addEventListener('input', applyTableFilters);
+                ctrl.addEventListener('input', queueFilterApplication);
+            }
+        });
+        [filterAc, filterStatus, filterPerf].forEach(ctrl => {
+            if (ctrl) {
                 ctrl.addEventListener('change', applyTableFilters);
             }
         });
@@ -1200,96 +1215,22 @@
             });
         }
 
-        // CSV EXPORT FUNCTION
+        // HIGH-SPEED DIRECT CSV EXPORT
         const btnExportCsv = document.getElementById('btn-export-csv');
         if (btnExportCsv) {
             btnExportCsv.addEventListener('click', () => {
-                const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
-                const weekQ = (filterWeek ? filterWeek.value : '').toLowerCase().trim();
-                const varQ = (filterVar ? filterVar.value : '').toLowerCase().trim();
-                const acQ = (filterAc ? filterAc.value : '').trim();
-                const statusQ = (filterStatus ? filterStatus.value : '').trim();
-                const perfQ = (filterPerf ? filterPerf.value : '').trim();
+                const yearVal = document.getElementById('slicer-year')?.value || '';
+                const pmVal = document.getElementById('slicer-pm')?.value || '';
+                const varVal = document.getElementById('slicer-variety')?.value || '';
+                const acVal = document.getElementById('slicer-ac')?.value || '';
 
-                const filtered = flatTableRows.filter(r => {
-                    if (blkQ && !String(r.block).toLowerCase().includes(blkQ)) return false;
-                    if (weekQ && !String(r.source_week_short).toLowerCase().includes(weekQ)) return false;
-                    const vStr = (String(r.variety) + ' ' + String(r.variety_display)).toLowerCase();
-                    if (varQ && !vStr.includes(varQ)) return false;
-                    if (acQ && r.activity !== acQ) return false;
-                    if (statusQ && r.status !== statusQ) return false;
-                    if (perfQ === 'LOW' && !r.is_below_target) return false;
-                    if (perfQ === 'OPTIMAL' && r.is_below_target) return false;
-                    return true;
-                });
+                const params = new URLSearchParams();
+                if (yearVal) params.set('year', yearVal);
+                if (pmVal) params.set('pm', pmVal);
+                if (varVal) params.set('variedad', varVal);
+                if (acVal) params.set('ac', acVal);
 
-                if (!filtered.length) {
-                    alert('No hay registros visibles para exportar con los filtros actuales.');
-                    return;
-                }
-
-                const headers = [
-                    'Producto Maestro',
-                    'Semana Origen',
-                    'Actividad',
-                    'Bloque',
-                    'Variedad',
-                    'Plantas',
-                    'Tallos Exportables',
-                    'Total Produccion',
-                    'Tallos DUMP',
-                    'Real Tallos/Planta',
-                    'Ideal Tallos/Planta',
-                    'Ciclo Real (sem)',
-                    'Ciclo Ideal (sem)',
-                    'Desperdicio %',
-                    'Semanas Cosecha',
-                    'Estado',
-                    'Detalle Cosechas Semanales'
-                ];
-
-                const rowsCsv = [headers.map(h => `"${h}"`).join(',')];
-
-                filtered.forEach(r => {
-                    const harvestDetail = (r.harvest_breakdown || []).map(hw => 
-                        `Sem ${hw.harvest_week_short}: ${hw.stems} ${hw.dump_stems ? '(' + hw.dump_stems + ' Dump)' : ''} [${hw.source}]`
-                    ).join('; ');
-
-                    const rowValues = [
-                        r.product_master || '',
-                        r.source_week_short || '',
-                        r.activity || '',
-                        r.block || '',
-                        r.variety_display || r.variety || '',
-                        r.plants || 0,
-                        r.exportable_stems || 0,
-                        r.total_production || 0,
-                        r.dump_stems || 0,
-                        r.real_stems_per_plant || 0,
-                        r.ideal_stems_per_plant || 0,
-                        r.real_cycle_weeks || 0,
-                        r.ideal_cycle_weeks || 0,
-                        r.waste_pct || 0,
-                        r.harvest_weeks_str || '',
-                        r.status || '',
-                        harvestDetail
-                    ];
-
-                    rowsCsv.push(rowValues.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
-                });
-
-                const csvContent = '\uFEFF' + rowsCsv.join('\r\n');
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                const now = new Date();
-                const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
-                a.href = url;
-                a.download = `reporte_rendimiento_proyecciones_${dateStr}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                window.location.href = `/api/estadistica/export-csv?${params.toString()}`;
             });
         }
 

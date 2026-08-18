@@ -7,8 +7,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
+import csv
+import io
 import pandas as pd
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 
 from db import (
@@ -1244,8 +1246,8 @@ def find_cycle_definition(
 
 
 def get_statistics_data(
-    year_filter: str = "",
-    pm_filter: str = "",
+    year_filter: str | None = None,
+    pm_filter: str | None = None,
     variety_filter: str = "",
     activity_filter: str = "",
 ) -> dict[str, Any]:
@@ -1284,8 +1286,49 @@ def get_statistics_data(
 
         available_pms = sorted([pm for pm in pm_varieties_map.keys() if pm in valid_curve_pms])
 
-        # 3. Query Block Closures
-        closures_list = db.query(BlockClosureDB).all()
+        # Resolve defaults:
+        # Default year is 2026 (or most recent available year)
+        if year_filter is None:
+            resolved_year = "2026" if "2026" in available_years else (available_years[0] if available_years else "2026")
+        elif str(year_filter).strip().upper() in ("", "ALL"):
+            resolved_year = ""
+        else:
+            resolved_year = str(year_filter).strip()
+
+        # Default product master is first available product (same logic as agronomo view)
+        if pm_filter is None:
+            resolved_pm = available_pms[0] if available_pms else "HYPERICUM"
+        elif str(pm_filter).strip().upper() in ("", "ALL"):
+            resolved_pm = ""
+        else:
+            resolved_pm = str(pm_filter).strip()
+
+        variety_filter = (variety_filter or "").strip()
+        if variety_filter.upper() in ("ALL", "TODAS"):
+            variety_filter = ""
+
+        activity_filter = (activity_filter or "").strip()
+        if activity_filter.upper() in ("ALL", "TODAS"):
+            activity_filter = ""
+
+        # 3. Query Block Closures with filters applied
+        closure_query = db.query(BlockClosureDB)
+        if resolved_year:
+            try:
+                y_int = int(resolved_year)
+                closure_query = closure_query.filter(
+                    (BlockClosureDB.source_week >= y_int * 100) & (BlockClosureDB.source_week < (y_int + 1) * 100)
+                )
+            except ValueError:
+                pass
+        if resolved_pm:
+            closure_query = closure_query.filter(BlockClosureDB.product_master_norm == normalize_text(resolved_pm))
+        if variety_filter:
+            closure_query = closure_query.filter(BlockClosureDB.variety_norm == normalize_text(variety_filter))
+        if activity_filter:
+            closure_query = closure_query.filter(BlockClosureDB.activity == normalize_text(activity_filter))
+
+        closures_list = closure_query.all()
         closed_blocks_set: set[tuple[str, str, int, str, str]] = set(
             (c.product_master_norm, c.variety_norm, c.source_week, c.activity, c.block_norm)
             for c in closures_list
@@ -1294,9 +1337,9 @@ def get_statistics_data(
 
         # 4. Query TPSR records with filters
         tpsr_query = db.query(TpsrRecord)
-        if year_filter:
+        if resolved_year:
             try:
-                y_int = int(year_filter)
+                y_int = int(resolved_year)
                 tpsr_query = tpsr_query.filter(
                     (TpsrRecord.year == y_int)
                     | ((TpsrRecord.source_week >= y_int * 100) & (TpsrRecord.source_week < (y_int + 1) * 100))
@@ -1304,8 +1347,8 @@ def get_statistics_data(
             except ValueError:
                 pass
 
-        if pm_filter:
-            norm_pm = normalize_text(pm_filter)
+        if resolved_pm:
+            norm_pm = normalize_text(resolved_pm)
             tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm == norm_pm)
 
         if variety_filter:
@@ -1318,10 +1361,18 @@ def get_statistics_data(
 
         tpsr_records = tpsr_query.all()
 
-        # 5. Query Week Adjustments
+        # 5. Query Week Adjustments with filters applied
         week_adj_query = db.query(WeekAdjustmentDB)
-        if pm_filter:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(pm_filter))
+        if resolved_year:
+            try:
+                y_int = int(resolved_year)
+                week_adj_query = week_adj_query.filter(
+                    (WeekAdjustmentDB.source_week >= y_int * 100) & (WeekAdjustmentDB.source_week < (y_int + 1) * 100)
+                )
+            except ValueError:
+                pass
+        if resolved_pm:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(resolved_pm))
         if variety_filter:
             week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm == normalize_text(variety_filter))
         if activity_filter:
@@ -1696,8 +1747,8 @@ def get_statistics_data(
             "available_years": available_years,
             "available_pms": available_pms,
             "pm_varieties_map": pm_varieties_map,
-            "selected_year": year_filter,
-            "selected_pm": pm_filter,
+            "selected_year": resolved_year,
+            "selected_pm": resolved_pm,
             "selected_variety": variety_filter,
             "selected_activity": activity_filter,
         }
@@ -1707,8 +1758,8 @@ def get_statistics_data(
 
 @app.route("/estadistica")
 def estadistica_view() -> str:
-    year_filter = request.args.get("year", "").strip()
-    pm_filter = request.args.get("pm", "").strip()
+    year_filter = request.args.get("year")  # None if not present in querystring
+    pm_filter = request.args.get("pm")      # None if not present in querystring
     variety_filter = request.args.get("variedad", "").strip()
     activity_filter = request.args.get("ac", "").strip()
 
@@ -1728,8 +1779,8 @@ def estadistica_view() -> str:
 
 @app.route("/api/estadistica")
 def estadistica_api():
-    year_filter = request.args.get("year", "").strip()
-    pm_filter = request.args.get("pm", "").strip()
+    year_filter = request.args.get("year")
+    pm_filter = request.args.get("pm")
     variety_filter = request.args.get("variedad", "").strip()
     activity_filter = request.args.get("ac", "").strip()
 
@@ -1740,6 +1791,75 @@ def estadistica_api():
         activity_filter=activity_filter,
     )
     return jsonify(stats_data)
+
+
+@app.route("/api/estadistica/export-csv")
+def estadistica_export_csv():
+    year_filter = request.args.get("year")
+    pm_filter = request.args.get("pm")
+    variety_filter = request.args.get("variedad", "").strip()
+    activity_filter = request.args.get("ac", "").strip()
+
+    stats_data = get_statistics_data(
+        year_filter=year_filter,
+        pm_filter=pm_filter,
+        variety_filter=variety_filter,
+        activity_filter=activity_filter,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Producto Maestro",
+        "Semana Origen",
+        "Actividad",
+        "Bloque",
+        "Variedad",
+        "Plantas",
+        "Tallos Exportables",
+        "Total Produccion",
+        "Tallos DUMP",
+        "Real Tallos/Planta",
+        "Ideal Tallos/Planta",
+        "Ciclo Real (sem)",
+        "Ciclo Ideal (sem)",
+        "Desperdicio %",
+        "Semanas Cosecha",
+        "Estado",
+        "Detalle Cosechas Semanales",
+    ])
+    for r in stats_data.get("table_rows", []):
+        harvest_detail = "; ".join([
+            f"Sem {hw['harvest_week_short']}: {hw['stems']} {('(' + str(hw['dump_stems']) + ' Dump)') if hw.get('dump_stems') else ''} [{hw['source']}]"
+            for hw in r.get("harvest_breakdown", [])
+        ])
+        writer.writerow([
+            r.get("product_master", ""),
+            r.get("source_week_short", ""),
+            r.get("activity", ""),
+            r.get("block", ""),
+            r.get("variety_display") or r.get("variety", ""),
+            r.get("plants", 0),
+            r.get("exportable_stems", 0),
+            r.get("total_production", 0),
+            r.get("dump_stems", 0),
+            r.get("real_stems_per_plant", 0),
+            r.get("ideal_stems_per_plant", 0),
+            r.get("real_cycle_weeks", 0),
+            r.get("ideal_cycle_weeks", 0),
+            r.get("waste_pct", 0),
+            r.get("harvest_weeks_str", ""),
+            r.get("status", ""),
+            harvest_detail,
+        ])
+
+    csv_bytes = ("\ufeff" + output.getvalue()).encode("utf-8")
+    filename = f"reporte_estadistica_{stats_data.get('selected_year') or 'todos'}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        csv_bytes,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @app.post("/api/tpsr-cargar")
