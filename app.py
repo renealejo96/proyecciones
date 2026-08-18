@@ -175,13 +175,15 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             source_week = rec.source_week
             plants = rec.plants
             product_master = rec.product_master
-            if product_master.upper() == "VERONICA SPRAY":
-                product_master = "VERONICA"
             product_master_norm = rec.product_master_norm
             variety = rec.variety
             variety_norm = rec.variety_norm
             block = rec.block
             block_norm = rec.block_norm
+
+            if "SPLASH" in variety_norm or (product_master and product_master.upper() == "VERONICA SPRAY"):
+                product_master = "VERONICA SPRAY"
+                product_master_norm = "VERONICA SPRAY"
 
             key = (activity, product_master_norm, variety_norm, block_norm, source_week)
             if key not in consolidated_dict:
@@ -1236,19 +1238,23 @@ def get_statistics_data(
             reverse=True,
         )
         available_years = [str(y) for y in extracted_years]
-        available_pms = sorted(list(pm_varieties_map.keys()))
-
-        # 2. Cycle Definitions Map
+        # 2. Cycle Definitions Map & Valid Curve PMs
         cycles_list = db.query(CycleDefinitionDB).all()
         cycles_map: dict[tuple[str, str, str], dict[str, Any]] = {}
+        valid_curve_pms: set[str] = set()
         for c in cycles_list:
             key = (c.product_master_norm, c.variety_norm, normalize_text(c.activity))
+            c_curve = parse_curve_csv(c.curve)
             cycles_map[key] = {
                 "cycle_weeks": c.cycle_weeks,
                 "waste_rate": c.waste_rate,
                 "stems_per_plant": c.stems_per_plant,
-                "curve": parse_curve_csv(c.curve),
+                "curve": c_curve,
             }
+            if c.product_master and c_curve and any(x > 0 for x in c_curve):
+                valid_curve_pms.add(c.product_master)
+
+        available_pms = sorted([pm for pm in pm_varieties_map.keys() if pm in valid_curve_pms])
 
         # 3. Query Block Closures
         closures_list = db.query(BlockClosureDB).all()
@@ -1302,12 +1308,19 @@ def get_statistics_data(
         # 6. Group TPSR records by individual block: (product_master, variety, source_week, activity, block)
         grouped_block_lots: dict[tuple[str, str, int, str, str], dict[str, Any]] = {}
         for r in tpsr_records:
-            k = (r.product_master, r.variety, r.source_week, r.activity, r.block)
+            pm = r.product_master
+            var = r.variety
+            if "SPLASH" in (r.variety_norm or "") or (pm and pm.upper() == "VERONICA SPRAY"):
+                pm = "VERONICA SPRAY"
+            if valid_curve_pms and pm not in valid_curve_pms:
+                continue
+
+            k = (pm, var, r.source_week, r.activity, r.block)
             if k not in grouped_block_lots:
                 grouped_block_lots[k] = {
-                    "product_master": r.product_master,
-                    "variety": r.variety,
-                    "variety_display": format_variety_display(r.variety),
+                    "product_master": pm,
+                    "variety": var,
+                    "variety_display": format_variety_display(var),
                     "source_week": r.source_week,
                     "source_week_short": format_short_week(r.source_week),
                     "activity": r.activity,
@@ -1432,7 +1445,7 @@ def get_statistics_data(
                     relative_curve_ideal_counts[idx] += 1
 
             # Include block in summary
-            if has_real_data or is_closed or len(adj_agro_map) > 0:
+            if plants > 0:
                 total_plants_sum += plants
                 total_production_sum += block_total_production
                 total_real_closed_sum += block_real_stems
@@ -1469,7 +1482,7 @@ def get_statistics_data(
                 }
                 flat_block_rows.append(block_item)
 
-        flat_block_rows.sort(key=lambda x: (x["source_week"], x["product_master"], x["variety"], x["block"]), reverse=True)
+        flat_block_rows.sort(key=lambda x: (x["source_week"], x["product_master"], x["variety"], x["block"]))
 
         # 8. Hierarchical Grouping: Producto Maestro -> Semana de Origen -> Bloques
         pm_sw_map: dict[str, dict[tuple[int, str], list[dict[str, Any]]]] = {}
@@ -1482,6 +1495,9 @@ def get_statistics_data(
         chart3_weeks_map: dict[str, dict[str, Any]] = {}
 
         for pm in sorted(pm_sw_map.keys()):
+            if valid_curve_pms and pm not in valid_curve_pms:
+                continue
+
             sw_dict = pm_sw_map[pm]
             sw_groups = []
             pm_tot_plants = 0
@@ -1490,7 +1506,7 @@ def get_statistics_data(
             pm_closed_cnt = 0
             pm_all_blocks = []
 
-            for (sw, ac) in sorted(sw_dict.keys(), reverse=True):
+            for (sw, ac) in sorted(sw_dict.keys()):
                 blocks = sw_dict[(sw, ac)]
                 blocks.sort(key=lambda x: x["block"])
                 sw_plants = sum(b["plants"] for b in blocks)

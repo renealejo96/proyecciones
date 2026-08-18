@@ -931,7 +931,7 @@
                     <thead>
                         <tr class="totals-row">
                             <th colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
-                            <th colspan="4" class="param-col">Parámetros Fila</th>
+                            <th colspan="5" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
                                 <th class="js-week-total col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
                             {% endfor %}
@@ -1065,7 +1065,7 @@
                                 <td colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 10px;">
                                     <strong>📊 Subtotal {{ variety.variety_display or variety.variety }}</strong>
                                 </td>
-                                <td colspan="4" class="param-col"></td>
+                                <td colspan="5" class="param-col"></td>
                                 {% for week in weekly_view.week_columns %}
                                     <td class="subtotal-week-val col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">0</td>
                                 {% endfor %}
