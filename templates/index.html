@@ -1013,13 +1013,13 @@
                                     <td class="sticky-col sticky-7 plants-cell">{{ row.plants }}</td>
                                     <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
                                     <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
-                                    <td class="sticky-col sticky-10 param-col">{{ '%.2f'|format(row.ideal_stems_per_plant) }}</td>
-                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.01" inputmode="decimal" value="{{ '%.2f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.00' }}"></td>
+                                    <td class="sticky-col sticky-10 param-col">{{ '%.1f'|format(row.ideal_stems_per_plant) }}</td>
+                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ '%.1f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.0' }}"></td>
                                     
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
                                     <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}"></td>
                                     <td class="param-col cell-program-total col-param-total-prog">{{ row.program_total }}</td>
-                                    <td class="param-col cell-real-stems col-param-real-stems">{{ '%.2f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
+                                    <td class="param-col cell-real-stems col-param-real-stems">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
@@ -1198,9 +1198,9 @@
             const realStemsCell = row.querySelector('.cell-real-stems');
             if (realStemsCell) {
                 if (plants > 0 && windowTotal > 0) {
-                    realStemsCell.textContent = (windowTotal / plants).toFixed(2);
+                    realStemsCell.textContent = (windowTotal / plants).toFixed(1);
                 } else if (plants === 0) {
-                    realStemsCell.textContent = '0.00';
+                    realStemsCell.textContent = '0.0';
                 }
             }
 
@@ -1232,8 +1232,16 @@
             });
             const result = await parseApiResponse(response);
             if (!response.ok || !result.ok) {
-                throw new Error(result.message || 'No se pudo actualizar cierre de bloque.');
+                throw new Error(result.message || 'No se pudo guardar el cierre del bloque.');
             }
+        }
+
+        function debounce(func, wait = 90) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
         }
 
         function getVarietySortOrder(product, variety) {
@@ -1327,14 +1335,12 @@
                     grandDumpsTotal += dumpSum;
                 });
 
-                // Subtotal Row per Variety in Summary Table
                 html += `<tr class="row-subtotal"><td class="col-name" colspan="2">Subtotal ${item.variety}</td>`;
                 weekLabels.forEach(lbl => {
                     html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
                 });
                 html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
 
-                // Subtotal Dumps if exists for this variety
                 if (varietyDumpTotal > 0) {
                     html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2">↳ 🗑️ Dumps ${item.variety} (Descarte)</td>`;
                     weekLabels.forEach(lbl => {
@@ -1351,7 +1357,6 @@
             });
             html += `<td>${grandWindowTotal.toLocaleString()}</td></tr>`;
 
-            // FILA DESTACADA DE TOTAL GENERAL DUMPS
             html += `<tr class="row-grandtotal-dump" style="background: #fee2e2; color: #b91c1c; font-weight: 800;"><td class="col-name" colspan="2">🗑️ TOTAL GENERAL DUMPS (DESCARTE VENTAS)</td>`;
             weekLabels.forEach(lbl => {
                 const dVal = grandDumpsByWeek[lbl] || 0;
@@ -1392,11 +1397,10 @@
             }
         }
 
-        function recalcAll() {
+        function recalcAll(fullRecalc = false) {
             const globalTotalsByActivity = { SIEMBRA: 0, PODA: 0 };
             const globalTotalsByWeek = Object.fromEntries(weekColumns.map((week) => [week.label, 0]));
 
-            // Interactive Column Header Filters Values
             const filterBlockVal = (document.getElementById('h-filter-block')?.value || '').toLowerCase().trim();
             const filterVarietyVal = (document.getElementById('h-filter-variety')?.value || '').trim();
             const filterAcVal = (document.getElementById('h-filter-ac')?.value || '').trim();
@@ -1424,8 +1428,6 @@
                 const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase().trim();
                 const harvestWeekShort = (row.dataset.harvestWeekShort || '').toLowerCase().trim();
 
-                // Multi-Column Filter Matching:
-                // Exact block match when value equals an existing block, otherwise substring
                 let matchBlock = true;
                 if (filterBlockVal) {
                     if (allKnownBlocks.has(filterBlockVal)) {
@@ -1435,7 +1437,6 @@
                     }
                 }
 
-                // Exact week match when value equals an existing week, otherwise substring
                 let matchWeek = true;
                 if (filterWeekVal) {
                     if (allKnownWeeks.has(filterWeekVal)) {
@@ -1445,7 +1446,6 @@
                     }
                 }
 
-                // Harvest week match
                 let matchHarvestWeek = true;
                 if (filterHarvestWeekVal) {
                     if (allKnownHarvestWeeks.has(filterHarvestWeekVal)) {
@@ -1464,7 +1464,11 @@
                 if (!isVisible) return;
 
                 visibleRowsCount++;
-                const rowResult = recalcRow(row);
+                const rowResult = fullRecalc ? recalcRow(row) : null;
+                const rowWindowTotal = rowResult 
+                    ? rowResult.windowTotal 
+                    : Math.max(0, Math.round(Number.parseFloat(row.querySelector('.cell-window-total')?.textContent) || 0));
+
                 const product = row.dataset.productMaster;
                 const variety = row.dataset.variety;
                 const activity = row.dataset.activity;
@@ -1479,7 +1483,7 @@
                 }
 
                 varietyTotalsMap[variety].count++;
-                varietyTotalsMap[variety].windowTotal += rowResult.windowTotal;
+                varietyTotalsMap[variety].windowTotal += rowWindowTotal;
 
                 if (!summaryData[key]) {
                     summaryData[key] = {
@@ -1508,7 +1512,7 @@
                         summaryData[key].dump[activity][label] += val;
                     }
 
-                    const modelVal = rowResult.modelByWeek[label] || 0;
+                    const modelVal = rowResult ? (rowResult.modelByWeek[label] || 0) : val;
                     summaryData[key].proyectado[activity][label] += modelVal;
 
                     if (status === 'AGRONOMO' || status === 'REAL' || status === 'DUMP') {
@@ -1522,13 +1526,12 @@
                     }
                 });
 
-                if (activity === 'SIEMBRA') masterSiembraTotal += rowResult.windowTotal;
-                else masterPodaTotal += rowResult.windowTotal;
+                if (activity === 'SIEMBRA') masterSiembraTotal += rowWindowTotal;
+                else masterPodaTotal += rowWindowTotal;
 
-                globalTotalsByActivity[activity] += rowResult.windowTotal;
+                globalTotalsByActivity[activity] += rowWindowTotal;
             });
 
-            // UPDATE IN-TABLE VARIETY SUBTOTAL ROWS
             masterTable.querySelectorAll('.variety-subtotal-row').forEach((subRow) => {
                 const varietyName = subRow.dataset.variety;
                 const vData = varietyTotalsMap[varietyName];
@@ -1548,7 +1551,6 @@
                 }
             });
 
-            // UPDATE MASTER TABLE HEADER TOTALS
             masterTable.querySelectorAll('.js-week-total').forEach((th) => {
                 const label = th.dataset.weekLabel;
                 th.textContent = String(masterWeekTotals[label] || 0);
@@ -1560,7 +1562,6 @@
                 masterTotalTh.textContent = String(masterGrandTotal);
             }
 
-            // Update Master Card Chips
             const chipVisible = document.getElementById('chip-visible-rows');
             const chipSiembra = document.getElementById('chip-total-siembras');
             const chipPoda = document.getElementById('chip-total-podas');
@@ -1801,12 +1802,13 @@
             });
         }
 
-        // Interactive Column Header Filters Event Listeners
+        // Interactive Column Header Filters Event Listeners (Debounced for ultra-fast response)
+        const debouncedRecalc = debounce(() => recalcAll(false), 80);
         ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
             const ctrl = document.getElementById(id);
             if (ctrl) {
-                ctrl.addEventListener('input', recalcAll);
-                ctrl.addEventListener('change', recalcAll);
+                ctrl.addEventListener('input', debouncedRecalc);
+                ctrl.addEventListener('change', () => recalcAll(false));
             }
         });
 
@@ -1817,7 +1819,7 @@
                     const ctrl = document.getElementById(id);
                     if (ctrl) ctrl.value = '';
                 });
-                recalcAll();
+                recalcAll(false);
             });
         }
 
@@ -1897,12 +1899,19 @@
 
         // AUTO-SAVE ON BLUR / CHANGE FOR ROW PARAMETERS
         document.querySelectorAll('.projection-row .edit-input').forEach((input) => {
-            input.addEventListener('input', recalcAll);
+            input.addEventListener('input', () => {
+                const row = input.closest('.projection-row');
+                if (row) {
+                    recalcRow(row);
+                    recalcAll(false);
+                }
+            });
             input.addEventListener('change', async () => {
                 const row = input.closest('.projection-row');
                 if (row) {
+                    recalcRow(row);
                     await saveRowAdjustment(row);
-                    recalcAll();
+                    recalcAll(false);
                 }
             });
         });
