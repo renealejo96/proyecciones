@@ -1065,7 +1065,7 @@ def tpsr_view():
 
         if filter_pm:
             norm_pm = normalize_text(filter_pm)
-            query = query.filter(TpsrRecord.product_master_norm.like(f"%{norm_pm}%"))
+            query = query.filter(TpsrRecord.product_master_norm == norm_pm)
 
         if filter_variety:
             norm_var = normalize_text(filter_variety)
@@ -1106,8 +1106,22 @@ def tpsr_view():
 
         total_pages = (total_records + per_page - 1) // per_page if per_page > 0 else 1
 
-        available_pms = [pm[0] for pm in db.query(TpsrRecord.product_master).distinct().order_by(TpsrRecord.product_master).all() if pm[0]]
-        available_varieties = [v[0] for v in db.query(TpsrRecord.variety).distinct().order_by(TpsrRecord.variety).all() if v[0]]
+        pm_records = db.query(TpsrRecord.product_master, TpsrRecord.variety).distinct().order_by(TpsrRecord.product_master, TpsrRecord.variety).all()
+        pm_varieties_map = {}
+        for pm, var in pm_records:
+            if not pm or not var:
+                continue
+            pm_clean = pm.strip()
+            var_clean = var.strip()
+            if pm_clean not in pm_varieties_map:
+                pm_varieties_map[pm_clean] = []
+            if var_clean not in pm_varieties_map[pm_clean]:
+                pm_varieties_map[pm_clean].append(var_clean)
+
+        available_pms = sorted(list(pm_varieties_map.keys()))
+        available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
+        available_blocks = sorted([b[0] for b in db.query(TpsrRecord.block).distinct().order_by(TpsrRecord.block).all() if b[0]])
+        available_weeks = sorted(list(set(format_short_week(w[0]) for w in db.query(TpsrRecord.source_week).distinct().all() if w[0])), reverse=True)
 
         return render_template(
             "tpsr.html",
@@ -1124,6 +1138,9 @@ def tpsr_view():
             filter_block=filter_block,
             available_pms=available_pms,
             available_varieties=available_varieties,
+            available_blocks=available_blocks,
+            available_weeks=available_weeks,
+            pm_varieties_map=pm_varieties_map,
             workbook_path="PostgreSQL Database",
         )
     finally:

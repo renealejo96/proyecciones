@@ -271,7 +271,7 @@
             color: #ffffff;
             border: none;
             border-radius: 6px;
-            padding: 5px 10px;
+            padding: 5px 12px;
             font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
@@ -300,7 +300,7 @@
 
         table.tpsr-grid {
             width: 100%;
-            min-width: 1050px;
+            min-width: 1080px;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 0.78rem;
@@ -308,12 +308,13 @@
         }
 
         table.tpsr-grid th, table.tpsr-grid td {
-            padding: 5px 8px;
+            padding: 4px 6px;
             border-bottom: 1px solid var(--slate-200);
             border-right: 1px solid var(--slate-200);
             text-align: left;
             vertical-align: middle;
             white-space: nowrap;
+            box-sizing: border-box;
         }
 
         table.tpsr-grid th {
@@ -327,13 +328,15 @@
             top: 0;
             z-index: 10;
             line-height: 1.15;
+            padding: 4px 4px;
         }
 
         .header-filter-cell {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            align-items: flex-start;
+            gap: 3px;
+            align-items: stretch;
+            width: 100%;
         }
 
         .header-filter-cell span {
@@ -341,38 +344,47 @@
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.03em;
+            color: #ffffff;
         }
 
         .h-filter-ctrl {
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 4px;
             background: #ffffff;
             color: var(--slate-900);
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             font-weight: 600;
-            padding: 2px 3px;
+            padding: 2px 4px;
             outline: none;
             box-sizing: border-box;
+            height: 24px;
+        }
+
+        .h-filter-ctrl:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
         }
 
         tr:nth-child(even) td { background-color: var(--slate-50); }
         tr:hover td { background-color: var(--blue-50) !important; }
 
         .edit-input {
-            width: 75px;
+            width: 100%;
+            box-sizing: border-box;
             border: 1px solid var(--slate-300);
-            border-radius: 5px;
+            border-radius: 4px;
             padding: 2px 4px;
             font-size: 0.76rem;
             font-family: 'JetBrains Mono', monospace;
             text-align: right;
             outline: none;
-            transition: all 0.15s ease;
+            height: 22px;
         }
 
         .edit-input:focus {
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
             background: #ffffff;
         }
 
@@ -389,11 +401,11 @@
 
         .btn-action-edit {
             border: 1px solid #93c5fd;
-            border-radius: 5px;
+            border-radius: 4px;
             background: #eff6ff;
             color: #1e40af;
             font-weight: 700;
-            padding: 3px 7px;
+            padding: 2px 6px;
             font-size: 0.72rem;
             cursor: pointer;
             transition: all 0.15s ease;
@@ -402,33 +414,33 @@
 
         .btn-action-save {
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             background: var(--emerald-600);
             color: #ffffff;
             font-weight: 700;
-            padding: 3px 7px;
+            padding: 2px 6px;
             font-size: 0.72rem;
             cursor: pointer;
-            margin-left: 3px;
+            margin-left: 2px;
         }
         .btn-action-save:hover { background: var(--emerald-500); }
 
         .btn-action-del {
             border: 1px solid var(--slate-300);
-            border-radius: 5px;
+            border-radius: 4px;
             background: #ffffff;
             color: var(--rose-600);
             font-weight: 700;
-            padding: 3px 6px;
+            padding: 2px 5px;
             font-size: 0.72rem;
             cursor: pointer;
-            margin-left: 3px;
+            margin-left: 2px;
         }
         .btn-action-del:hover { background: var(--rose-600); color: #ffffff; }
 
         .save-status {
             display: inline-block;
-            margin-left: 3px;
+            margin-left: 2px;
             font-size: 0.7rem;
             font-weight: 600;
             color: var(--slate-500);
@@ -448,7 +460,7 @@
             border: 1px solid var(--slate-300);
             background: #ffffff;
             border-radius: 6px;
-            padding: 4px 9px;
+            padding: 4px 10px;
             font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
@@ -620,16 +632,14 @@
 </head>
 <body>
     <!-- DATALISTS FOR TPSR AUTOCOMPLETE -->
-    <datalist id="tpsr-block-datalist"></datalist>
-    <datalist id="tpsr-week-datalist"></datalist>
-    <datalist id="tpsr-variety-datalist">
-        {% for v in available_varieties %}
-            <option value="{{ v }}">
+    <datalist id="tpsr-block-datalist">
+        {% for b in available_blocks %}
+            <option value="{{ b }}">
         {% endfor %}
     </datalist>
-    <datalist id="tpsr-pm-datalist">
-        {% for pm in available_pms %}
-            <option value="{{ pm }}">
+    <datalist id="tpsr-week-datalist">
+        {% for w in available_weeks %}
+            <option value="{{ w }}">
         {% endfor %}
     </datalist>
 
@@ -708,17 +718,17 @@
 
             <!-- Filter & Search Bar with Server Query and Reset -->
             <form class="filter-bar" id="tpsr-filter-form" method="GET" action="/tpsr">
-                <label><strong>🔍 Filtro Rápido Servidor:</strong></label>
-                <input type="text" name="search" value="{{ search_query }}" placeholder="Buscar en todas las columnas..." style="width: 220px;">
+                <label><strong>🔍 Búsqueda General:</strong></label>
+                <input type="text" name="search" id="form-search-input" value="{{ search_query }}" placeholder="Buscar texto general..." style="width: 200px;">
                 <input type="hidden" name="ac" id="form-filter-ac" value="{{ filter_ac }}">
                 <input type="hidden" name="semana" id="form-filter-week" value="{{ filter_week }}">
                 <input type="hidden" name="pm" id="form-filter-pm" value="{{ filter_pm }}">
                 <input type="hidden" name="variedad" id="form-filter-variety" value="{{ filter_variety }}">
                 <input type="hidden" name="bloque" id="form-filter-block" value="{{ filter_block }}">
-                <button class="filter-btn-submit" type="submit">🔍 Consultar Servidor</button>
-                <button class="filter-btn-clear" type="button" id="btn-clear-all-filters">🔄 Limpiar Filtros</button>
+                <button class="filter-btn-submit" type="submit">🔍 Filtrar</button>
+                <a class="filter-btn-clear" href="/tpsr">🔄 Limpiar Todos</a>
                 <span style="font-size: 0.76rem; font-weight: 700; color: var(--slate-600); margin-left: auto;">
-                    Filas en Página: <span id="tpsr-visible-count">{{ tpsr_rows|length }}</span> | Total Base Datos: {{ total_records }}
+                    Filas Mostradas: <strong>{{ tpsr_rows|length }}</strong> | Total Coincidentes en BD: <strong>{{ total_records }}</strong>
                 </span>
             </form>
 
@@ -726,49 +736,54 @@
                 <table class="tpsr-grid" id="tpsr-main-table">
                     <thead>
                         <tr>
-                            <th style="width: 45px;">ID</th>
+                            <th style="width: 40px;">ID</th>
                             <th style="width: 75px;">
                                 <div class="header-filter-cell">
                                     <span>Actividad</span>
-                                    <select id="tpsr-h-filter-ac" class="h-filter-ctrl" style="width: 65px;">
+                                    <select id="tpsr-h-filter-ac" class="h-filter-ctrl">
                                         <option value="">(Todas)</option>
                                         <option value="SIEMBRA" {{ 'selected' if filter_ac == 'SIEMBRA' else '' }}>Siembra</option>
                                         <option value="PODA" {{ 'selected' if filter_ac == 'PODA' else '' }}>Poda</option>
                                     </select>
                                 </div>
                             </th>
-                            <th style="width: 65px;">
+                            <th style="width: 70px;">
                                 <div class="header-filter-cell">
                                     <span>Sem. Orig.</span>
-                                    <input type="text" id="tpsr-h-filter-week" list="tpsr-week-datalist" value="{{ filter_week }}" class="h-filter-ctrl" placeholder="🔍 Sem" style="width: 55px;">
+                                    <input type="text" id="tpsr-h-filter-week" list="tpsr-week-datalist" value="{{ filter_week }}" class="h-filter-ctrl" placeholder="🔍 Sem">
                                 </div>
                             </th>
-                            <th style="width: 100px;">
+                            <th style="width: 145px;">
                                 <div class="header-filter-cell">
-                                    <span>Producto</span>
-                                    <select id="tpsr-h-filter-pm" class="h-filter-ctrl" style="width: 90px;">
-                                        <option value="">(Todos)</option>
+                                    <span>Producto Maestro</span>
+                                    <select id="tpsr-h-filter-pm" class="h-filter-ctrl">
+                                        <option value="">(Todos los productos)</option>
                                         {% for pm in available_pms %}
                                             <option value="{{ pm }}" {{ 'selected' if filter_pm == pm else '' }}>{{ pm }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </th>
-                            <th style="width: 130px;">
+                            <th style="width: 175px;">
                                 <div class="header-filter-cell">
                                     <span>Variedad</span>
-                                    <input type="text" id="tpsr-h-filter-variety" list="tpsr-variety-datalist" value="{{ filter_variety }}" class="h-filter-ctrl" placeholder="🔍 Variedad" style="width: 115px;">
+                                    <select id="tpsr-h-filter-variety" class="h-filter-ctrl">
+                                        <option value="">(Todas las variedades)</option>
+                                        {% for v in available_varieties %}
+                                            <option value="{{ v }}" {{ 'selected' if filter_variety == v else '' }}>{{ v }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </th>
-                            <th style="width: 65px;">
+                            <th style="width: 70px;">
                                 <div class="header-filter-cell">
                                     <span>Bloque</span>
-                                    <input type="text" id="tpsr-h-filter-block" list="tpsr-block-datalist" value="{{ filter_block }}" class="h-filter-ctrl" placeholder="🔍 41" style="width: 55px;">
+                                    <input type="text" id="tpsr-h-filter-block" list="tpsr-block-datalist" value="{{ filter_block }}" class="h-filter-ctrl" placeholder="🔍 41">
                                 </div>
                             </th>
-                            <th style="width: 80px;">Cama / Poda</th>
-                            <th style="width: 85px;">Plantas</th>
-                            <th style="width: 155px;">Acciones</th>
+                            <th style="width: 85px;">Cama / Poda</th>
+                            <th style="width: 75px;">Plantas</th>
+                            <th style="width: 150px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tpsr-tbody">
@@ -790,9 +805,9 @@
                                 <td><strong>{{ row.source_week_short }}</strong></td>
                                 <td>{{ row.product_master }}</td>
                                 <td title="{{ row.variety }}"><strong>{{ row.variety_display or row.variety }}</strong></td>
-                                <td><input class="edit-input input-block" type="text" value="{{ row.block }}" style="width: 60px; text-align: left;"></td>
+                                <td style="width: 70px;"><input class="edit-input input-block" type="text" value="{{ row.block }}" style="text-align: left;"></td>
                                 <td><span style="font-size: 0.72rem; color: var(--slate-600);">{{ row.bed_location or '-' }}{% if row.pruning_number %} (P{{ row.pruning_number }}){% endif %}</span></td>
-                                <td><input class="edit-input input-plants" type="number" min="0" step="1" inputmode="numeric" value="{{ row.plants }}" style="width: 75px;"></td>
+                                <td style="width: 75px;"><input class="edit-input input-plants" type="number" min="0" step="1" inputmode="numeric" value="{{ row.plants }}"></td>
                                 <td>
                                     <button class="btn-action-edit" type="button" title="Editar actividad, semana, variedad, etc. en menú completo">✏️ Editar</button>
                                     <button class="btn-action-save" type="button" title="Guardar bloque y plantas rápido">💾</button>
@@ -802,7 +817,7 @@
                             </tr>
                         {% else %}
                             <tr>
-                                <td colspan="9" style="text-align: center; padding: 20px; color: var(--slate-500);">
+                                <td colspan="9" style="text-align: center; padding: 24px; color: var(--slate-500);">
                                     No se encontraron registros de plantaciones con los filtros seleccionados.
                                 </td>
                             </tr>
@@ -811,9 +826,9 @@
                 </table>
             </div>
 
-            <!-- Pagination controls -->
+            <!-- Pagination controls with preserved query params -->
             <div class="pagination-bar">
-                <div>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></div>
+                <div>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong> (Total: {{ total_records }} registros)</div>
                 <div style="display: flex; gap: 4px;">
                     {% if page > 1 %}
                         <a class="page-btn" href="/tpsr?page={{ page - 1 }}&search={{ search_query }}&ac={{ filter_ac }}&semana={{ filter_week }}&pm={{ filter_pm }}&variedad={{ filter_variety }}&bloque={{ filter_block }}">◀ Anterior</a>
@@ -846,22 +861,36 @@
 
                     <div class="modal-form-group">
                         <label>Semana Origen (ej. 2610):</label>
-                        <input type="text" id="modal-source-week" placeholder="2610 o 202610" required>
+                        <input type="text" id="modal-source-week" list="tpsr-week-datalist" placeholder="2610 o 202610" required>
                     </div>
 
                     <div class="modal-form-group">
                         <label>Producto Maestro:</label>
-                        <input type="text" id="modal-product-master" list="tpsr-pm-datalist" placeholder="ej. VERONICA" required>
+                        <select id="modal-pm-select" required>
+                            <option value="">-- Selecciona Producto --</option>
+                            {% for pm in available_pms %}
+                                <option value="{{ pm }}">{{ pm }}</option>
+                            {% endfor %}
+                            <option value="__NEW__">➕ [Crear Nuevo Producto...]</option>
+                        </select>
+                        <input type="text" id="modal-pm-custom" placeholder="Nombre nuevo producto..." style="display: none; margin-top: 4px;">
                     </div>
 
                     <div class="modal-form-group">
                         <label>Variedad:</label>
-                        <input type="text" id="modal-variety" list="tpsr-variety-datalist" placeholder="ej. SPLASH WHITE" required>
+                        <select id="modal-variety-select" required>
+                            <option value="">-- Selecciona Variedad --</option>
+                            {% for v in available_varieties %}
+                                <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                            <option value="__NEW__">➕ [Crear Nueva Variedad...]</option>
+                        </select>
+                        <input type="text" id="modal-variety-custom" placeholder="Nombre nueva variedad..." style="display: none; margin-top: 4px;">
                     </div>
 
                     <div class="modal-form-group">
                         <label>Bloque:</label>
-                        <input type="text" id="modal-block" placeholder="ej. 41" required>
+                        <input type="text" id="modal-block" list="tpsr-block-datalist" placeholder="ej. 41" required>
                     </div>
 
                     <div class="modal-form-group">
@@ -888,6 +917,12 @@
     </div>
 
     <script>
+        // MAPPING OF PRODUCT MASTER TO VARIETIES
+        const pmVarietiesMap = {{ pm_varieties_map | tojson }};
+        const allVarieties = {{ available_varieties | tojson }};
+        const currentFilterPm = {{ filter_pm | tojson }};
+        const currentFilterVariety = {{ filter_variety | tojson }};
+
         async function parseApiResponse(response) {
             const text = await response.text();
             try { return JSON.parse(text); } catch (e) { throw new Error('Respuesta inválida del servidor.'); }
@@ -1037,108 +1072,71 @@
             }
         }
 
-        // Live Header Filtering & Known Values
-        let tpsrKnownBlocks = new Set();
-        let tpsrKnownWeeks = new Set();
+        // DYNAMIC HEADER VARIETY SELECT POPULATION BASED ON SELECTED PRODUCT MASTER
+        const headerFilterPm = document.getElementById('tpsr-h-filter-pm');
+        const headerFilterVariety = document.getElementById('tpsr-h-filter-variety');
 
-        function populateTpsrFilterDatalists() {
-            tpsrKnownBlocks.clear();
-            tpsrKnownWeeks.clear();
+        function updateHeaderVarietyDropdown(selectedPm, preserveSelected = '') {
+            if (!headerFilterVariety) return;
+            const vars = (selectedPm && pmVarietiesMap[selectedPm]) ? pmVarietiesMap[selectedPm] : allVarieties;
 
-            document.querySelectorAll('.tpsr-row').forEach(row => {
-                if (row.dataset.block) tpsrKnownBlocks.add(row.dataset.block.toLowerCase().trim());
-                if (row.dataset.sourceWeekShort) tpsrKnownWeeks.add(row.dataset.sourceWeekShort.toLowerCase().trim());
-                else if (row.dataset.sourceWeek) tpsrKnownWeeks.add(String(row.dataset.sourceWeek).toLowerCase().trim());
+            let html = '<option value="">(Todas las variedades)</option>';
+            vars.forEach(v => {
+                const isSel = (v === preserveSelected);
+                html += `<option value="${v}" ${isSel ? 'selected' : ''}>${v}</option>`;
             });
-
-            const blockDl = document.getElementById('tpsr-block-datalist');
-            if (blockDl) {
-                blockDl.innerHTML = Array.from(tpsrKnownBlocks).sort().map(b => `<option value="${b.toUpperCase()}">`).join('');
-            }
-            const weekDl = document.getElementById('tpsr-week-datalist');
-            if (weekDl) {
-                weekDl.innerHTML = Array.from(tpsrKnownWeeks).sort().map(w => `<option value="${w}">`).join('');
-            }
+            headerFilterVariety.innerHTML = html;
         }
 
-        function filterTpsrTableLocally() {
-            const filterAc = (document.getElementById('tpsr-h-filter-ac')?.value || '').trim();
-            const filterWeek = (document.getElementById('tpsr-h-filter-week')?.value || '').toLowerCase().trim();
-            const filterPm = (document.getElementById('tpsr-h-filter-pm')?.value || '').trim();
-            const filterVariety = (document.getElementById('tpsr-h-filter-variety')?.value || '').toLowerCase().trim();
-            const filterBlock = (document.getElementById('tpsr-h-filter-block')?.value || '').toLowerCase().trim();
-
-            // Sync hidden inputs in server form
-            document.getElementById('form-filter-ac').value = filterAc;
-            document.getElementById('form-filter-week').value = filterWeek;
-            document.getElementById('form-filter-pm').value = filterPm;
-            document.getElementById('form-filter-variety').value = filterVariety;
-            document.getElementById('form-filter-block').value = filterBlock;
-
-            let visibleCount = 0;
-            document.querySelectorAll('.tpsr-row').forEach(row => {
-                const act = row.dataset.activity || '';
-                const weekShort = (row.dataset.sourceWeekShort || row.dataset.sourceWeek || '').toLowerCase().trim();
-                const pm = row.dataset.productMaster || '';
-                const variety = (row.dataset.variety || '').toLowerCase().trim();
-                const varietyDisplay = (row.dataset.varietyDisplay || '').toLowerCase().trim();
-                const block = (row.dataset.block || '').toLowerCase().trim();
-
-                const matchAc = !filterAc || act === filterAc;
-                
-                // Exact week matching
-                let matchWeek = true;
-                if (filterWeek) {
-                    if (tpsrKnownWeeks.has(filterWeek)) {
-                        matchWeek = (weekShort === filterWeek || (row.dataset.sourceWeek && String(row.dataset.sourceWeek) === filterWeek));
-                    } else {
-                        matchWeek = weekShort.includes(filterWeek);
-                    }
-                }
-
-                const matchPm = !filterPm || pm === filterPm;
-                const matchVariety = !filterVariety || variety.includes(filterVariety) || varietyDisplay.includes(filterVariety);
-
-                // Exact block matching: if input matches an existing block, match exact!
-                let matchBlock = true;
-                if (filterBlock) {
-                    if (tpsrKnownBlocks.has(filterBlock)) {
-                        matchBlock = (block === filterBlock);
-                    } else {
-                        matchBlock = block.includes(filterBlock);
-                    }
-                }
-
-                const isVisible = matchAc && matchWeek && matchPm && matchVariety && matchBlock;
-                row.style.display = isVisible ? '' : 'none';
-                if (isVisible) visibleCount++;
+        // Initialize header variety dropdown on page load
+        if (headerFilterPm && headerFilterVariety) {
+            updateHeaderVarietyDropdown(headerFilterPm.value, currentFilterVariety);
+            
+            headerFilterPm.addEventListener('change', () => {
+                updateHeaderVarietyDropdown(headerFilterPm.value, '');
+                submitHeaderFilters();
             });
 
-            const countSpan = document.getElementById('tpsr-visible-count');
-            if (countSpan) countSpan.textContent = String(visibleCount);
+            headerFilterVariety.addEventListener('change', () => {
+                submitHeaderFilters();
+            });
         }
 
-        ['tpsr-h-filter-ac', 'tpsr-h-filter-week', 'tpsr-h-filter-pm', 'tpsr-h-filter-variety', 'tpsr-h-filter-block'].forEach(id => {
+        function submitHeaderFilters() {
+            const ac = document.getElementById('tpsr-h-filter-ac')?.value.trim() || '';
+            const week = document.getElementById('tpsr-h-filter-week')?.value.trim() || '';
+            const pm = document.getElementById('tpsr-h-filter-pm')?.value.trim() || '';
+            const variety = document.getElementById('tpsr-h-filter-variety')?.value.trim() || '';
+            const block = document.getElementById('tpsr-h-filter-block')?.value.trim() || '';
+            const search = document.getElementById('form-search-input')?.value.trim() || '';
+
+            const params = new URLSearchParams();
+            params.set('page', '1');
+            if (search) params.set('search', search);
+            if (ac) params.set('ac', ac);
+            if (week) params.set('semana', week);
+            if (pm) params.set('pm', pm);
+            if (variety) params.set('variedad', variety);
+            if (block) params.set('bloque', block);
+
+            window.location.href = `/tpsr?${params.toString()}`;
+        }
+
+        // Listen for changes / Enter key on table header inputs
+        document.getElementById('tpsr-h-filter-ac')?.addEventListener('change', submitHeaderFilters);
+
+        ['tpsr-h-filter-week', 'tpsr-h-filter-block'].forEach(id => {
             const ctrl = document.getElementById(id);
             if (ctrl) {
-                ctrl.addEventListener('input', filterTpsrTableLocally);
-                ctrl.addEventListener('change', filterTpsrTableLocally);
+                ctrl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitHeaderFilters();
+                    }
+                });
+                ctrl.addEventListener('change', submitHeaderFilters);
             }
         });
-
-        const btnClearFilters = document.getElementById('btn-clear-all-filters');
-        if (btnClearFilters) {
-            btnClearFilters.addEventListener('click', () => {
-                ['tpsr-h-filter-ac', 'tpsr-h-filter-week', 'tpsr-h-filter-pm', 'tpsr-h-filter-variety', 'tpsr-h-filter-block'].forEach(id => {
-                    const ctrl = document.getElementById(id);
-                    if (ctrl) ctrl.value = '';
-                });
-                const searchInp = document.querySelector('input[name="search"]');
-                if (searchInp) searchInp.value = '';
-                filterTpsrTableLocally();
-                window.location.href = '/tpsr';
-            });
-        }
 
         // Quick Save Row (Block & Plants)
         async function saveTpsrRow(tr) {
@@ -1203,13 +1201,64 @@
             }
         }
 
-        // MODAL HANDLERS
+        // MODAL HANDLERS & DEPENDENT DROPDOWNS
         const modalBackdrop = document.getElementById('tpsr-modal-backdrop');
         const modalTitle = document.getElementById('modal-title');
         const modalForm = document.getElementById('modal-tpsr-form');
         const btnCloseModal = document.getElementById('btn-close-modal');
         const btnCancelModal = document.getElementById('btn-cancel-modal');
         const btnOpenCreateModal = document.getElementById('btn-open-create-modal');
+
+        const modalPmSelect = document.getElementById('modal-pm-select');
+        const modalPmCustom = document.getElementById('modal-pm-custom');
+        const modalVarietySelect = document.getElementById('modal-variety-select');
+        const modalVarietyCustom = document.getElementById('modal-variety-custom');
+
+        function updateModalVarietyDropdown(selectedPm, currentVariety = '') {
+            const vars = (selectedPm && pmVarietiesMap[selectedPm]) ? pmVarietiesMap[selectedPm] : allVarieties;
+
+            let html = '<option value="">-- Selecciona Variedad --</option>';
+            let found = false;
+            vars.forEach(v => {
+                const isSel = (v === currentVariety);
+                if (isSel) found = true;
+                html += `<option value="${v}" ${isSel ? 'selected' : ''}>${v}</option>`;
+            });
+            html += '<option value="__NEW__">➕ [Crear Nueva Variedad...]</option>';
+            modalVarietySelect.innerHTML = html;
+
+            if (currentVariety && !found && selectedPm !== '__NEW__') {
+                // If it was a custom variety not in the map
+                modalVarietySelect.value = '__NEW__';
+                modalVarietyCustom.style.display = 'block';
+                modalVarietyCustom.value = currentVariety;
+            } else {
+                modalVarietyCustom.style.display = 'none';
+                modalVarietyCustom.value = '';
+            }
+        }
+
+        modalPmSelect.addEventListener('change', () => {
+            if (modalPmSelect.value === '__NEW__') {
+                modalPmCustom.style.display = 'block';
+                modalPmCustom.focus();
+                updateModalVarietyDropdown('', '');
+            } else {
+                modalPmCustom.style.display = 'none';
+                modalPmCustom.value = '';
+                updateModalVarietyDropdown(modalPmSelect.value, '');
+            }
+        });
+
+        modalVarietySelect.addEventListener('change', () => {
+            if (modalVarietySelect.value === '__NEW__') {
+                modalVarietyCustom.style.display = 'block';
+                modalVarietyCustom.focus();
+            } else {
+                modalVarietyCustom.style.display = 'none';
+                modalVarietyCustom.value = '';
+            }
+        });
 
         function openModal(mode, data = {}) {
             modalBackdrop.classList.add('show');
@@ -1218,8 +1267,10 @@
                 document.getElementById('modal-row-index').value = '';
                 document.getElementById('modal-activity').value = 'SIEMBRA';
                 document.getElementById('modal-source-week').value = '';
-                document.getElementById('modal-product-master').value = '';
-                document.getElementById('modal-variety').value = '';
+                modalPmSelect.value = '';
+                modalPmCustom.style.display = 'none';
+                modalPmCustom.value = '';
+                updateModalVarietyDropdown('', '');
                 document.getElementById('modal-block').value = '';
                 document.getElementById('modal-plants').value = '';
                 document.getElementById('modal-bed-location').value = '';
@@ -1230,8 +1281,23 @@
                 document.getElementById('modal-row-index').value = data.rowIndex || '';
                 document.getElementById('modal-activity').value = data.activity || 'SIEMBRA';
                 document.getElementById('modal-source-week').value = data.sourceWeekShort || data.sourceWeek || '';
-                document.getElementById('modal-product-master').value = data.productMaster || '';
-                document.getElementById('modal-variety').value = data.variety || '';
+                
+                const pmVal = data.productMaster || '';
+                if (modalPmSelect.querySelector(`option[value="${pmVal}"]`)) {
+                    modalPmSelect.value = pmVal;
+                    modalPmCustom.style.display = 'none';
+                    modalPmCustom.value = '';
+                } else if (pmVal) {
+                    modalPmSelect.value = '__NEW__';
+                    modalPmCustom.style.display = 'block';
+                    modalPmCustom.value = pmVal;
+                } else {
+                    modalPmSelect.value = '';
+                    modalPmCustom.style.display = 'none';
+                }
+
+                updateModalVarietyDropdown(pmVal, data.variety || '');
+
                 document.getElementById('modal-block').value = data.block || '';
                 document.getElementById('modal-plants').value = data.plants || '';
                 document.getElementById('modal-bed-location').value = data.bedLocation || '';
@@ -1253,13 +1319,31 @@
             const rowIndex = document.getElementById('modal-row-index').value;
             const isEdit = Boolean(rowIndex);
 
+            let productMaster = modalPmSelect.value;
+            if (productMaster === '__NEW__') {
+                productMaster = modalPmCustom.value.trim().toUpperCase();
+            }
+            if (!productMaster) {
+                alert('Por favor especifica el Producto Maestro.');
+                return;
+            }
+
+            let variety = modalVarietySelect.value;
+            if (variety === '__NEW__') {
+                variety = modalVarietyCustom.value.trim().toUpperCase();
+            }
+            if (!variety) {
+                alert('Por favor especifica la Variedad.');
+                return;
+            }
+
             const payload = {
                 row_index: isEdit ? Number.parseInt(rowIndex) : undefined,
                 activity: document.getElementById('modal-activity').value,
                 source_week: document.getElementById('modal-source-week').value.trim(),
-                product_master: document.getElementById('modal-product-master').value.trim(),
-                variety: document.getElementById('modal-variety').value.trim(),
-                block: document.getElementById('modal-block').value.trim(),
+                product_master: productMaster,
+                variety: variety,
+                block: document.getElementById('modal-block').value.trim().toUpperCase(),
                 plants: Number.parseInt(document.getElementById('modal-plants').value) || 0,
                 bed_location: document.getElementById('modal-bed-location').value.trim(),
                 pruning_number: document.getElementById('modal-pruning-number').value.trim(),
@@ -1282,7 +1366,7 @@
                 }
 
                 closeModal();
-                showToast(isEdit ? '✅ Plantación actualizada correctamente en PostgreSQL.' : '✅ Nueva plantación creada en PostgreSQL.');
+                showToast(isEdit ? '✅ Plantación actualizada en PostgreSQL.' : '✅ Nueva plantación creada en PostgreSQL.');
                 setTimeout(() => window.location.reload(), 600);
             } catch (err) {
                 alert('❌ ' + err.message);
@@ -1326,8 +1410,6 @@
                 });
             });
         });
-
-        populateTpsrFilterDatalists();
     </script>
 </body>
 </html>
