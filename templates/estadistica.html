@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tablero Estadístico - Rendimiento Real por Bloque y Curvas de Cierre</title>
+    <title>Tablero Estadístico - Rendimiento por Bloque y Subtotales por Semana</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -324,7 +324,7 @@
             height: 240px;
         }
 
-        /* DATA TABLE (PIVOT GRID WITH BLOCK DETAIL) */
+        /* DATA TABLE (PIVOT GRID WITH BLOCK & WEEK SUB-ROWS) */
         .table-card {
             background: #ffffff;
             border: 1px solid var(--pbi-slate-200);
@@ -433,7 +433,7 @@
             text-align: left;
         }
 
-        /* PIVOT MASTER GROUP ROW */
+        /* LEVEL 1: MASTER PRODUCT ROW */
         tr.group-master-row {
             background: #f1f5f9 !important;
             cursor: pointer;
@@ -468,18 +468,48 @@
             user-select: none;
         }
 
-        /* CHILD BLOCK ROWS */
-        tr.group-child-row td {
+        .toggle-icon-sm {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            line-height: 14px;
+            text-align: center;
             background: #ffffff;
-            font-size: 0.72rem;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 3px;
+            margin-right: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.70rem;
+            font-weight: 800;
+            color: var(--pbi-accent);
+            user-select: none;
         }
 
-        tr.group-child-row:nth-child(even) td {
-            background-color: var(--pbi-slate-50);
+        /* LEVEL 2: BLOCK SUBTOTAL ROW */
+        tr.group-block-row {
+            cursor: pointer;
         }
 
-        tr.group-child-row:hover td {
+        tr.group-block-row td {
+            background: #ffffff;
+            font-size: 0.73rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr.group-block-row:hover td {
             background-color: #eff6ff !important;
+        }
+
+        /* LEVEL 3: HARVEST WEEK SUB-ROW (DETALLE DE SEMANA DE COSECHA) */
+        tr.group-harvest-row td {
+            background: #faf5ff !important;
+            font-size: 0.70rem;
+            color: var(--pbi-slate-700);
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        tr.group-harvest-row:hover td {
+            background-color: #f3e8ff !important;
         }
 
         .badge-ac {
@@ -545,8 +575,8 @@
         <!-- DASHBOARD TITLE -->
         <div class="header-bar">
             <div class="dashboard-title">
-                <h1>📊 Tablero Estadístico & Rendimiento por Bloque</h1>
-                <p>Monitoreo individual de bloques cerrados vs pendientes, curvas de cierre real y cumplimiento de meta de tallos por planta.</p>
+                <h1>📊 Tablero Estadístico & Rendimiento por Bloque y Semana</h1>
+                <p>Análisis de rendimiento real por bloque, detalle de tallos ingresados semana a semana y curvas de continuidad.</p>
             </div>
         </div>
 
@@ -687,17 +717,18 @@
             </div>
         </div>
 
-        <!-- PIVOT ACCORDION DATA TABLE (BLOQUES INDIVIDUALES Y RENDIMIENTO) -->
+        <!-- PIVOT ACCORDION DATA TABLE WITH HARVEST WEEKS BREAKDOWN -->
         <div class="table-card">
             <div class="table-header-flex">
-                <h3>📋 Desglose de Rendimiento Individual por Bloque y Producto</h3>
+                <h3>📋 Desglose de Rendimiento por Bloque y Semanas de Cosecha (Tabla Dinámica)</h3>
                 <div style="display: flex; gap: 6px;">
-                    <button type="button" class="btn-table-action" id="btn-expand-all">➕ Desplegar Todo</button>
+                    <button type="button" class="btn-table-action" id="btn-expand-all">➕ Desplegar Bloques</button>
+                    <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Semanas</button>
                     <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
                 </div>
             </div>
 
-            <!-- INLINE FILTERS TOOLBAR FOR MATRIX TABLE -->
+            <!-- INLINE FILTERS TOOLBAR -->
             <div class="table-filters-toolbar">
                 <div class="t-filter-item">
                     <span>🔍 Bloque:</span>
@@ -738,12 +769,12 @@
                 <table class="matrix-table" id="matrix-detail-table">
                     <thead>
                         <tr>
-                            <th class="col-left" style="width: 160px;">Bloque / Producto</th>
-                            <th class="col-left" style="width: 180px;">Variedad</th>
+                            <th class="col-left" style="width: 190px;">Bloque / Semana Cosecha</th>
+                            <th class="col-left" style="width: 170px;">Variedad / Detalle</th>
                             <th style="width: 65px;">Sem. Orig.</th>
                             <th style="width: 65px;">Actividad</th>
                             <th>Plantas</th>
-                            <th>Tallos Reales</th>
+                            <th>Tallos Cosechados</th>
                             <th>Real T/pl</th>
                             <th>Ideal T/pl</th>
                             <th>Ciclo Real</th>
@@ -755,10 +786,10 @@
                     </thead>
                     <tbody id="matrix-tbody">
                         {% for grp in stats.grouped_products %}
-                            <!-- GROUP MASTER ROW (PRODUCTO MAESTRO) -->
-                            <tr class="group-master-row" data-pm="{{ grp.product_master }}" onclick="toggleGroup('{{ grp.product_master }}')">
+                            <!-- LEVEL 1: MASTER PRODUCT ROW -->
+                            <tr class="group-master-row" data-pm="{{ grp.product_master }}" onclick="togglePmGroup('{{ grp.product_master }}')">
                                 <td class="col-left">
-                                    <span class="toggle-icon" id="icon-{{ grp.product_master }}">+</span>
+                                    <span class="toggle-icon" id="icon-pm-{{ grp.product_master }}">+</span>
                                     <strong>{{ grp.product_master }}</strong>
                                 </td>
                                 <td class="col-left" style="color: var(--pbi-slate-600); font-weight: 600;">
@@ -783,26 +814,34 @@
                                 </td>
                             </tr>
 
-                            <!-- CHILD INDIVIDUAL BLOCK ROWS -->
+                            <!-- LEVEL 2: INDIVIDUAL BLOCK SUBTOTAL ROWS -->
                             {% for row in grp.lot_rows %}
-                                <tr class="group-child-row child-of-{{ grp.product_master }}"
+                                {% set block_uid = grp.product_master ~ '-' ~ row.block ~ '-' ~ row.source_week %}
+                                <tr class="group-block-row child-of-{{ grp.product_master }}"
                                     style="display: none;"
                                     data-pm="{{ row.product_master }}"
                                     data-block="{{ row.block }}"
+                                    data-block-uid="{{ block_uid }}"
                                     data-variety="{{ row.variety }}"
                                     data-variety-display="{{ row.variety_display }}"
                                     data-week="{{ row.source_week_short }}"
                                     data-activity="{{ row.activity }}"
                                     data-status="{{ row.status }}"
-                                    data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}">
-                                    <td class="col-left" style="padding-left: 28px;">
-                                        ↳ <strong>Bloque {{ row.block }}</strong>
+                                    data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}"
+                                    onclick="toggleBlockWeeks('{{ block_uid }}')">
+                                    <td class="col-left" style="padding-left: 20px;">
+                                        {% if row.harvest_breakdown %}
+                                            <span class="toggle-icon-sm" id="icon-blk-{{ block_uid }}">+</span>
+                                        {% else %}
+                                            <span style="display: inline-block; width: 20px;"></span>
+                                        {% endif %}
+                                        <strong>Bloque {{ row.block }}</strong>
                                     </td>
                                     <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
                                     <td><code>{{ row.source_week_short }}</code></td>
                                     <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
                                     <td>{{ '{:,}'.format(row.plants) }}</td>
-                                    <td><strong>{{ '{:,}'.format(row.real_stems) }}</strong></td>
+                                    <td style="color: var(--pbi-navy);"><strong>{{ '{:,}'.format(row.real_stems) }}</strong></td>
                                     <td>
                                         <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
                                             {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
@@ -823,6 +862,34 @@
                                         {% endif %}
                                     </td>
                                 </tr>
+
+                                <!-- LEVEL 3: HARVEST WEEKS BREAKDOWN ROWS (DESGLOSE POR SEMANA DE COSECHA) -->
+                                {% for hw in row.harvest_breakdown %}
+                                    <tr class="group-harvest-row harvest-of-{{ block_uid }} child-of-{{ grp.product_master }}"
+                                        style="display: none;"
+                                        data-pm="{{ row.product_master }}"
+                                        data-block="{{ row.block }}"
+                                        data-variety="{{ row.variety }}"
+                                        data-week="{{ row.source_week_short }}">
+                                        <td class="col-left" style="padding-left: 44px; color: var(--pbi-purple); font-weight: 700;">
+                                            ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
+                                        </td>
+                                        <td class="col-left" style="color: var(--pbi-slate-500); font-size: 0.68rem;">
+                                            Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
+                                        </td>
+                                        <td style="text-align: center; color: var(--pbi-slate-400);">{{ row.source_week_short }}</td>
+                                        <td style="text-align: center; color: var(--pbi-slate-400);">-</td>
+                                        <td style="color: var(--pbi-slate-400);">-</td>
+                                        <td style="color: var(--pbi-purple); font-weight: 700;">{{ '{:,}'.format(hw.real_stems) }}</td>
+                                        <td style="color: var(--pbi-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace;">{{ hw.real_stems_pp }}</td>
+                                        <td style="color: var(--pbi-slate-400);">-</td>
+                                        <td style="color: var(--pbi-slate-400);">-</td>
+                                        <td style="color: var(--pbi-slate-400);">-</td>
+                                        <td style="color: var(--pbi-slate-400);">-</td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--pbi-purple);">Sem {{ hw.harvest_week_short }}</td>
+                                        <td><span class="badge-status-harvest" style="font-size: 0.58rem;">Corte Semanal</span></td>
+                                    </tr>
+                                {% endfor %}
                             {% endfor %}
                         {% else %}
                             <tr>
@@ -870,13 +937,30 @@
         }
 
         // PIVOT ACCORDION TOGGLE FUNCTIONS
-        function toggleGroup(pm) {
-            const children = document.querySelectorAll(`.child-of-${pm}`);
-            const icon = document.getElementById(`icon-${pm}`);
-            if (!children.length || !icon) return;
+        function togglePmGroup(pm) {
+            const blockRows = document.querySelectorAll(`.group-block-row.child-of-${pm}`);
+            const icon = document.getElementById(`icon-pm-${pm}`);
+            if (!blockRows.length || !icon) return;
 
-            const isCurrentlyHidden = children[0].style.display === 'none';
-            children.forEach(row => {
+            const isCurrentlyHidden = blockRows[0].style.display === 'none';
+            blockRows.forEach(row => {
+                row.style.display = isCurrentlyHidden ? '' : 'none';
+            });
+            // If collapsing master PM, hide all harvest week sub-rows too
+            if (!isCurrentlyHidden) {
+                document.querySelectorAll(`.group-harvest-row.child-of-${pm}`).forEach(hr => hr.style.display = 'none');
+                document.querySelectorAll(`[id^="icon-blk-${pm}"]`).forEach(bi => bi.textContent = '+');
+            }
+            icon.textContent = isCurrentlyHidden ? '−' : '+';
+        }
+
+        function toggleBlockWeeks(blockUid) {
+            const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
+            const icon = document.getElementById(`icon-blk-${blockUid}`);
+            if (!harvestRows.length || !icon) return;
+
+            const isCurrentlyHidden = harvestRows[0].style.display === 'none';
+            harvestRows.forEach(row => {
                 row.style.display = isCurrentlyHidden ? '' : 'none';
             });
             icon.textContent = isCurrentlyHidden ? '−' : '+';
@@ -885,16 +969,30 @@
         const btnExpandAll = document.getElementById('btn-expand-all');
         if (btnExpandAll) {
             btnExpandAll.addEventListener('click', () => {
-                document.querySelectorAll('.group-child-row').forEach(r => r.style.display = '');
-                document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '−');
+                document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
+                document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
+            });
+        }
+
+        const btnExpandWeeks = document.getElementById('btn-expand-weeks');
+        if (btnExpandWeeks) {
+            btnExpandWeeks.addEventListener('click', () => {
+                document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
+                document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '−');
             });
         }
 
         const btnCollapseAll = document.getElementById('btn-collapse-all');
         if (btnCollapseAll) {
             btnCollapseAll.addEventListener('click', () => {
-                document.querySelectorAll('.group-child-row').forEach(r => r.style.display = 'none');
-                document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '+');
+                document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
+                document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '+');
+                document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
             });
         }
 
@@ -917,15 +1015,16 @@
 
             document.querySelectorAll('.group-master-row').forEach(masterRow => {
                 const pm = masterRow.dataset.pm;
-                const childRows = document.querySelectorAll(`.child-of-${pm}`);
+                const blockRows = document.querySelectorAll(`.group-block-row.child-of-${pm}`);
                 let visibleCount = 0;
 
-                childRows.forEach(child => {
-                    const rowBlk = (child.dataset.block || '').toLowerCase();
-                    const rowVar = (child.dataset.variety || '' + ' ' + child.dataset.varietyDisplay || '').toLowerCase();
-                    const rowAc = child.dataset.activity || '';
-                    const rowStatus = child.dataset.status || '';
-                    const rowPerf = child.dataset.perf || '';
+                blockRows.forEach(blockRow => {
+                    const rowBlk = (blockRow.dataset.block || '').toLowerCase();
+                    const rowVar = (blockRow.dataset.variety || '' + ' ' + blockRow.dataset.varietyDisplay || '').toLowerCase();
+                    const rowAc = blockRow.dataset.activity || '';
+                    const rowStatus = blockRow.dataset.status || '';
+                    const rowPerf = blockRow.dataset.perf || '';
+                    const blockUid = blockRow.dataset.blockUid;
 
                     let match = true;
                     if (blkQ && !rowBlk.includes(blkQ)) match = false;
@@ -934,18 +1033,25 @@
                     if (statusQ && rowStatus !== statusQ) match = false;
                     if (perfQ && rowPerf !== perfQ) match = false;
 
-                    child.style.display = match ? '' : 'none';
+                    blockRow.style.display = match ? '' : 'none';
                     if (match) visibleCount++;
+
+                    // If block is hidden, hide its harvest sub-rows
+                    const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
+                    if (!match) {
+                        harvestRows.forEach(hr => hr.style.display = 'none');
+                    }
                 });
 
                 if (isFiltering) {
                     masterRow.style.display = visibleCount > 0 ? '' : 'none';
-                    const icon = document.getElementById(`icon-${pm}`);
+                    const icon = document.getElementById(`icon-pm-${pm}`);
                     if (icon) icon.textContent = visibleCount > 0 ? '−' : '+';
                 } else {
                     masterRow.style.display = '';
-                    childRows.forEach(c => c.style.display = 'none');
-                    const icon = document.getElementById(`icon-${pm}`);
+                    blockRows.forEach(c => c.style.display = 'none');
+                    document.querySelectorAll(`.group-harvest-row.child-of-${pm}`).forEach(hr => hr.style.display = 'none');
+                    const icon = document.getElementById(`icon-pm-${pm}`);
                     if (icon) icon.textContent = '+';
                 }
             });
@@ -1028,7 +1134,7 @@
             });
         }
 
-        // 2. RENDER CHART 2: REAL VS PROYECTADO WITH SECONDARY AXIS (% CUMPLIMIENTO)
+        // 2. RENDER CHART 2: REAL VS ESTIMATE WITH SECONDARY AXIS
         const ctxChrono = document.getElementById('chronoHarvestChart');
         if (ctxChrono && typeof Chart !== 'undefined') {
             new Chart(ctxChrono, {

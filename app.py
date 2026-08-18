@@ -1401,6 +1401,20 @@ def get_statistics_data(
                 harvest_weeks_sorted = [format_short_week(hw) for hw in sorted(harvest_weeks_dict.keys())]
                 harvest_weeks_str = ", ".join(harvest_weeks_sorted) if harvest_weeks_sorted else "-"
 
+                harvest_breakdown = []
+                for hw in sorted(harvest_weeks_dict.keys()):
+                    hw_stems = harvest_weeks_dict[hw]
+                    hw_short = format_short_week(hw)
+                    hw_pp = round(hw_stems / plants, 2) if plants > 0 else 0.0
+                    hw_pct = round((hw_stems / real_stems) * 100.0, 1) if real_stems > 0 else 0.0
+                    harvest_breakdown.append({
+                        "harvest_week": hw,
+                        "harvest_week_short": hw_short,
+                        "real_stems": hw_stems,
+                        "real_stems_pp": hw_pp,
+                        "pct_of_total": hw_pct,
+                    })
+
                 status_label = "CERRADO" if is_closed else ("EN COSECHA" if has_real_data else "PENDIENTE")
                 is_below_target = (real_stems_pp < ideal_stems_pp) if (has_real_data or is_closed) else False
 
@@ -1425,6 +1439,7 @@ def get_statistics_data(
                     "status": status_label,
                     "has_real_data": has_real_data,
                     "harvest_weeks_str": harvest_weeks_str,
+                    "harvest_breakdown": harvest_breakdown,
                 }
                 flat_block_rows.append(block_item)
                 blocks_by_pm.setdefault(pm, []).append(block_item)
