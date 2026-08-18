@@ -255,20 +255,16 @@
             color: var(--pbi-slate-700);
         }
 
-        /* 3-COLUMN CHARTS GRID */
-        .analytics-grid-3 {
+        /* 2-COLUMN DUAL CHARTS GRID (CURVA RELATIVA + RENDIMIENTO EXPANDIDO) */
+        .analytics-grid-2 {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 370px 1fr;
             gap: 12px;
             margin-bottom: 12px;
         }
 
-        @media (max-width: 1200px) {
-            .analytics-grid-3 { grid-template-columns: 1fr 1fr; }
-        }
-
-        @media (max-width: 768px) {
-            .analytics-grid-3 { grid-template-columns: 1fr; }
+        @media (max-width: 1080px) {
+            .analytics-grid-2 { grid-template-columns: 1fr; }
         }
 
         .chart-card {
@@ -279,10 +275,6 @@
             box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
-        }
-
-        .chart-card.wide-card {
-            margin-bottom: 12px;
         }
 
         .chart-header {
@@ -317,11 +309,7 @@
         .chart-body {
             position: relative;
             width: 100%;
-            height: 230px;
-        }
-
-        .chart-body.wide-body {
-            height: 250px;
+            height: 240px;
         }
 
         /* DATA TABLE (PIVOT GRID WITH SOURCE WEEK & BLOCK BREAKDOWN) */
@@ -384,13 +372,22 @@
             background: #ffffff;
             border: 1px solid var(--pbi-slate-300);
             border-radius: 4px;
-            padding: 3px 8px;
+            padding: 4px 9px;
             font-size: 0.72rem;
             font-weight: 600;
             color: var(--pbi-slate-700);
             cursor: pointer;
+            transition: all 0.15s ease;
         }
         .btn-table-action:hover { background: var(--pbi-slate-100); }
+
+        .btn-export-csv {
+            background: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+            font-weight: 750 !important;
+        }
+        .btn-export-csv:hover { background: #d1fae5 !important; transform: translateY(-1px); }
 
         .matrix-table-wrap {
             overflow-x: auto;
@@ -704,8 +701,8 @@
             </div>
         </div>
 
-        <!-- 3 POWER BI ANALYTICS CHARTS -->
-        <div class="analytics-grid-3">
+        <!-- 2 POWER BI ANALYTICS CHARTS (CURVA RELATIVA + RENDIMIENTO EXPANDIDO) -->
+        <div class="analytics-grid-2">
             <!-- CHART 1: RELATIVE HARVEST CURVE -->
             <div class="chart-card">
                 <div class="chart-header">
@@ -717,22 +714,11 @@
                 </div>
             </div>
 
-            <!-- CHART 2: REAL VS ESTIMATE WITH SECONDARY AXIS -->
+            <!-- CHART 2 (PREVIOUSLY 3): STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (EXPANDED HORIZONTALLY) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>📊 Real vs Proyectado & % Cumplimiento</h3>
-                    <span class="chart-tag">Eje Der: % Cumplimiento</span>
-                </div>
-                <div class="chart-body">
-                    <canvas id="chronoHarvestChart"></canvas>
-                </div>
-            </div>
-
-            <!-- CHART 3: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>🎯 Rendimiento T/Pl vs Meta por Sem Siembra</h3>
-                    <span class="chart-tag">Eje X: Semanas de Siembra</span>
+                    <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
+                    <span class="chart-tag" style="background: #f0fdf4; color: #166534; border-color: #86efac;">Eje X: Semanas de Siembra / Poda</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="stemsPpChart"></canvas>
@@ -740,26 +726,16 @@
             </div>
         </div>
 
-        <!-- CHART 4: WIDE INTEGRAL HYBRID LIFECYCLE CURVE -->
-        <div class="chart-card wide-card">
-            <div class="chart-header">
-                <h3>🌐 Curva Integral de Cosecha (Cierres Reales Históricos + Proyección de Bloques Pendientes)</h3>
-                <span class="chart-tag" style="background: #f0fdf4; color: #166534; border-color: #86efac;">Continuidad Real a Proyección Futura</span>
-            </div>
-            <div class="chart-body wide-body">
-                <canvas id="hybridHarvestChart"></canvas>
-            </div>
-        </div>
-
-        <!-- PIVOT ACCORDION DATA TABLE WITH SOURCE WEEK HIERARCHY -->
+        <!-- PIVOT ACCORDION DATA TABLE WITH SOURCE WEEK HIERARCHY & CSV EXPORT -->
         <div class="table-card">
             <div class="table-header-flex">
                 <h3>📋 Desglose de Rendimiento: Producto Maestro ➔ Semana Siembra/Poda ➔ Bloques ➔ Semanas Cosecha</h3>
-                <div style="display: flex; gap: 6px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                     <button type="button" class="btn-table-action" id="btn-expand-sw">📅 Desplegar Siembras</button>
                     <button type="button" class="btn-table-action" id="btn-expand-blocks">📦 Desplegar Bloques</button>
                     <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Todo</button>
                     <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
+                    <button type="button" class="btn-table-action btn-export-csv" id="btn-export-csv">📥 Exportar CSV</button>
                 </div>
             </div>
 
@@ -988,9 +964,8 @@
         const pmVarietiesMap = {{ stats.pm_varieties_map | tojson }};
         const selectedVariety = {{ stats.selected_variety | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
-        const chartChronoData = {{ stats.chart_chrono | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
-        const chartHybridData = {{ stats.chart_hybrid | tojson }};
+        const flatTableRows = {{ stats.table_rows | tojson }};
 
         // DYNAMIC SLICER VARIETY POPULATION
         const slicerPm = document.getElementById('slicer-pm');
@@ -1210,6 +1185,97 @@
             });
         }
 
+        // CSV EXPORT FUNCTION
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        if (btnExportCsv) {
+            btnExportCsv.addEventListener('click', () => {
+                const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
+                const weekQ = (filterWeek ? filterWeek.value : '').toLowerCase().trim();
+                const varQ = (filterVar ? filterVar.value : '').toLowerCase().trim();
+                const acQ = (filterAc ? filterAc.value : '').trim();
+                const statusQ = (filterStatus ? filterStatus.value : '').trim();
+                const perfQ = (filterPerf ? filterPerf.value : '').trim();
+
+                const filtered = flatTableRows.filter(r => {
+                    if (blkQ && !String(r.block).toLowerCase().includes(blkQ)) return false;
+                    if (weekQ && !String(r.source_week_short).toLowerCase().includes(weekQ)) return false;
+                    const vStr = (String(r.variety) + ' ' + String(r.variety_display)).toLowerCase();
+                    if (varQ && !vStr.includes(varQ)) return false;
+                    if (acQ && r.activity !== acQ) return false;
+                    if (statusQ && r.status !== statusQ) return false;
+                    if (perfQ === 'LOW' && !r.is_below_target) return false;
+                    if (perfQ === 'OPTIMAL' && r.is_below_target) return false;
+                    return true;
+                });
+
+                if (!filtered.length) {
+                    alert('No hay registros visibles para exportar con los filtros actuales.');
+                    return;
+                }
+
+                const headers = [
+                    'Producto Maestro',
+                    'Semana Origen',
+                    'Actividad',
+                    'Bloque',
+                    'Variedad',
+                    'Plantas',
+                    'Tallos Exportables',
+                    'Total Produccion',
+                    'Real Tallos/Planta',
+                    'Ideal Tallos/Planta',
+                    'Ciclo Real (sem)',
+                    'Ciclo Ideal (sem)',
+                    'Desperdicio %',
+                    'Semanas Cosecha',
+                    'Estado',
+                    'Detalle Cosechas Semanales'
+                ];
+
+                const rowsCsv = [headers.map(h => `"${h}"`).join(',')];
+
+                filtered.forEach(r => {
+                    const harvestDetail = (r.harvest_breakdown || []).map(hw => 
+                        `Sem ${hw.harvest_week_short}: ${hw.stems} [${hw.source}]`
+                    ).join('; ');
+
+                    const rowValues = [
+                        r.product_master || '',
+                        r.source_week_short || '',
+                        r.activity || '',
+                        r.block || '',
+                        r.variety_display || r.variety || '',
+                        r.plants || 0,
+                        r.exportable_stems || 0,
+                        r.total_production || 0,
+                        r.real_stems_per_plant || 0,
+                        r.ideal_stems_per_plant || 0,
+                        r.real_cycle_weeks || 0,
+                        r.ideal_cycle_weeks || 0,
+                        r.waste_pct || 0,
+                        r.harvest_weeks_str || '',
+                        r.status || '',
+                        harvestDetail
+                    ];
+
+                    rowsCsv.push(rowValues.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+                });
+
+                const csvContent = '\uFEFF' + rowsCsv.join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
+                a.href = url;
+                a.download = `reporte_rendimiento_proyecciones_${dateStr}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+
         // 1. RENDER CHART 1: RELATIVE HARVEST CURVE
         const ctxRelative = document.getElementById('relativeCurveChart');
         if (ctxRelative && typeof Chart !== 'undefined') {
@@ -1269,96 +1335,7 @@
             });
         }
 
-        // 2. RENDER CHART 2: REAL VS ESTIMATE WITH SECONDARY AXIS
-        const ctxChrono = document.getElementById('chronoHarvestChart');
-        if (ctxChrono && typeof Chart !== 'undefined') {
-            new Chart(ctxChrono, {
-                data: {
-                    labels: chartChronoData.labels,
-                    datasets: [
-                        {
-                            type: 'bar',
-                            label: 'Tallos Reales Cosechados',
-                            data: chartChronoData.real_stems,
-                            backgroundColor: '#059669',
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            yAxisID: 'y',
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Proyectado Agrónomo',
-                            data: chartChronoData.agronomo_stems,
-                            backgroundColor: '#93c5fd',
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            yAxisID: 'y',
-                        },
-                        {
-                            type: 'line',
-                            label: '% Cumplimiento',
-                            data: chartChronoData.fulfillment_pct,
-                            borderColor: '#d97706',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2.5,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#d97706',
-                            tension: 0.3,
-                            yAxisID: 'y1',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.dataset.yAxisID === 'y1') {
-                                        return `${context.dataset.label}: ${context.parsed.y}%`;
-                                    }
-                                    return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} tallos`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; },
-                                font: { family: 'JetBrains Mono', size: 9 }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            beginAtZero: true,
-                            grid: { drawOnChartArea: false },
-                            ticks: {
-                                callback: function(value) { return value + '%'; },
-                                font: { family: 'JetBrains Mono', size: 9 },
-                                color: '#d97706'
-                            }
-                        },
-                        x: { ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } }, grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        // 3. RENDER CHART 3: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
+        // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (EXPANDED HORIZONTALLY)
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
             const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
@@ -1435,73 +1412,6 @@
                             },
                             grid: { display: false }
                         }
-                    }
-                }
-            });
-        }
-
-        // 4. RENDER CHART 4: WIDE HYBRID LIFECYCLE HARVEST CURVE
-        const ctxHybrid = document.getElementById('hybridHarvestChart');
-        if (ctxHybrid && typeof Chart !== 'undefined') {
-            new Chart(ctxHybrid, {
-                type: 'line',
-                data: {
-                    labels: chartHybridData.labels,
-                    datasets: [
-                        {
-                            label: 'Cierre Real Histórico (Bloques Cerrados & Cosechados)',
-                            data: chartHybridData.real_stems,
-                            borderColor: '#059669',
-                            backgroundColor: 'rgba(5, 150, 105, 0.15)',
-                            fill: true,
-                            tension: 0.35,
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#059669',
-                        },
-                        {
-                            label: 'Proyección Estimada de Bloques Pendientes',
-                            data: chartHybridData.projected_stems,
-                            borderColor: '#3b82f6',
-                            borderDash: [5, 4],
-                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                            fill: true,
-                            tension: 0.35,
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            pointBackgroundColor: '#3b82f6',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 8 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} tallos`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(v) { return v >= 1000 ? (v/1000) + 'k' : v; },
-                                font: { family: 'JetBrains Mono', size: 9 }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        x: { ticks: { font: { family: 'JetBrains Mono', size: 9, weight: '600' } }, grid: { display: false } }
                     }
                 }
             });

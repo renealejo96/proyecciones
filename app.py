@@ -1592,8 +1592,8 @@ def get_statistics_data(
             for r, a in zip(chrono_real_data, chrono_agro_data)
         ]
 
-        # Chart 3: Real Stems / Plant by Source Week vs Target Meta Line
-        chart3_sorted_labels = sorted(list(chart3_weeks_map.keys()))[-14:]
+        # Chart 2 (Previously 3): Real Stems / Plant by Source Week vs Target Meta Line (Expanded Horizontally)
+        chart3_sorted_labels = sorted(list(chart3_weeks_map.keys()))[-20:]
         chart_stems_pp_real = []
         chart_stems_pp_target = []
         for lbl in chart3_sorted_labels:
