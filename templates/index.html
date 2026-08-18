@@ -650,6 +650,42 @@
             border-color: var(--slate-200);
         }
 
+        /* CURRENT CUTOFF WEEK COLUMN HIGHLIGHT */
+        th.col-cutoff-week {
+            background: #1e3a8a !important;
+            border-left: 2px solid #38bdf8 !important;
+            border-right: 2px solid #38bdf8 !important;
+            position: relative;
+        }
+        tr.totals-row th.col-cutoff-week {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            border-left: 2px solid #38bdf8 !important;
+            border-right: 2px solid #38bdf8 !important;
+        }
+        td.col-cutoff-week {
+            background-color: #f0f9ff !important;
+            border-left: 2px solid #38bdf8 !important;
+            border-right: 2px solid #38bdf8 !important;
+        }
+        .week-cell.col-cutoff-week .week-input {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.4) !important;
+            font-weight: 700;
+        }
+        .badge-cutoff {
+            display: inline-block;
+            font-size: 0.52rem;
+            background: #38bdf8;
+            color: #0f172a;
+            border-radius: 3px;
+            padding: 0 2px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-top: 1px;
+            text-transform: uppercase;
+        }
+
         /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA vs DUMPS */
         .week-cell { position: relative; }
         .week-cell.status-model { background: var(--blue-50); }
@@ -801,6 +837,7 @@
         <nav class="main-menu">
             <a class="menu-link {{ 'active' if page_mode == 'AGRONOMO' else '' }}" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">🌾 Llenado Agrónomo</a>
             <a class="menu-link {{ 'active' if page_mode == 'REAL' else '' }}" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">📊 Datos Reales</a>
+            <a class="menu-link" href="/estadistica">📈 Estadística</a>
             <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">🌱 Plantaciones (TPSR)</a>
             <a class="menu-link" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración Ciclos</a>
         </nav>
@@ -855,6 +892,7 @@
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">🌾 Vista Llenado Agrónomo</a>
                             <a class="dropdown-item" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">📊 Vista Datos Reales</a>
+                            <a class="dropdown-item" href="/estadistica">📈 Vista Estadística</a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración de Ciclos</a>
                         </div>
@@ -863,50 +901,31 @@
             </form>
 
             {% if db_status %}
-                <div class="status {{ 'ok' if db_status[0] else 'error' }}">{{ db_status[1] }}</div>
-            {% endif %}
-        </section>
-
-        <!-- CONTEXT-AWARE SUMMARY TOTALS CARD - COLLAPSED BY DEFAULT -->
-        <section class="summary-panels-card collapsed">
-            <div class="summary-panels-header">
-                <h2>
-                    {% if page_mode == 'REAL' %}
-                        📊 Resumen de Totales Cierre Real (con Subtotales por Variedad)
-                    {% else %}
-                        🌾 Resumen de Totales Estimado Agrónomo (con Subtotales por Variedad)
+                <div class="db-status-bar {{ 'db-ok' if db_status[0] else 'db-err' }}">
+                    <span>{{ '🟢' if db_status[0] else '🔴' }} {{ db_status[1] }}</span>
+                    {% if missing_cycles %}
+                        <span style="color: #b91c1c; font-weight: 700; margin-left: 8px;">
+                            ⚠️ {{ missing_cycles|length }} combinaciones sin ciclo ideal. <a href="/parametros" target="_blank" style="color: inherit; text-decoration: underline;">Completar aquí</a>
+                        </span>
                     {% endif %}
-                </h2>
-                <button type="button" id="toggle-summary-btn" class="toggle-summary-btn">▶️ Desplegar Resumen de Totales</button>
-            </div>
-            <span class="table-note">💡 Totales dinámicos por producto y variedad con subtotales específicos por variedad. Se actualizan automáticamente en tiempo real.</span>
+                </div>
+            {% endif %}
 
-            <div class="summary-table-wrap">
-                <table class="summary-table" id="table-summary-main">
-                    <!-- Populated dynamically by JS -->
-                </table>
-            </div>
-        </section>
-
-        <section class="week-edit-panel">
-            <label><strong>Modo Vista:</strong></label>
-            <div class="mode-tabs">
-                <button type="button" class="mode-tab active">{{ 'Pestaña Real (amarillo al guardar)' if page_mode == 'REAL' else 'Pestaña Agrónomo (verde al estimar)' }}</button>
-            </div>
-
-            <button type="button" id="reset-filters-btn" class="reset-filters-btn">🔄 Limpiar Filtros Columna</button>
-            <button type="button" id="toggle-params-btn" class="toggle-params-btn">👁️ Ocultar Parámetros</button>
-            <button type="button" id="sync-params-btn" class="sync-btn">⚡ Auto-Guardado Activo (Enter / Blur)</button>
-            
-            <div class="legend">
-                <span class="lg-model">Modelo</span>
-                <span class="lg-agro">Agrónomo</span>
-                <span class="lg-real">Real</span>
-                <span class="lg-dump" title="Ventas limitadas / flor descartada">🗑️ DUMP (Descarte)</span>
+            <!-- SUMMARY CARDS & VARIETY TOTALS -->
+            <div class="summary-panels-card" id="summary-panels-wrapper">
+                <div class="summary-toggle-bar">
+                    <span class="summary-title">📈 Resumen de Totales por Variedad y Actividad</span>
+                    <button type="button" class="summary-collapse-btn" id="summary-collapse-btn">▼ Ocultar Resumen de Totales</button>
+                </div>
+                <div class="summary-table-wrap" id="summary-table-container">
+                    <table class="summary-table" id="table-summary-main">
+                        <!-- Rendered by renderSummaryPanels() JS -->
+                    </table>
+                </div>
             </div>
         </section>
 
-        <!-- SINGLE UNIFIED MASTER MATRIX CARD ACROSS ALL VARIETIES WITH INLINE EXCEL HEADER FILTERS -->
+        <!-- MASTER MATRIX WITH FROZEN HEADERS, PERSISTENT FROZEN COLUMNS, AND HORIZONTAL SCROLL -->
         <section class="master-matrix-card">
             <div class="variety-header">
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
@@ -928,7 +947,7 @@
                             <th colspan="11" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="4" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
-                                <th class="js-week-total col-week-header" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
+                                <th class="js-week-total col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
                             {% endfor %}
                             <th class="js-master-total col-total-final">{{ weekly_view.grand_total }}</th>
                         </tr>
@@ -985,7 +1004,12 @@
                             <th class="param-col col-param-real-stems">Real<br>T/pl</th>
                             
                             {% for week in weekly_view.week_columns %}
-                                <th class="col-week-header">{{ week.label }}</th>
+                                <th class="col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}">
+                                    {{ week.label }}
+                                    {% if week.label == weekly_view.selected_week_short %}
+                                        <span class="badge-cutoff">Corte</span>
+                                    {% endif %}
+                                </th>
                             {% endfor %}
                             <th class="col-total-final">Total</th>
                         </tr>
@@ -1037,7 +1061,7 @@
                                             {% set cell_cls = 'status-model' %}
                                             {% set cell_stat = 'MODELO' %}
                                         {% endif %}
-                                        <td class="week-cell col-week-header {{ cell_cls }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
+                                        <td class="week-cell col-week-header {{ cell_cls }} {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}" data-week-code="{{ row.week_code_by_label[week.label] }}" data-status="{{ cell_stat }}" data-is-dump="{{ 'true' if (is_cell_dump or status == 'DUMP') else 'false' }}" title="{{ '🌱 Valor ingresado por agrónomo (Doble clic / doble toque para restaurar valor de fábrica)' if cell_stat == 'AGRONOMO' else ('🌾 Estimado de fábrica (Doble clic para restaurar)' if page_mode == 'AGRONOMO' else '📊 Cierre real ingresado (Doble clic para borrar y restaurar estimado)') }}">
                                             {% if page_mode == 'REAL' %}
                                                 <button type="button" class="btn-dump-cell" title="Marcar / Desmarcar como DUMP (Descarte por ventas)">🗑️</button>
                                             {% endif %}
@@ -1055,7 +1079,7 @@
                                 </td>
                                 <td colspan="4" class="param-col"></td>
                                 {% for week in weekly_view.week_columns %}
-                                    <td class="subtotal-week-val col-week-header" data-week-label="{{ week.label }}">0</td>
+                                    <td class="subtotal-week-val col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">0</td>
                                 {% endfor %}
                                 <td class="subtotal-variety-window-val col-total-final">0</td>
                             </tr>
