@@ -305,7 +305,11 @@
             font-size: 0.66rem;
         }
         .summary-table td.col-name { text-align: left; font-weight: 700; background: var(--slate-50); }
+        .summary-table tr.row-variety-subtotal { background: #f8fafc; font-weight: 700; color: var(--slate-700); }
         .summary-table tr.row-subtotal { background: #e0f2fe; font-weight: 800; color: #0369a1; }
+        .summary-table tr.row-color-total { background: #dbeafe; font-weight: 900; color: #1e40af; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
+        .summary-table tr.row-color-total td { font-size: 0.74rem; }
+        .summary-table tr.row-color-total-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
         .summary-table tr.row-grandtotal { background: var(--totals-bg); color: var(--totals-text); font-weight: 800; font-size: 0.78rem; }
         .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; }
 
@@ -1461,17 +1465,19 @@
             const v = (variety || '').toUpperCase();
 
             if (p.includes('VERONICA')) {
-                if (v.includes('SPLASH')) {
-                    if (v.includes('WHITE')) return 11;
-                    if (v.includes('BLUE')) return 12;
-                    if (v.includes('PINK')) return 13;
-                    return 15;
-                } else {
-                    if (v.includes('WHITE')) return 1;
-                    if (v.includes('BLUE')) return 2;
-                    if (v.includes('PINK')) return 3;
-                    return 5;
+                if (v.includes('WHITE')) {
+                    return v.includes('SPLASH') ? 2 : 1;
                 }
+                if (v.includes('BLUE')) {
+                    return v.includes('SPLASH') ? 4 : 3;
+                }
+                if (v.includes('PINK')) {
+                    return v.includes('SPLASH') ? 6 : 5;
+                }
+                if (v.includes('DUO') || v.includes('CRYSTAL')) {
+                    return 7;
+                }
+                return 8;
             }
 
             if (p.includes('HYPERICUM')) {
@@ -1492,7 +1498,21 @@
             return 100;
         }
 
-        // SUMMARY TABLE WITH VARIETY SUBTOTALS & DUMPS
+        function getColorGroup(product, variety) {
+            const p = (product || '').toUpperCase();
+            const v = (variety || '').toUpperCase();
+
+            if (p.includes('VERONICA')) {
+                if (v.includes('WHITE')) return 'WHITE';
+                if (v.includes('BLUE')) return 'BLUE';
+                if (v.includes('PINK')) return 'PINK';
+                if (v.includes('DUO') || v.includes('CRYSTAL')) return 'DUO CRYSTAL';
+                return v;
+            }
+            return v;
+        }
+
+        // SUMMARY TABLE WITH VARIETY SUBTOTALS, COMBINED COLOR TOTALS & DUMPS
         function renderSummaryPanels(summaryData) {
             const weekLabels = weekColumns.map(w => w.label);
             const targetTable = document.getElementById('table-summary-main');
@@ -1517,49 +1537,107 @@
                 return a.variety.localeCompare(b.variety);
             });
 
+            // Group sorted items into sequential color groups
+            const colorGroups = [];
+            let currentGroup = null;
+
             sortedItems.forEach(item => {
-                let varietyWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
-                let varietyDumpSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
-                let varietyWindowTotal = 0;
-                let varietyDumpTotal = 0;
+                const colorKey = getColorGroup(item.product, item.variety);
+                const groupKey = `${item.product}__${colorKey}`;
 
-                ['SIEMBRA', 'PODA'].forEach(act => {
-                    const weekVals = item[mode][act];
-                    const dumpVals = (item.dump && item.dump[act]) ? item.dump[act] : {};
-                    const actSum = Object.values(weekVals).reduce((a, b) => a + b, 0);
-                    const dumpSum = Object.values(dumpVals).reduce((a, b) => a + b, 0);
+                if (!currentGroup || currentGroup.groupKey !== groupKey) {
+                    currentGroup = {
+                        groupKey: groupKey,
+                        product: item.product,
+                        color: colorKey,
+                        items: []
+                    };
+                    colorGroups.push(currentGroup);
+                }
+                currentGroup.items.push(item);
+            });
 
-                    html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td>${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
-                    weekLabels.forEach(lbl => {
-                        const val = weekVals[lbl] || 0;
-                        html += `<td>${val.toLocaleString()}</td>`;
-                        varietyWeekSums[lbl] += val;
-                        grandTotalsByWeek[lbl] += val;
+            colorGroups.forEach(grp => {
+                let colorWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                let colorDumpSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                let colorWindowTotal = 0;
+                let colorDumpTotal = 0;
 
-                        const dVal = dumpVals[lbl] || 0;
-                        varietyDumpSums[lbl] += dVal;
-                        grandDumpsByWeek[lbl] += dVal;
+                grp.items.forEach(item => {
+                    let varietyWeekSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                    let varietyDumpSums = Object.fromEntries(weekLabels.map(l => [l, 0]));
+                    let varietyWindowTotal = 0;
+                    let varietyDumpTotal = 0;
+
+                    ['SIEMBRA', 'PODA'].forEach(act => {
+                        const weekVals = item[mode][act];
+                        const dumpVals = (item.dump && item.dump[act]) ? item.dump[act] : {};
+                        const actSum = Object.values(weekVals).reduce((a, b) => a + b, 0);
+                        const dumpSum = Object.values(dumpVals).reduce((a, b) => a + b, 0);
+
+                        html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td>${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
+                        weekLabels.forEach(lbl => {
+                            const val = weekVals[lbl] || 0;
+                            html += `<td>${val.toLocaleString()}</td>`;
+                            varietyWeekSums[lbl] += val;
+                            colorWeekSums[lbl] += val;
+                            grandTotalsByWeek[lbl] += val;
+
+                            const dVal = dumpVals[lbl] || 0;
+                            varietyDumpSums[lbl] += dVal;
+                            colorDumpSums[lbl] += dVal;
+                            grandDumpsByWeek[lbl] += dVal;
+                        });
+                        html += `<td><strong>${actSum.toLocaleString()}</strong></td></tr>`;
+                        varietyWindowTotal += actSum;
+                        colorWindowTotal += actSum;
+                        grandWindowTotal += actSum;
+                        varietyDumpTotal += dumpSum;
+                        colorDumpTotal += dumpSum;
+                        grandDumpsTotal += dumpSum;
                     });
-                    html += `<td><strong>${actSum.toLocaleString()}</strong></td></tr>`;
-                    varietyWindowTotal += actSum;
-                    grandWindowTotal += actSum;
-                    varietyDumpTotal += dumpSum;
-                    grandDumpsTotal += dumpSum;
+
+                    const isMultiInColor = grp.items.length > 1;
+                    const subtotalClass = isMultiInColor ? 'row-variety-subtotal' : 'row-subtotal';
+                    const indentStyle = isMultiInColor ? 'style="padding-left: 18px;"' : '';
+
+                    html += `<tr class="${subtotalClass}"><td class="col-name" colspan="2" ${indentStyle}>Subtotal ${item.variety}</td>`;
+                    weekLabels.forEach(lbl => {
+                        html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
+                    });
+                    html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+
+                    if (varietyDumpTotal > 0) {
+                        html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2" ${indentStyle}>↳ 🗑️ Dumps ${item.variety} (Descarte)</td>`;
+                        weekLabels.forEach(lbl => {
+                            const dVal = varietyDumpSums[lbl] || 0;
+                            html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                        });
+                        html += `<td><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
+                    }
                 });
 
-                html += `<tr class="row-subtotal"><td class="col-name" colspan="2">Subtotal ${item.variety}</td>`;
-                weekLabels.forEach(lbl => {
-                    html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
-                });
-                html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+                if (grp.items.length > 1) {
+                    const varietyLabels = grp.items.map(i => {
+                        let name = i.variety;
+                        name = name.replace(/^SKYLER\s+/i, '');
+                        return name;
+                    }).join(' + ');
 
-                if (varietyDumpTotal > 0) {
-                    html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2">↳ 🗑️ Dumps ${item.variety} (Descarte)</td>`;
+                    html += `<tr class="row-color-total"><td class="col-name" colspan="2">⭐ TOTAL ${grp.product} ${grp.color} (${varietyLabels})</td>`;
                     weekLabels.forEach(lbl => {
-                        const dVal = varietyDumpSums[lbl] || 0;
-                        html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                        html += `<td>${colorWeekSums[lbl].toLocaleString()}</td>`;
                     });
-                    html += `<td><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
+                    html += `<td><strong>${colorWindowTotal.toLocaleString()}</strong></td></tr>`;
+
+                    if (colorDumpTotal > 0) {
+                        html += `<tr class="row-color-total-dump"><td class="col-name" colspan="2">🗑️ TOTAL DUMPS ${grp.product} ${grp.color}</td>`;
+                        weekLabels.forEach(lbl => {
+                            const dVal = colorDumpSums[lbl] || 0;
+                            html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                        });
+                        html += `<td><strong>${colorDumpTotal.toLocaleString()}</strong></td></tr>`;
+                    }
                 }
             });
 

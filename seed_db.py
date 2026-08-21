@@ -359,6 +359,12 @@ def seed_data_from_excel(workbook_path: Path):
                 block = str(ws.cell(r, 12).value or "").strip()
                 plants = int(round(float_or_zero(ws.cell(r, 15).value)))
 
+                if "VERONICA" in pm.upper() or "SPLASH" in normalize_text(variety):
+                    pm = "VERONICA"
+                    pm_norm = "VERONICA"
+                else:
+                    pm_norm = normalize_text(pm)
+
                 tpsr_records.append(
                     TpsrRecord(
                         year=int(ws.cell(r, 1).value) if ws.cell(r, 1).value and str(ws.cell(r, 1).value).isdigit() else None,
@@ -368,7 +374,7 @@ def seed_data_from_excel(workbook_path: Path):
                         pruning_number=str(ws.cell(r, 5).value or "").strip(),
                         activity=act,
                         product_master=pm,
-                        product_master_norm=normalize_text(pm),
+                        product_master_norm=pm_norm,
                         product=str(ws.cell(r, 8).value or "").strip(),
                         variety=variety,
                         variety_norm=normalize_text(variety),

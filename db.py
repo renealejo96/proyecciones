@@ -388,7 +388,12 @@ def process_tpsr_excel_upload(file_input: Any, commit: bool = True) -> Dict[str,
                 invalid_count += 1
                 continue
 
-            pm_norm = normalize_text(pm)
+            if "VERONICA" in pm.upper() or "SPLASH" in normalize_text(variety):
+                pm = "VERONICA"
+                pm_norm = "VERONICA"
+            else:
+                pm_norm = normalize_text(pm)
+
             v_norm = normalize_text(variety)
             b_norm = normalize_text(block)
 

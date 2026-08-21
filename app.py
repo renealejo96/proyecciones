@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import os
@@ -147,8 +148,10 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 for val in (c.curve or "1.0").split(",")
                 if val.strip() and float_or_zero(val) > 0
             ) or (1.0,)
-            cycle_map[(c.product_master_norm, c.variety_norm, c.activity)] = {
-                "product_master": c.product_master,
+            c_pm = "VERONICA" if "VERONICA" in (c.product_master or "").upper() else c.product_master
+            c_pm_norm = "VERONICA" if "VERONICA" in c.product_master_norm else c.product_master_norm
+            c_entry = {
+                "product_master": c_pm,
                 "variety": c.variety,
                 "activity": c.activity,
                 "cycle_weeks": c.cycle_weeks,
@@ -156,9 +159,17 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 "stems_per_plant": c.stems_per_plant,
                 "curve": curve_values,
             }
+            cycle_map[(c_pm_norm, c.variety_norm, c.activity)] = c_entry
+            cycle_map[(c.product_master_norm, c.variety_norm, c.activity)] = c_entry
 
         row_adjustments = {
-            (r.activity, r.product_master_norm, r.variety_norm, r.block_norm, r.source_week): {
+            (
+                r.activity,
+                "VERONICA" if "VERONICA" in r.product_master_norm else r.product_master_norm,
+                r.variety_norm,
+                r.block_norm,
+                r.source_week,
+            ): {
                 "cycle_weeks": r.cycle_weeks,
                 "waste_rate": r.waste_rate,
                 "stems_per_plant": r.stems_per_plant,
@@ -168,7 +179,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
 
         mass_adjustments = [
             {
-                "product_master_norm": m.product_master_norm,
+                "product_master_norm": "VERONICA" if "VERONICA" in m.product_master_norm else m.product_master_norm,
                 "variety_norm": m.variety_norm,
                 "activity": m.activity,
                 "cycle_weeks": m.cycle_weeks,
@@ -181,7 +192,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
         week_adjustments = {
             (
                 w.activity,
-                w.product_master_norm,
+                "VERONICA" if "VERONICA" in w.product_master_norm else w.product_master_norm,
                 w.variety_norm,
                 w.block_norm,
                 w.source_week,
@@ -196,7 +207,13 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
         }
 
         block_closures = {
-            (b.activity, b.product_master_norm, b.variety_norm, b.block_norm, b.source_week): b.is_closed
+            (
+                b.activity,
+                "VERONICA" if "VERONICA" in b.product_master_norm else b.product_master_norm,
+                b.variety_norm,
+                b.block_norm,
+                b.source_week,
+            ): b.is_closed
             for b in block_closes
         }
 
@@ -213,9 +230,9 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             block = rec.block
             block_norm = rec.block_norm
 
-            if "SPLASH" in variety_norm or (product_master and product_master.upper() == "VERONICA SPRAY"):
-                product_master = "VERONICA SPRAY"
-                product_master_norm = "VERONICA SPRAY"
+            if "VERONICA" in product_master_norm or (product_master and "VERONICA" in product_master.upper()) or "SPLASH" in variety_norm:
+                product_master = "VERONICA"
+                product_master_norm = "VERONICA"
 
             key = (activity, product_master_norm, variety_norm, block_norm, source_week)
             if key not in consolidated_dict:
@@ -477,24 +494,16 @@ def product_variety_sort_key(product_master: str, variety: str) -> tuple[str, in
     variety_upper = (variety or "").upper().strip()
 
     if "VERONICA" in product:
-        if "SPLASH" in variety_upper:
-            if "WHITE" in variety_upper:
-                order = 11
-            elif "BLUE" in variety_upper:
-                order = 12
-            elif "PINK" in variety_upper:
-                order = 13
-            else:
-                order = 15
+        if "WHITE" in variety_upper:
+            order = 2 if "SPLASH" in variety_upper else 1
+        elif "BLUE" in variety_upper:
+            order = 4 if "SPLASH" in variety_upper else 3
+        elif "PINK" in variety_upper:
+            order = 6 if "SPLASH" in variety_upper else 5
+        elif "DUO" in variety_upper or "CRYSTAL" in variety_upper:
+            order = 7
         else:
-            if "WHITE" in variety_upper:
-                order = 1
-            elif "BLUE" in variety_upper:
-                order = 2
-            elif "PINK" in variety_upper:
-                order = 3
-            else:
-                order = 5
+            order = 8
         return (product, order, variety_upper)
 
     if "HYPERICUM" in product:
@@ -1294,7 +1303,8 @@ def get_statistics_data(
         pm_varieties_map: dict[str, list[str]] = {}
         for pm, var in pm_var_rows:
             if pm and var:
-                pm_varieties_map.setdefault(pm, []).append(var)
+                pm_clean = "VERONICA" if "VERONICA" in pm.upper() else pm
+                pm_varieties_map.setdefault(pm_clean, []).append(var)
         for pm in pm_varieties_map:
             pm_varieties_map[pm] = sorted(list(set(pm_varieties_map[pm])))
 
@@ -1309,7 +1319,9 @@ def get_statistics_data(
         cycles_map: dict[tuple[str, str, str], dict[str, Any]] = {}
         valid_curve_pms: set[str] = set()
         for c in cycles_list:
-            key = (c.product_master_norm, c.variety_norm, normalize_text(c.activity))
+            c_pm_norm = "VERONICA" if "VERONICA" in c.product_master_norm else c.product_master_norm
+            c_pm = "VERONICA" if "VERONICA" in (c.product_master or "").upper() else c.product_master
+            key = (c_pm_norm, c.variety_norm, normalize_text(c.activity))
             c_curve = parse_curve_csv(c.curve)
             cycles_map[key] = {
                 "cycle_weeks": c.cycle_weeks,
@@ -1317,7 +1329,9 @@ def get_statistics_data(
                 "stems_per_plant": c.stems_per_plant,
                 "curve": c_curve,
             }
-            if c.product_master and c_curve and any(x > 0 for x in c_curve):
+            cycles_map[(c.product_master_norm, c.variety_norm, normalize_text(c.activity))] = cycles_map[key]
+            if c_pm and c_curve and any(x > 0 for x in c_curve):
+                valid_curve_pms.add(c_pm)
                 valid_curve_pms.add(c.product_master)
 
         available_pms = sorted([pm for pm in pm_varieties_map.keys() if pm in valid_curve_pms])
@@ -1358,7 +1372,10 @@ def get_statistics_data(
             except ValueError:
                 pass
         if resolved_pm:
-            closure_query = closure_query.filter(BlockClosureDB.product_master_norm == normalize_text(resolved_pm))
+            if "VERONICA" in resolved_pm.upper():
+                closure_query = closure_query.filter(BlockClosureDB.product_master_norm.like("%VERONICA%"))
+            else:
+                closure_query = closure_query.filter(BlockClosureDB.product_master_norm == normalize_text(resolved_pm))
         if variety_filter:
             closure_query = closure_query.filter(BlockClosureDB.variety_norm == normalize_text(variety_filter))
         if activity_filter:
@@ -1384,8 +1401,11 @@ def get_statistics_data(
                 pass
 
         if resolved_pm:
-            norm_pm = normalize_text(resolved_pm)
-            tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm == norm_pm)
+            if "VERONICA" in resolved_pm.upper():
+                tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm.like("%VERONICA%"))
+            else:
+                norm_pm = normalize_text(resolved_pm)
+                tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm == norm_pm)
 
         if variety_filter:
             norm_var = normalize_text(variety_filter)
@@ -1408,7 +1428,10 @@ def get_statistics_data(
             except ValueError:
                 pass
         if resolved_pm:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(resolved_pm))
+            if "VERONICA" in resolved_pm.upper():
+                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm.like("%VERONICA%"))
+            else:
+                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(resolved_pm))
         if variety_filter:
             week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm == normalize_text(variety_filter))
         if activity_filter:
@@ -1417,16 +1440,16 @@ def get_statistics_data(
         week_adjustments = week_adj_query.all()
         adj_map_by_block: dict[tuple[str, str, int, str, str], list[WeekAdjustmentDB]] = {}
         for adj in week_adjustments:
-            k = (adj.product_master_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm)
+            adj_pm_norm = "VERONICA" if "VERONICA" in adj.product_master_norm else adj.product_master_norm
+            k = (adj_pm_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm)
             adj_map_by_block.setdefault(k, []).append(adj)
+            adj_map_by_block.setdefault((adj.product_master_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm), []).append(adj)
 
         # 6. Group TPSR records by individual block: (product_master, variety, source_week, activity, block)
         grouped_block_lots: dict[tuple[str, str, int, str, str], dict[str, Any]] = {}
         for r in tpsr_records:
-            pm = r.product_master
+            pm = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else r.product_master
             var = r.variety
-            if "SPLASH" in (r.variety_norm or "") or (pm and pm.upper() == "VERONICA SPRAY"):
-                pm = "VERONICA SPRAY"
             if valid_curve_pms and pm not in valid_curve_pms:
                 continue
 
@@ -1966,19 +1989,31 @@ def save_row_adjustment_api():
 
     db = SessionLocal()
     try:
-        pm_norm = normalize_text(product_master)
+        if "VERONICA" in product_master.upper():
+            product_master = "VERONICA"
+            pm_norm = "VERONICA"
+            existing = db.query(RowAdjustmentDB).filter(
+                RowAdjustmentDB.activity == activity,
+                RowAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                RowAdjustmentDB.variety_norm == v_norm,
+                RowAdjustmentDB.block_norm == b_norm,
+                RowAdjustmentDB.source_week == source_week,
+            ).first()
+        else:
+            pm_norm = normalize_text(product_master)
+            existing = db.query(RowAdjustmentDB).filter_by(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block_norm=b_norm,
+                source_week=source_week,
+            ).first()
+
         v_norm = normalize_text(variety)
         b_norm = normalize_text(block)
 
-        existing = db.query(RowAdjustmentDB).filter_by(
-            activity=activity,
-            product_master_norm=pm_norm,
-            variety_norm=v_norm,
-            block_norm=b_norm,
-            source_week=source_week,
-        ).first()
-
         if existing:
+            existing.product_master_norm = pm_norm
             existing.cycle_weeks = cycle_weeks
             existing.waste_rate = waste_rate_pct / 100 if waste_rate_pct is not None else None
             existing.stems_per_plant = stems_per_plant
@@ -2034,18 +2069,30 @@ def save_week_adjustment_api():
 
     db = SessionLocal()
     try:
-        pm_norm = normalize_text(product_master)
         v_norm = normalize_text(variety)
         b_norm = normalize_text(block)
 
-        existing = db.query(WeekAdjustmentDB).filter_by(
-            activity=activity,
-            product_master_norm=pm_norm,
-            variety_norm=v_norm,
-            block_norm=b_norm,
-            source_week=source_week,
-            harvest_week=harvest_week,
-        ).first()
+        if "VERONICA" in product_master.upper():
+            product_master = "VERONICA"
+            pm_norm = "VERONICA"
+            existing = db.query(WeekAdjustmentDB).filter(
+                WeekAdjustmentDB.activity == activity,
+                WeekAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                WeekAdjustmentDB.variety_norm == v_norm,
+                WeekAdjustmentDB.block_norm == b_norm,
+                WeekAdjustmentDB.source_week == source_week,
+                WeekAdjustmentDB.harvest_week == harvest_week,
+            ).first()
+        else:
+            pm_norm = normalize_text(product_master)
+            existing = db.query(WeekAdjustmentDB).filter_by(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block_norm=b_norm,
+                source_week=source_week,
+                harvest_week=harvest_week,
+            ).first()
 
         prev_val = None
         if existing:
@@ -2177,7 +2224,10 @@ def get_estimate_history_api():
         if harvest_week_filter:
             query = query.filter(EstimateAuditDB.harvest_week == harvest_week_filter)
         if product_filter and product_filter.upper() != "ALL":
-            query = query.filter(EstimateAuditDB.product_master_norm == normalize_text(product_filter))
+            if "VERONICA" in product_filter.upper():
+                query = query.filter(EstimateAuditDB.product_master_norm.like("%VERONICA%"))
+            else:
+                query = query.filter(EstimateAuditDB.product_master_norm == normalize_text(product_filter))
         if variety_filter and variety_filter.upper() != "ALL":
             query = query.filter(EstimateAuditDB.variety_norm == normalize_text(variety_filter))
         if mode_filter and mode_filter in ("AGRONOMO", "REAL"):
@@ -2249,18 +2299,30 @@ def restore_estimate_api():
         if not activity or not product_master or not variety or not block or source_week is None or harvest_week is None:
             return jsonify({"ok": False, "message": "Faltan parámetros requeridos para restaurar."}), 400
 
-        pm_norm = normalize_text(product_master)
         v_norm = normalize_text(variety)
         b_norm = normalize_text(block)
 
-        existing = db.query(WeekAdjustmentDB).filter_by(
-            activity=activity,
-            product_master_norm=pm_norm,
-            variety_norm=v_norm,
-            block_norm=b_norm,
-            source_week=source_week,
-            harvest_week=harvest_week,
-        ).first()
+        if "VERONICA" in product_master.upper():
+            product_master = "VERONICA"
+            pm_norm = "VERONICA"
+            existing = db.query(WeekAdjustmentDB).filter(
+                WeekAdjustmentDB.activity == activity,
+                WeekAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                WeekAdjustmentDB.variety_norm == v_norm,
+                WeekAdjustmentDB.block_norm == b_norm,
+                WeekAdjustmentDB.source_week == source_week,
+                WeekAdjustmentDB.harvest_week == harvest_week,
+            ).first()
+        else:
+            pm_norm = normalize_text(product_master)
+            existing = db.query(WeekAdjustmentDB).filter_by(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block_norm=b_norm,
+                source_week=source_week,
+                harvest_week=harvest_week,
+            ).first()
 
         prev_val = None
         if existing:
@@ -2346,17 +2408,28 @@ def save_block_closure_api():
 
     db = SessionLocal()
     try:
-        pm_norm = normalize_text(product_master)
         v_norm = normalize_text(variety)
         b_norm = normalize_text(block)
 
-        existing = db.query(BlockClosureDB).filter_by(
-            activity=activity,
-            product_master_norm=pm_norm,
-            variety_norm=v_norm,
-            block_norm=b_norm,
-            source_week=source_week,
-        ).first()
+        if "VERONICA" in product_master.upper():
+            product_master = "VERONICA"
+            pm_norm = "VERONICA"
+            existing = db.query(BlockClosureDB).filter(
+                BlockClosureDB.activity == activity,
+                BlockClosureDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                BlockClosureDB.variety_norm == v_norm,
+                BlockClosureDB.block_norm == b_norm,
+                BlockClosureDB.source_week == source_week,
+            ).first()
+        else:
+            pm_norm = normalize_text(product_master)
+            existing = db.query(BlockClosureDB).filter_by(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block_norm=b_norm,
+                source_week=source_week,
+            ).first()
 
         if existing:
             existing.is_closed = is_closed
@@ -2450,16 +2523,26 @@ def save_mass_adjustment_api():
 
     db = SessionLocal()
     try:
-        pm_norm = normalize_optional_text(product_master)
         v_norm = normalize_optional_text(variety)
 
-        existing = db.query(MassAdjustmentDB).filter_by(
-            product_master_norm=pm_norm,
-            variety_norm=v_norm,
-            activity=activity,
-        ).first()
+        if "VERONICA" in product_master.upper():
+            product_master = "VERONICA"
+            pm_norm = "VERONICA"
+            existing = db.query(MassAdjustmentDB).filter(
+                MassAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                MassAdjustmentDB.variety_norm == v_norm,
+                MassAdjustmentDB.activity == activity,
+            ).first()
+        else:
+            pm_norm = normalize_optional_text(product_master)
+            existing = db.query(MassAdjustmentDB).filter_by(
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                activity=activity,
+            ).first()
 
         if existing:
+            existing.product_master_norm = pm_norm
             existing.cycle_weeks = cycle_weeks
             existing.waste_rate = waste_rate_pct / 100 if waste_rate_pct is not None else None
             existing.stems_per_plant = stems_per_plant
