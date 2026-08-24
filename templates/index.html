@@ -729,6 +729,46 @@
             text-transform: uppercase;
         }
 
+        .header-week-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            width: 100%;
+        }
+        .header-week-cell .week-label-text {
+            font-size: 0.66rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .btn-filter-week-nonzero {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            color: #ffffff;
+            border-radius: 3px;
+            font-size: 0.56rem;
+            font-weight: 800;
+            padding: 0 3px;
+            cursor: pointer;
+            line-height: 1.2;
+            transition: all 0.15s ease;
+            margin-top: 1px;
+        }
+        .btn-filter-week-nonzero:hover {
+            background: #f59e0b;
+            border-color: #d97706;
+            color: #0f172a;
+            transform: scale(1.08);
+        }
+        .btn-filter-week-nonzero.active {
+            background: #f59e0b !important;
+            border-color: #d97706 !important;
+            color: #0f172a !important;
+            box-shadow: 0 0 0 1.5px #ffffff, 0 0 0 3px #f59e0b;
+        }
+
         /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA vs DUMPS */
         .week-cell {
             position: relative;
@@ -979,7 +1019,8 @@
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
                 <div class="chips">
                     <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Mostrar u ocultar columnas de parámetros (Ciclos, T/pl, Desperdicio, Totales)">👁️ Ocultar Parámetros</button>
-                    <button type="button" id="reset-filters-btn" class="toggle-params-btn" style="color: var(--slate-600);" title="Limpiar los filtros rápidos de columna">🔄 Limpiar Filtros</button>
+                    <button type="button" id="btn-toggle-nonzero" class="toggle-params-btn" style="background: #ffffff; color: var(--header-bg); border-color: var(--slate-300);" title="Ocultar todas las filas que tengan 0 en la ventana y mostrar solo filas con cosecha o estimado">⚡ Solo Cosechas (>0)</button>
+                    <button type="button" id="reset-filters-btn" class="toggle-params-btn" style="color: var(--slate-600);" title="Limpiar los filtros rápidos de columna y filtros de semanas">🔄 Limpiar Filtros</button>
                     <button type="button" id="btn-open-audit-history" class="toggle-params-btn" style="background: #f0fdf4; border-color: #86efac; color: #15803d; font-weight: 700;" title="Ver auditoría de cambios y restaurar estimaciones anteriores">📜 Historial y Restaurar</button>
                     <div class="chip">Filas Visibles: <span id="chip-visible-rows">0</span></div>
                     <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
@@ -1063,10 +1104,13 @@
                             
                             {% for week in weekly_view.week_columns %}
                                 <th class="col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">
-                                    {{ week.label }}
-                                    {% if week.label == weekly_view.selected_week_short %}
-                                        <span class="badge-cutoff">Corte</span>
-                                    {% endif %}
+                                    <div class="header-week-cell">
+                                        <span class="week-label-text">{{ week.label }}</span>
+                                        {% if week.label == weekly_view.selected_week_short %}
+                                            <span class="badge-cutoff">Corte</span>
+                                        {% endif %}
+                                        <button type="button" class="btn-filter-week-nonzero" data-week-label="{{ week.label }}" title="Filtrar solo filas con cosecha > 0 en sem. {{ week.label }}">>0</button>
+                                    </div>
                                 </th>
                             {% endfor %}
                             <th class="col-total-final">Total</th>
@@ -1782,6 +1826,10 @@
             }
         }
 
+        let activeNonZeroWeek = null;
+        let savedNonZeroPref = localStorage.getItem('proyecciones_only_nonzero');
+        let onlyNonZeroRows = (savedNonZeroPref === 'true');
+
         function recalcAll(fullRecalc = false) {
             const globalTotalsByActivity = { SIEMBRA: 0, PODA: 0 };
             const globalTotalsByWeek = Object.fromEntries(weekColumns.map((week) => [week.label, 0]));
@@ -1846,7 +1894,26 @@
                 const matchAc = !filterAcVal || activityName === filterAcVal;
                 const matchUbi = !filterUbiVal || ubiVal.includes(filterUbiVal);
 
-                const isVisible = matchBlock && matchVariety && matchAc && matchUbi && matchWeek && matchHarvestWeek;
+                let matchWeekNonZero = true;
+                if (activeNonZeroWeek) {
+                    const cell = row.querySelector(`.week-cell[data-week-label="${activeNonZeroWeek}"]`);
+                    const inp = cell?.querySelector('.week-input');
+                    const cellVal = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                    matchWeekNonZero = (cellVal > 0);
+                }
+
+                let matchGlobalNonZero = true;
+                if (onlyNonZeroRows) {
+                    let hasAnyVal = false;
+                    row.querySelectorAll('.week-cell').forEach((cell) => {
+                        const inp = cell.querySelector('.week-input');
+                        const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                        if (val > 0) hasAnyVal = true;
+                    });
+                    matchGlobalNonZero = hasAnyVal;
+                }
+
+                const isVisible = matchBlock && matchVariety && matchAc && matchUbi && matchWeek && matchHarvestWeek && matchWeekNonZero && matchGlobalNonZero;
                 row.style.display = isVisible ? '' : 'none';
 
                 if (!isVisible) return;
@@ -2284,12 +2351,63 @@
         });
 
         const resetFiltersBtn = document.getElementById('reset-filters-btn');
+        const btnToggleNonZero = document.getElementById('btn-toggle-nonzero');
+
+        function updateNonZeroBtnStyle() {
+            if (!btnToggleNonZero) return;
+            if (onlyNonZeroRows) {
+                btnToggleNonZero.style.background = '#fef08a';
+                btnToggleNonZero.style.borderColor = '#eab308';
+                btnToggleNonZero.style.color = '#854d0e';
+                btnToggleNonZero.style.fontWeight = '800';
+                btnToggleNonZero.textContent = '⚡ Cosechas > 0 (Filtro Activo)';
+            } else {
+                btnToggleNonZero.style.background = '#ffffff';
+                btnToggleNonZero.style.borderColor = 'var(--slate-300)';
+                btnToggleNonZero.style.color = 'var(--header-bg)';
+                btnToggleNonZero.style.fontWeight = '700';
+                btnToggleNonZero.textContent = '⚡ Solo Cosechas (>0)';
+            }
+        }
+
+        if (btnToggleNonZero) {
+            btnToggleNonZero.addEventListener('click', () => {
+                onlyNonZeroRows = !onlyNonZeroRows;
+                localStorage.setItem('proyecciones_only_nonzero', String(onlyNonZeroRows));
+                updateNonZeroBtnStyle();
+                recalcAll(false);
+            });
+        }
+        updateNonZeroBtnStyle();
+
+        // Week column header >0 filter buttons
+        document.querySelectorAll('.btn-filter-week-nonzero').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const targetWeek = btn.dataset.weekLabel;
+                if (activeNonZeroWeek === targetWeek) {
+                    activeNonZeroWeek = null;
+                    btn.classList.remove('active');
+                } else {
+                    activeNonZeroWeek = targetWeek;
+                    document.querySelectorAll('.btn-filter-week-nonzero').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                }
+                recalcAll(false);
+            });
+        });
+
         if (resetFiltersBtn) {
             resetFiltersBtn.addEventListener('click', () => {
                 ['h-filter-block', 'h-filter-variety', 'h-filter-ac', 'h-filter-ubi', 'h-filter-week', 'h-filter-harvest-week'].forEach(id => {
                     const ctrl = document.getElementById(id);
                     if (ctrl) ctrl.value = '';
                 });
+                activeNonZeroWeek = null;
+                onlyNonZeroRows = false;
+                localStorage.removeItem('proyecciones_only_nonzero');
+                document.querySelectorAll('.btn-filter-week-nonzero').forEach(b => b.classList.remove('active'));
+                updateNonZeroBtnStyle();
                 recalcAll(false);
             });
         }
