@@ -1989,6 +1989,9 @@ def save_row_adjustment_api():
 
     db = SessionLocal()
     try:
+        v_norm = normalize_text(variety)
+        b_norm = normalize_text(block)
+
         if "VERONICA" in product_master.upper():
             product_master = "VERONICA"
             pm_norm = "VERONICA"
@@ -2008,9 +2011,6 @@ def save_row_adjustment_api():
                 block_norm=b_norm,
                 source_week=source_week,
             ).first()
-
-        v_norm = normalize_text(variety)
-        b_norm = normalize_text(block)
 
         if existing:
             existing.product_master_norm = pm_norm
