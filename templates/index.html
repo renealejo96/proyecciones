@@ -609,9 +609,9 @@
         th.js-week-total,
         td.week-cell,
         td.subtotal-week-val {
-            width: 62px;
-            min-width: 62px;
-            padding: 3px 2px !important;
+            width: 50px;
+            min-width: 50px;
+            padding: 2px 1px !important;
             box-sizing: border-box !important;
         }
 
@@ -619,8 +619,8 @@
         th.js-master-total,
         td.cell-window-total,
         td.subtotal-variety-window-val {
-            width: 68px !important;
-            min-width: 68px !important;
+            width: 60px !important;
+            min-width: 60px !important;
             font-weight: 800 !important;
         }
 
@@ -665,13 +665,13 @@
             box-sizing: border-box;
             width: 100% !important;
             max-width: 100% !important;
-            min-width: 48px;
-            height: 24px;
+            min-width: 38px;
+            height: 23px;
             border: 1px solid var(--slate-300);
             border-radius: 4px;
             background: #ffffff;
-            padding: 1px 3px;
-            font-size: 0.75rem;
+            padding: 1px 2px;
+            font-size: 0.74rem;
             font-family: 'JetBrains Mono', monospace;
             text-align: right;
             outline: none;
@@ -680,7 +680,7 @@
         }
 
         .page-real .week-input {
-            padding-right: 18px !important;
+            padding-right: 14px !important;
         }
 
         .edit-input:focus,
@@ -946,7 +946,7 @@
             <form method="get" class="toolbar" id="filters-form">
                 <div class="field">
                     <label for="semana">Semana corte</label>
-                    <select id="semana" name="semana">
+                    <select id="semana" name="semana" style="width: 72px;">
                         {% for item in week_options %}
                             <option value="{{ item.week_code }}" {{ 'selected' if item.week_code == weekly_view.selected_week else '' }}>{{ item.week_short }}</option>
                         {% endfor %}
@@ -963,11 +963,11 @@
                 </div>
                 <div class="field">
                     <label for="horizonte_atras">Atrás</label>
-                    <input id="horizonte_atras" name="horizonte_atras" value="{{ weekly_view.horizon_weeks_back }}" type="number" min="0" max="20" step="1" style="width: 48px;">
+                    <input id="horizonte_atras" name="horizonte_atras" value="{{ weekly_view.horizon_weeks_back }}" type="number" min="0" max="20" step="1" style="width: 42px;">
                 </div>
                 <div class="field">
                     <label for="horizonte_adelante">Adelante</label>
-                    <input id="horizonte_adelante" name="horizonte_adelante" value="{{ weekly_view.horizon_weeks_forward }}" type="number" min="1" max="20" step="1" style="width: 48px;">
+                    <input id="horizonte_adelante" name="horizonte_adelante" value="{{ weekly_view.horizon_weeks_forward }}" type="number" min="1" max="20" step="1" style="width: 42px;">
                 </div>
 
                 <!-- EXPORTABLE SEMANA CUTOFF METRIC COMPONENT IN TOOLBAR -->
@@ -1526,7 +1526,7 @@
         function adjustWeekColumnWidths() {
             if (!weekColumns || !weekColumns.length) return;
             const isReal = (pageMode === 'REAL');
-            const baseWidth = isReal ? 64 : 60;
+            const baseWidth = isReal ? 54 : 50;
 
             weekColumns.forEach(w => {
                 let maxDigits = 4;
@@ -1550,7 +1550,7 @@
                     }
                 });
 
-                const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 9.5);
+                const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 8.5);
                 const widthStyle = targetWidth + 'px';
 
                 columnElements.forEach(el => {
