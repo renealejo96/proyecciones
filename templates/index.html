@@ -413,7 +413,7 @@
         .legend span { border-radius: 9999px; padding: 2px 6px; font-size: 0.66rem; font-weight: 700; }
         .legend .lg-model { background: var(--blue-50); color: var(--blue-600); border: 1px solid var(--blue-100); }
         .legend .lg-agro { background: var(--emerald-50); color: var(--emerald-600); border: 1px solid var(--emerald-100); }
-        .legend .lg-real { background: var(--amber-50); color: var(--amber-600); border: 1px solid var(--amber-100); }
+        .legend .lg-real { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; font-weight: 700; }
 
         .variety-header { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 6px; }
         .variety-header h2 { margin: 0; font-size: 0.92rem; font-weight: 800; color: var(--slate-900); }
@@ -777,12 +777,12 @@
         }
         .week-cell.status-model { background: var(--blue-50); }
         .week-cell.status-agronomo { background: var(--emerald-50); }
-        .week-cell.status-real { background: var(--amber-50); }
+        .week-cell.status-real { background: #ffedd5 !important; }
         .week-cell.status-dump { background: #fee2e2 !important; }
 
         .week-cell.status-model .week-input { background: #ffffff; border-color: var(--blue-100); color: var(--slate-600); }
         .week-cell.status-agronomo .week-input { background: var(--emerald-50); border-color: var(--emerald-500); color: var(--emerald-600); font-weight: 700; }
-        .week-cell.status-real .week-input { background: var(--amber-50); border-color: var(--amber-500); color: var(--amber-600); font-weight: 700; }
+        .week-cell.status-real .week-input { background: #ffedd5 !important; border-color: #ea580c !important; color: #9a3412 !important; font-weight: 800 !important; }
         .week-cell.status-dump .week-input { background: #fef2f2 !important; border-color: #ef4444 !important; color: #b91c1c !important; font-weight: 800 !important; }
 
         .btn-dump-cell {
@@ -1152,15 +1152,16 @@
                                     
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
+                                        {% set val = row.weekly_projection[week.label] if row.weekly_projection and week.label in row.weekly_projection else 0 %}
                                         {% set is_cell_dump = row.is_dump[week.label] if row.is_dump and week.label in row.is_dump else False %}
                                         {% set cell_dump_stems = row.dump_stems[week.label] if row.dump_stems and week.label in row.dump_stems else 0 %}
                                         {% if status == 'DUMP' or is_cell_dump or cell_dump_stems > 0 %}
                                             {% set cell_cls = 'status-dump' %}
                                             {% set cell_stat = 'DUMP' %}
-                                        {% elif status == 'REAL' %}
+                                        {% elif val > 0 and status == 'REAL' %}
                                             {% set cell_cls = 'status-real' %}
                                             {% set cell_stat = 'REAL' %}
-                                        {% elif status == 'AGRONOMO' %}
+                                        {% elif val > 0 and status == 'AGRONOMO' %}
                                             {% set cell_cls = 'status-agronomo' %}
                                             {% set cell_stat = 'AGRONOMO' %}
                                         {% else %}
@@ -1405,16 +1406,23 @@
 
         function normalizeWeeklyCellClass(cell) {
             cell.classList.remove('status-model', 'status-agronomo', 'status-real', 'status-dump');
-            if (cell.dataset.status === 'DUMP' || cell.dataset.isDump === 'true') {
+            const status = cell.dataset.status;
+            const isDump = (status === 'DUMP' || cell.dataset.isDump === 'true');
+            if (isDump) {
                 cell.classList.add('status-dump');
                 return;
             }
-            const mode = cell.dataset.status;
-            if (mode === 'REAL') {
+            const input = cell.querySelector('.week-input');
+            const val = input ? Math.max(0, Math.round(Number.parseFloat(input.value) || 0)) : 0;
+            if (val === 0) {
+                cell.classList.add('status-model');
+                return;
+            }
+            if (status === 'REAL') {
                 cell.classList.add('status-real');
                 return;
             }
-            if (mode === 'AGRONOMO') {
+            if (status === 'AGRONOMO') {
                 cell.classList.add('status-agronomo');
                 return;
             }
@@ -2232,16 +2240,20 @@
                 if (result.is_dump !== undefined) {
                     cell.dataset.isDump = result.is_dump ? 'true' : 'false';
                 }
+                cell.dataset.dumpStems = String(result.dump_stems || 0);
+
+                // Recalculate row to restore input value from curve model calculation
+                recalcRow(row);
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
-                recalcAll();
+                recalcAll(true);
 
                 // Visual flash animation & notification
                 cell.classList.remove('flash-restored');
                 void cell.offsetWidth;
                 cell.classList.add('flash-restored');
                 setTimeout(() => cell.classList.remove('flash-restored'), 1000);
-                showToast('🔄 Celda restaurada al cálculo del modelo');
+                showToast('🔄 Celda restaurada al cálculo por defecto');
             } catch (error) {
                 console.error("Error resetting week cell:", error);
                 showToast('❌ ' + error.message);
@@ -2287,7 +2299,7 @@
                 }
                 if (result.weekly_status) {
                     cell.dataset.status = result.weekly_status;
-                } else if (value !== null) {
+                } else if (value > 0) {
                     cell.dataset.status = mode;
                 } else {
                     cell.dataset.status = 'MODELO';
@@ -2450,6 +2462,40 @@
         }
         updateParamsVisibility();
 
+        function getNextVisibleProjectionRow(currentRow, direction = 'down') {
+            if (!currentRow) return null;
+            let tr = direction === 'down' ? currentRow.nextElementSibling : currentRow.previousElementSibling;
+            while (tr) {
+                if (tr.classList.contains('projection-row') && tr.style.display !== 'none') {
+                    return tr;
+                }
+                tr = direction === 'down' ? tr.nextElementSibling : tr.previousElementSibling;
+            }
+            return null;
+        }
+
+        function findTargetInputInRow(targetRow, sourceCell, sourceInput) {
+            if (!targetRow) return null;
+            if (sourceCell && sourceCell.classList.contains('week-cell')) {
+                const label = sourceCell.dataset.weekLabel;
+                const targetCell = targetRow.querySelector(`.week-cell[data-week-label="${label}"]`);
+                const targetInput = targetCell?.querySelector('.week-input:not([disabled])');
+                return targetInput || null;
+            }
+            if (sourceInput) {
+                if (sourceInput.classList.contains('input-cycle')) {
+                    return targetRow.querySelector('.input-cycle:not([disabled])');
+                }
+                if (sourceInput.classList.contains('input-stems')) {
+                    return targetRow.querySelector('.input-stems:not([disabled])');
+                }
+                if (sourceInput.classList.contains('input-waste')) {
+                    return targetRow.querySelector('.input-waste:not([disabled])');
+                }
+            }
+            return null;
+        }
+
         // Enhanced Auto-Select on Focus & Keyboard Navigation
         document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
             input.addEventListener('focus', () => {
@@ -2464,37 +2510,38 @@
                     e.preventDefault();
                     const cell = input.closest('td');
                     const row = input.closest('.projection-row');
+
                     if (input.classList.contains('week-input') && cell && row && !input.disabled) {
+                        input._isDirty = false;
+                        updateRowTotalsFromWeekInputs(row);
+                        adjustWeekColumnWidths();
                         await saveWeekCell(row, cell);
                         recalcAll();
                     } else if (input.classList.contains('edit-input') && row) {
+                        input._isDirty = false;
+                        recalcRow(row);
+                        adjustWeekColumnWidths();
                         await saveRowAdjustment(row);
-                        recalcAll();
+                        recalcAll(false);
                     }
 
-                    // Move focus down on Enter
-                    const tr = input.closest('tr');
-                    const colIndex = Array.from(tr.children).indexOf(cell);
-                    const targetTr = tr.nextElementSibling;
-                    if (targetTr) {
-                        const targetInput = targetTr.children[colIndex]?.querySelector('input:not([disabled])');
-                        if (targetInput) {
-                            targetInput.focus();
-                            targetInput.select();
-                        }
+                    // Move focus down to next visible projection row reliably
+                    const targetTr = getNextVisibleProjectionRow(row, 'down');
+                    const targetInput = findTargetInputInRow(targetTr, cell, input);
+                    if (targetInput) {
+                        targetInput.focus();
+                        targetInput.select();
                     }
                 } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     e.preventDefault();
                     const cell = input.closest('td');
-                    const tr = input.closest('tr');
-                    const colIndex = Array.from(tr.children).indexOf(cell);
-                    const targetTr = e.key === 'ArrowUp' ? tr.previousElementSibling : tr.nextElementSibling;
-                    if (targetTr) {
-                        const targetInput = targetTr.children[colIndex]?.querySelector('input:not([disabled])');
-                        if (targetInput) {
-                            targetInput.focus();
-                            targetInput.select();
-                        }
+                    const row = input.closest('.projection-row');
+                    const direction = e.key === 'ArrowUp' ? 'up' : 'down';
+                    const targetTr = getNextVisibleProjectionRow(row, direction);
+                    const targetInput = findTargetInputInRow(targetTr, cell, input);
+                    if (targetInput) {
+                        targetInput.focus();
+                        targetInput.select();
                     }
                 }
             });
@@ -2503,6 +2550,7 @@
         // AUTO-SAVE ON BLUR / CHANGE FOR ROW PARAMETERS
         document.querySelectorAll('.projection-row .edit-input').forEach((input) => {
             input.addEventListener('input', () => {
+                input._isDirty = true;
                 const row = input.closest('.projection-row');
                 if (row) {
                     recalcRow(row);
@@ -2511,6 +2559,18 @@
                 }
             });
             input.addEventListener('change', async () => {
+                input._isDirty = false;
+                const row = input.closest('.projection-row');
+                if (row) {
+                    recalcRow(row);
+                    adjustWeekColumnWidths();
+                    await saveRowAdjustment(row);
+                    recalcAll(false);
+                }
+            });
+            input.addEventListener('blur', async () => {
+                if (!input._isDirty) return;
+                input._isDirty = false;
                 const row = input.closest('.projection-row');
                 if (row) {
                     recalcRow(row);
@@ -2523,14 +2583,18 @@
 
         document.querySelectorAll('.week-input').forEach((input) => {
             input.addEventListener('input', () => {
+                input._isDirty = true;
                 const cell = input.closest('.week-cell');
                 const row = input.closest('.projection-row');
                 if (!cell || !row || input.disabled) return;
 
-                if (input.value.trim() !== '') {
+                const val = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
+                if (val > 0) {
                     cell.dataset.status = activeWeekMode;
-                    normalizeWeeklyCellClass(cell);
+                } else if (input.value.trim() !== '') {
+                    cell.dataset.status = 'MODELO';
                 }
+                normalizeWeeklyCellClass(cell);
 
                 // Immediate real-time calculation of Real T/pl and row totals
                 updateRowTotalsFromWeekInputs(row);
@@ -2543,6 +2607,20 @@
             });
 
             input.addEventListener('change', async () => {
+                input._isDirty = false;
+                const cell = input.closest('.week-cell');
+                const row = input.closest('.projection-row');
+                if (cell && row && !input.disabled) {
+                    updateRowTotalsFromWeekInputs(row);
+                    adjustWeekColumnWidths();
+                    await saveWeekCell(row, cell);
+                    recalcAll();
+                }
+            });
+
+            input.addEventListener('blur', async () => {
+                if (!input._isDirty) return;
+                input._isDirty = false;
                 const cell = input.closest('.week-cell');
                 const row = input.closest('.projection-row');
                 if (cell && row && !input.disabled) {

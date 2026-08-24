@@ -398,10 +398,12 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 is_dump = bool(week_override.get("is_dump", False))
                 if week_override.get("agronomo_estimate") is not None:
                     exportable_stems = int(week_override["agronomo_estimate"])
-                    weekly_status = "AGRONOMO"
+                    if exportable_stems > 0:
+                        weekly_status = "AGRONOMO"
                 if week_override.get("real_closed") is not None:
                     exportable_stems = int(week_override["real_closed"])
-                    weekly_status = "REAL"
+                    if exportable_stems > 0:
+                        weekly_status = "REAL"
                 if is_dump:
                     weekly_status = "DUMP"
 
@@ -2181,13 +2183,15 @@ def save_week_adjustment_api():
             harvest_week=harvest_week,
         ).first()
         if check:
-            if check.real_closed is not None:
-                weekly_status = "REAL"
-            elif check.agronomo_estimate is not None:
-                weekly_status = "AGRONOMO"
             if check.is_dump or (check.dump_stems and check.dump_stems > 0):
                 weekly_status = "DUMP"
                 is_dump_val = True
+            elif check.real_closed is not None and check.real_closed > 0:
+                weekly_status = "REAL"
+            elif check.agronomo_estimate is not None and check.agronomo_estimate > 0:
+                weekly_status = "AGRONOMO"
+            else:
+                weekly_status = "MODELO"
             res_dump_stems = check.dump_stems or 0
 
         return jsonify({
