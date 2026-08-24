@@ -527,25 +527,25 @@
         /* OFFSETS FOR STICKY COLUMNS:
            1: Cierre (28px, left: 0)
            2: AC (30px, left: 28px)
-           ubi: Ubi / Camas (50px, left: 58px)
-           3: Sem. Origen (44px, left: 108px)
-           4: Bloque (46px, left: 152px)
-           5: Variedad (135px, left: 198px)
-           6: Sem. Cosecha (46px, left: 333px)
-           7: Plantas (52px, left: 379px)
+           ubi: Ubi / Camas (72px, left: 58px)
+           3: Sem. Origen (44px, left: 130px)
+           4: Bloque (46px, left: 174px)
+           5: Variedad (135px, left: 220px)
+           6: Sem. Cosecha (46px, left: 355px)
+           7: Plantas (52px, left: 401px)
            --- Parameters (when visible) ---
-           8: Ciclo Ideal (44px, left: 431px)
-           9: Ciclo Ajust. (46px, left: 475px)
-           10: T/pl Ideal (44px, left: 521px)
-           11: T/pl Ajust. (46px, left: 565px)
+           8: Ciclo Ideal (44px, left: 453px)
+           9: Ciclo Ajust. (46px, left: 497px)
+           10: T/pl Ideal (44px, left: 543px)
+           11: T/pl Ajust. (46px, left: 587px)
         */
         .sticky-1 { left: 0px; width: 28px; min-width: 28px; max-width: 28px; }
         .sticky-2 { left: 28px; width: 30px; min-width: 30px; max-width: 30px; }
         .sticky-ubi { 
             left: 58px; 
-            width: 50px; 
-            min-width: 50px; 
-            max-width: 50px; 
+            width: 72px; 
+            min-width: 72px; 
+            max-width: 72px; 
             font-family: 'JetBrains Mono', monospace; 
             font-size: 0.68rem; 
             font-weight: 600; 
@@ -558,25 +558,25 @@
             background: #f8fafc;
             border: 1px solid #cbd5e1;
             border-radius: 3px;
-            padding: 0 2px;
-            font-size: 0.67rem;
+            padding: 0 3px;
+            font-size: 0.68rem;
             color: #1e293b;
-            max-width: 46px;
+            max-width: 68px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            line-height: 1.2;
+            line-height: 1.25;
         }
-        .sticky-3 { left: 108px; width: 44px; min-width: 44px; max-width: 44px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-        .sticky-4 { left: 152px; width: 46px; min-width: 46px; max-width: 46px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
-        .sticky-5 { left: 198px; width: 135px; min-width: 135px; max-width: 135px; text-align: left; padding: 2px 4px !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .sticky-6 { left: 333px; width: 46px; min-width: 46px; max-width: 46px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1e40af; font-size: 0.72rem; }
-        .sticky-7 { left: 379px; width: 52px; min-width: 52px; max-width: 52px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-        .sticky-8 { left: 431px; width: 44px; min-width: 44px; max-width: 44px; }
-        .sticky-9 { left: 475px; width: 46px; min-width: 46px; max-width: 46px; padding: 2px 2px !important; }
-        .sticky-10 { left: 521px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-3 { left: 130px; width: 44px; min-width: 44px; max-width: 44px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .sticky-4 { left: 174px; width: 46px; min-width: 46px; max-width: 46px; font-weight: 800; color: var(--header-bg); font-family: 'JetBrains Mono', monospace; }
+        .sticky-5 { left: 220px; width: 135px; min-width: 135px; max-width: 135px; text-align: left; padding: 2px 4px !important; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sticky-6 { left: 355px; width: 46px; min-width: 46px; max-width: 46px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1e40af; font-size: 0.72rem; }
+        .sticky-7 { left: 401px; width: 52px; min-width: 52px; max-width: 52px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .sticky-8 { left: 453px; width: 44px; min-width: 44px; max-width: 44px; }
+        .sticky-9 { left: 497px; width: 46px; min-width: 46px; max-width: 46px; padding: 2px 2px !important; }
+        .sticky-10 { left: 543px; width: 44px; min-width: 44px; max-width: 44px; }
         .sticky-11 { 
-            left: 565px; 
+            left: 587px; 
             width: 46px; 
             min-width: 46px; 
             max-width: 46px;
@@ -609,8 +609,8 @@
         th.js-week-total,
         td.week-cell,
         td.subtotal-week-val {
-            width: 50px;
-            min-width: 50px;
+            width: 42px;
+            min-width: 42px;
             padding: 2px 1px !important;
             box-sizing: border-box !important;
         }
@@ -619,8 +619,8 @@
         th.js-master-total,
         td.cell-window-total,
         td.subtotal-variety-window-val {
-            width: 60px !important;
-            min-width: 60px !important;
+            width: 54px !important;
+            min-width: 54px !important;
             font-weight: 800 !important;
         }
 
@@ -665,13 +665,13 @@
             box-sizing: border-box;
             width: 100% !important;
             max-width: 100% !important;
-            min-width: 38px;
-            height: 23px;
+            min-width: 32px;
+            height: 22px;
             border: 1px solid var(--slate-300);
             border-radius: 4px;
             background: #ffffff;
-            padding: 1px 2px;
-            font-size: 0.74rem;
+            padding: 1px 1px;
+            font-size: 0.72rem;
             font-family: 'JetBrains Mono', monospace;
             text-align: right;
             outline: none;
@@ -680,7 +680,7 @@
         }
 
         .page-real .week-input {
-            padding-right: 14px !important;
+            padding-right: 12px !important;
         }
 
         .edit-input:focus,
@@ -738,7 +738,7 @@
             width: 100%;
         }
         .header-week-cell .week-label-text {
-            font-size: 0.66rem;
+            font-size: 0.65rem;
             font-weight: 700;
             line-height: 1.1;
         }
@@ -748,11 +748,11 @@
             border: 1px solid rgba(255, 255, 255, 0.45);
             color: #ffffff;
             border-radius: 3px;
-            font-size: 0.56rem;
+            font-size: 0.50rem;
             font-weight: 800;
-            padding: 0 3px;
+            padding: 0 2px;
             cursor: pointer;
-            line-height: 1.2;
+            line-height: 1.1;
             transition: all 0.15s ease;
             margin-top: 1px;
         }
@@ -772,8 +772,8 @@
         /* CELL COLORINGS FOR ESTIMATES vs REAL CLOSED DATA vs DUMPS */
         .week-cell {
             position: relative;
-            padding: 3px 2px !important;
-            min-height: 30px;
+            padding: 2px 1px !important;
+            min-height: 28px;
         }
         .week-cell.status-model { background: var(--blue-50); }
         .week-cell.status-agronomo { background: var(--emerald-50); }
@@ -787,10 +787,10 @@
 
         .btn-dump-cell {
             position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 16px;
-            height: 16px;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -798,7 +798,7 @@
             background: rgba(255, 255, 255, 0.9);
             border-radius: 3px;
             cursor: pointer;
-            font-size: 0.65rem;
+            font-size: 0.58rem;
             padding: 0;
             opacity: 0.7;
             transition: all 0.15s ease;
@@ -1058,7 +1058,7 @@
                             <th class="sticky-col sticky-ubi" title="Ubicación de Camas (de qué cama a qué cama)">
                                 <div class="header-filter-cell">
                                     <span>Ubi</span>
-                                    <input type="text" id="h-filter-ubi" class="h-filter-ctrl" placeholder="🔍" style="width: 38px;">
+                                    <input type="text" id="h-filter-ubi" class="h-filter-ctrl" placeholder="🔍" style="width: 58px;">
                                 </div>
                             </th>
                             <th class="sticky-col sticky-3" title="Semana origen de Siembra o Poda">
@@ -1526,7 +1526,7 @@
         function adjustWeekColumnWidths() {
             if (!weekColumns || !weekColumns.length) return;
             const isReal = (pageMode === 'REAL');
-            const baseWidth = isReal ? 54 : 50;
+            const baseWidth = isReal ? 46 : 42;
 
             weekColumns.forEach(w => {
                 let maxDigits = 4;
@@ -1550,7 +1550,7 @@
                     }
                 });
 
-                const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 8.5);
+                const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 8.0);
                 const widthStyle = targetWidth + 'px';
 
                 columnElements.forEach(el => {
