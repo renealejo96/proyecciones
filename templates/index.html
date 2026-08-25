@@ -690,11 +690,36 @@
             background: #ffffff !important;
         }
 
+        .edit-input:disabled,
         .week-input:disabled {
-            background: var(--slate-100);
-            color: var(--slate-400);
-            cursor: not-allowed;
-            border-color: var(--slate-200);
+            background: #f1f5f9 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: none !important;
+        }
+
+        tr.row-closed td {
+            background-color: #f8fafc !important;
+            color: #64748b !important;
+        }
+
+        tr.row-closed td.sticky-col {
+            background-color: #f8fafc !important;
+        }
+
+        tr.row-closed .badge-ac {
+            opacity: 0.6;
+        }
+
+        tr.row-closed .badge-ubi {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        tr.row-closed .btn-dump-cell {
+            pointer-events: none !important;
+            opacity: 0.25 !important;
         }
 
         /* CURRENT CUTOFF WEEK COLUMN HIGHLIGHT */
@@ -1120,7 +1145,7 @@
                         {% for variety in weekly_view.varieties %}
                             {% set all_rows = variety.siembras + variety.podas %}
                             {% for row in all_rows %}
-                                <tr class="projection-row"
+                                <tr class="projection-row {{ 'row-closed' if row.block_closed else '' }}"
                                     data-activity="{{ row.activity }}"
                                     data-source-week="{{ row.source_week }}"
                                     data-source-week-short="{{ row.source_week_short }}"
@@ -1130,8 +1155,11 @@
                                     data-variety-display="{{ row.variety_display or variety.variety_display or variety.variety }}"
                                     data-block="{{ row.block }}"
                                     data-bed-location="{{ row.bed_location }}"
-                                    data-curve="{{ row.curve_csv }}">
-                                    <td class="sticky-col sticky-1"><input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }}></td>
+                                    data-curve="{{ row.curve_csv }}"
+                                    data-block-closed="{{ 'true' if row.block_closed else 'false' }}">
+                                    <td class="sticky-col sticky-1">
+                                        <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
+                                    </td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                     <td class="sticky-col sticky-ubi" title="Camas: {{ row.bed_location }}"><span class="badge-ubi">{{ row.bed_location or '-' }}</span></td>
                                     <td class="sticky-col sticky-3">{{ row.source_week_short }}</td>
@@ -1430,15 +1458,54 @@
         }
 
         function applyWeekCellEditLocks() {
-            document.querySelectorAll('.week-cell').forEach((cell) => {
-                const input = cell.querySelector('.week-input');
-                if (!input) return;
-                const status = cell.dataset.status;
-                const isDump = (cell.dataset.isDump === 'true' || status === 'DUMP');
-                if (pageMode === 'REAL') {
-                    input.disabled = false;
+            applyRowEditLocks();
+        }
+
+        function applyRowEditLocks() {
+            document.querySelectorAll('.projection-row').forEach((row) => {
+                const checkbox = row.querySelector('.block-close-checkbox');
+                const isClosed = (row.dataset.blockClosed === 'true') || (checkbox && checkbox.checked);
+
+                if (isClosed) {
+                    row.classList.add('row-closed');
+                    row.querySelectorAll('.edit-input, .week-input').forEach(inp => {
+                        inp.disabled = true;
+                    });
+                    row.querySelectorAll('.btn-dump-cell').forEach(btn => {
+                        btn.style.pointerEvents = 'none';
+                        btn.style.opacity = '0.25';
+                    });
+                    if (pageMode === 'AGRONOMO' && checkbox) {
+                        checkbox.disabled = true;
+                        checkbox.title = 'Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.';
+                    } else if (checkbox) {
+                        checkbox.disabled = false;
+                        checkbox.title = 'Desmarcar para reabrir este bloque';
+                    }
                 } else {
-                    input.disabled = (status === 'REAL' || isDump);
+                    row.classList.remove('row-closed');
+                    if (checkbox) {
+                        checkbox.disabled = false;
+                        checkbox.title = 'Marcar para cerrar este bloque';
+                    }
+                    row.querySelectorAll('.input-cycle, .input-stems, .input-waste').forEach(inp => {
+                        inp.disabled = false;
+                    });
+                    row.querySelectorAll('.btn-dump-cell').forEach(btn => {
+                        btn.style.pointerEvents = 'auto';
+                        btn.style.opacity = '1';
+                    });
+                    row.querySelectorAll('.week-cell').forEach(cell => {
+                        const input = cell.querySelector('.week-input');
+                        if (!input) return;
+                        const status = cell.dataset.status;
+                        const isDump = (cell.dataset.isDump === 'true' || status === 'DUMP');
+                        if (pageMode === 'REAL') {
+                            input.disabled = false;
+                        } else {
+                            input.disabled = (status === 'REAL' || isDump);
+                        }
+                    });
                 }
             });
         }
@@ -2692,18 +2759,24 @@
             checkbox.addEventListener('change', async () => {
                 const row = checkbox.closest('.projection-row');
                 if (!row) return;
-                const confirmMessage = checkbox.checked
-                    ? 'Vas a cerrar este bloque. Confirma que ya guardaste los cambios y deseas cerrarlo.'
-                    : 'Vas a reabrir este bloque. Confirma que deseas quitar el cierre.';
+                const isChecking = checkbox.checked;
+                const blockName = row.dataset.block || '';
+                const confirmMessage = isChecking
+                    ? `¿Confirmas que deseas CERRAR el Bloque ${blockName}? Se bloquearán las celdas para edición.`
+                    : `¿Confirmas que deseas REABRIR el Bloque ${blockName}? Se habilitarán nuevamente las celdas para edición.`;
                 if (!window.confirm(confirmMessage)) {
-                    checkbox.checked = !checkbox.checked;
+                    checkbox.checked = !isChecking;
                     return;
                 }
                 try {
-                    await saveBlockClosure(row, checkbox.checked);
+                    await saveBlockClosure(row, isChecking);
+                    row.dataset.blockClosed = isChecking ? 'true' : 'false';
+                    applyRowEditLocks();
                     recalcAll();
+                    showToast(isChecking ? `🔒 Bloque ${blockName} cerrado con éxito.` : `🔓 Bloque ${blockName} reabierto para edición.`);
                 } catch (error) {
-                    checkbox.checked = !checkbox.checked;
+                    checkbox.checked = !isChecking;
+                    applyRowEditLocks();
                     alert(error.message);
                 }
             });

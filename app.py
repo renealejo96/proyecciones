@@ -1297,18 +1297,28 @@ def get_statistics_data(
     pm_filter: str | None = None,
     variety_filter: str = "",
     activity_filter: str = "",
+    block_filter: str = "",
 ) -> dict[str, Any]:
     db = SessionLocal()
     try:
         # 1. Base mappings for cascading selectors
-        pm_var_rows = db.query(TpsrRecord.product_master, TpsrRecord.variety).distinct().all()
+        pm_var_blk_rows = db.query(TpsrRecord.product_master, TpsrRecord.variety, TpsrRecord.block).distinct().all()
         pm_varieties_map: dict[str, list[str]] = {}
-        for pm, var in pm_var_rows:
-            if pm and var:
+        pm_blocks_map: dict[str, list[str]] = {}
+        for pm, var, blk in pm_var_blk_rows:
+            if pm:
                 pm_clean = "VERONICA" if "VERONICA" in pm.upper() else pm
-                pm_varieties_map.setdefault(pm_clean, []).append(var)
+                if var:
+                    pm_varieties_map.setdefault(pm_clean, []).append(var)
+                if blk:
+                    pm_blocks_map.setdefault(pm_clean, []).append(blk.strip())
         for pm in pm_varieties_map:
             pm_varieties_map[pm] = sorted(list(set(pm_varieties_map[pm])))
+        for pm in pm_blocks_map:
+            pm_blocks_map[pm] = sorted(list(set(pm_blocks_map[pm])))
+
+        all_blocks_query = db.query(TpsrRecord.block).distinct().all()
+        available_blocks = sorted(list(set(b[0].strip() for b in all_blocks_query if b[0] and str(b[0]).strip())))
 
         sws = db.query(TpsrRecord.source_week).distinct().all()
         extracted_years = sorted(
@@ -1363,6 +1373,10 @@ def get_statistics_data(
         if activity_filter.upper() in ("ALL", "TODAS"):
             activity_filter = ""
 
+        block_filter = (block_filter or "").strip()
+        if block_filter.upper() in ("ALL", "TODOS", "(TODOS LOS BLOQUES)"):
+            block_filter = ""
+
         # 3. Query Block Closures with filters applied
         closure_query = db.query(BlockClosureDB)
         if resolved_year:
@@ -1382,6 +1396,8 @@ def get_statistics_data(
             closure_query = closure_query.filter(BlockClosureDB.variety_norm == normalize_text(variety_filter))
         if activity_filter:
             closure_query = closure_query.filter(BlockClosureDB.activity == normalize_text(activity_filter))
+        if block_filter:
+            closure_query = closure_query.filter(BlockClosureDB.block_norm == normalize_text(block_filter))
 
         closures_list = closure_query.all()
         closed_blocks_set: set[tuple[str, str, int, str, str]] = set(
@@ -1417,6 +1433,10 @@ def get_statistics_data(
             norm_ac = normalize_text(activity_filter)
             tpsr_query = tpsr_query.filter(TpsrRecord.activity == norm_ac)
 
+        if block_filter:
+            norm_blk = normalize_text(block_filter)
+            tpsr_query = tpsr_query.filter(TpsrRecord.block_norm == norm_blk)
+
         tpsr_records = tpsr_query.all()
 
         # 5. Query Week Adjustments with filters applied
@@ -1438,6 +1458,8 @@ def get_statistics_data(
             week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm == normalize_text(variety_filter))
         if activity_filter:
             week_adj_query = week_adj_query.filter(WeekAdjustmentDB.activity == normalize_text(activity_filter))
+        if block_filter:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.block_norm == normalize_text(block_filter))
 
         week_adjustments = week_adj_query.all()
         adj_map_by_block: dict[tuple[str, str, int, str, str], list[WeekAdjustmentDB]] = {}
@@ -1807,11 +1829,14 @@ def get_statistics_data(
             },
             "available_years": available_years,
             "available_pms": available_pms,
+            "available_blocks": available_blocks,
             "pm_varieties_map": pm_varieties_map,
+            "pm_blocks_map": pm_blocks_map,
             "selected_year": resolved_year,
             "selected_pm": resolved_pm,
             "selected_variety": variety_filter,
             "selected_activity": activity_filter,
+            "selected_block": block_filter,
         }
     finally:
         db.close()
@@ -1823,12 +1848,14 @@ def estadistica_view() -> str:
     pm_filter = request.args.get("pm")      # None if not present in querystring
     variety_filter = request.args.get("variedad", "").strip()
     activity_filter = request.args.get("ac", "").strip()
+    block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
         variety_filter=variety_filter,
         activity_filter=activity_filter,
+        block_filter=block_filter,
     )
 
     return render_template(
@@ -1844,12 +1871,14 @@ def estadistica_api():
     pm_filter = request.args.get("pm")
     variety_filter = request.args.get("variedad", "").strip()
     activity_filter = request.args.get("ac", "").strip()
+    block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
         variety_filter=variety_filter,
         activity_filter=activity_filter,
+        block_filter=block_filter,
     )
     return jsonify(stats_data)
 
@@ -1860,12 +1889,14 @@ def estadistica_export_csv():
     pm_filter = request.args.get("pm")
     variety_filter = request.args.get("variedad", "").strip()
     activity_filter = request.args.get("ac", "").strip()
+    block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
         variety_filter=variety_filter,
         activity_filter=activity_filter,
+        block_filter=block_filter,
     )
 
     output = io.StringIO()

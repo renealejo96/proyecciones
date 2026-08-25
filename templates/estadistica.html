@@ -641,6 +641,16 @@
             </div>
 
             <div class="slicer-group">
+                <label for="slicer-block">📦 Bloque:</label>
+                <select name="bloque" id="slicer-block" class="slicer-select">
+                    <option value="">(Todos los Bloques)</option>
+                    {% for b in stats.available_blocks %}
+                        <option value="{{ b }}" {{ 'selected' if stats.selected_block == b else '' }}>Bloque {{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="slicer-group">
                 <label for="slicer-ac">⚡ Actividad:</label>
                 <select name="ac" id="slicer-ac" class="slicer-select">
                     <option value="">(Siembra y Poda)</option>
@@ -731,12 +741,18 @@
             <div class="table-header-flex">
                 <h3>📋 Desglose de Rendimiento: Producto Maestro ➔ Semana Siembra/Poda ➔ Bloques ➔ Semanas Cosecha</h3>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="btn-table-action" id="btn-toggle-view" title="Alternar entre vista jerárquica y vista plana directa de bloques">👁️ Vista Solo Bloques</button>
                     <button type="button" class="btn-table-action" id="btn-expand-sw">📅 Desplegar Siembras</button>
                     <button type="button" class="btn-table-action" id="btn-expand-blocks">📦 Desplegar Bloques</button>
                     <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Todo</button>
                     <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
                     <button type="button" class="btn-table-action btn-export-csv" id="btn-export-csv">📥 Exportar CSV</button>
                 </div>
+            </div>
+
+            <!-- DYNAMIC FILTER SUMMARY NOTIFICATION BANNER -->
+            <div id="table-filter-summary" style="display: none; margin-bottom: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 6px; padding: 6px 12px; font-size: 0.76rem; color: #0369a1; font-weight: 700; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <!-- Filled dynamically by JavaScript -->
             </div>
 
             <!-- INLINE FILTERS TOOLBAR -->
@@ -978,13 +994,17 @@
 
     <script>
         const pmVarietiesMap = {{ stats.pm_varieties_map | tojson }};
+        const pmBlocksMap = {{ stats.pm_blocks_map | tojson }};
+        const availableBlocks = {{ stats.available_blocks | tojson }};
         const selectedVariety = {{ stats.selected_variety | tojson }};
+        const selectedBlock = {{ stats.selected_block | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
 
-        // DYNAMIC SLICER VARIETY POPULATION
+        // DYNAMIC SLICER VARIETY & BLOCK POPULATION
         const slicerPm = document.getElementById('slicer-pm');
         const slicerVariety = document.getElementById('slicer-variety');
+        const slicerBlock = document.getElementById('slicer-block');
 
         function updateSlicerVarietyDropdown(selectedPm, currentVal = '') {
             if (!slicerVariety) return;
@@ -999,10 +1019,27 @@
             slicerVariety.innerHTML = html;
         }
 
+        function updateSlicerBlockDropdown(selectedPm, currentVal = '') {
+            if (!slicerBlock) return;
+            const blocks = (selectedPm && selectedPm !== 'ALL' && pmBlocksMap[selectedPm]) ? pmBlocksMap[selectedPm] : availableBlocks;
+            const uniqueBlocks = Array.from(new Set(blocks)).sort((a, b) => {
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            let html = '<option value="">(Todos los Bloques)</option>';
+            uniqueBlocks.forEach(b => {
+                const isSel = (b === currentVal);
+                html += `<option value="${b}" ${isSel ? 'selected' : ''}>Bloque ${b}</option>`;
+            });
+            slicerBlock.innerHTML = html;
+        }
+
         if (slicerPm) {
             updateSlicerVarietyDropdown(slicerPm.value, selectedVariety);
+            updateSlicerBlockDropdown(slicerPm.value, selectedBlock);
             slicerPm.addEventListener('change', () => {
                 updateSlicerVarietyDropdown(slicerPm.value, '');
+                updateSlicerBlockDropdown(slicerPm.value, '');
             });
         }
 
@@ -1053,51 +1090,95 @@
             icon.textContent = isCurrentlyHidden ? '−' : '+';
         }
 
+        let isFlatView = false;
+        const btnToggleView = document.getElementById('btn-toggle-view');
+        if (btnToggleView) {
+            btnToggleView.addEventListener('click', () => {
+                isFlatView = !isFlatView;
+                btnToggleView.textContent = isFlatView ? '📁 Vista Jerárquica' : '👁️ Vista Solo Bloques';
+                btnToggleView.style.background = isFlatView ? '#e0f2fe' : '';
+                btnToggleView.style.color = isFlatView ? '#0369a1' : '';
+                applyTableFilters();
+            });
+        }
+
         const btnExpandSw = document.getElementById('btn-expand-sw');
         if (btnExpandSw) {
             btnExpandSw.addEventListener('click', () => {
+                isFlatView = false;
+                if (btnToggleView) {
+                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.style.background = '';
+                    btnToggleView.style.color = '';
+                }
+                document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
+                applyTableFilters();
             });
         }
 
         const btnExpandBlocks = document.getElementById('btn-expand-blocks');
         if (btnExpandBlocks) {
             btnExpandBlocks.addEventListener('click', () => {
+                isFlatView = false;
+                if (btnToggleView) {
+                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.style.background = '';
+                    btnToggleView.style.color = '';
+                }
+                document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
+                applyTableFilters();
             });
         }
 
         const btnExpandWeeks = document.getElementById('btn-expand-weeks');
         if (btnExpandWeeks) {
             btnExpandWeeks.addEventListener('click', () => {
+                isFlatView = false;
+                if (btnToggleView) {
+                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.style.background = '';
+                    btnToggleView.style.color = '';
+                }
+                document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '−');
+                applyTableFilters();
             });
         }
 
         const btnCollapseAll = document.getElementById('btn-collapse-all');
         if (btnCollapseAll) {
             btnCollapseAll.addEventListener('click', () => {
+                isFlatView = false;
+                if (btnToggleView) {
+                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.style.background = '';
+                    btnToggleView.style.color = '';
+                }
+                document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
+                applyTableFilters();
             });
         }
 
@@ -1113,7 +1194,7 @@
         let filterDebounceTimer = null;
         function queueFilterApplication() {
             if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
-            filterDebounceTimer = setTimeout(applyTableFilters, 100);
+            filterDebounceTimer = setTimeout(applyTableFilters, 80);
         }
 
         function applyTableFilters() {
@@ -1125,6 +1206,13 @@
             const perfQ = (filterPerf ? filterPerf.value : '').trim();
 
             const isFiltering = !!(blkQ || weekQ || varQ || acQ || statusQ || perfQ);
+            const shouldHideGroupTotals = isFiltering || isFlatView;
+
+            let totalVisibleBlocks = 0;
+            let totalFilteredPlants = 0;
+            let totalFilteredProduction = 0;
+
+            const tableSummaryEl = document.getElementById('table-filter-summary');
 
             document.querySelectorAll('.group-master-row').forEach(masterRow => {
                 const pm = masterRow.dataset.pm;
@@ -1139,7 +1227,7 @@
                     blkRows.forEach(blockRow => {
                         const rowBlk = (blockRow.dataset.block || '').toLowerCase();
                         const rowWeek = (blockRow.dataset.week || '').toLowerCase();
-                        const rowVar = (blockRow.dataset.variety || '' + ' ' + blockRow.dataset.varietyDisplay || '').toLowerCase();
+                        const rowVar = (blockRow.dataset.variety || '' + ' ' + (blockRow.dataset.varietyDisplay || '')).toLowerCase();
                         const rowAc = blockRow.dataset.activity || '';
                         const rowStatus = blockRow.dataset.status || '';
                         const rowPerf = blockRow.dataset.perf || '';
@@ -1153,43 +1241,87 @@
                         if (statusQ && rowStatus !== statusQ) match = false;
                         if (perfQ && rowPerf !== perfQ) match = false;
 
-                        blockRow.style.display = match ? '' : 'none';
-                        if (match) swVisibleCount++;
+                        if (shouldHideGroupTotals) {
+                            blockRow.style.display = match ? '' : 'none';
+                        } else {
+                            const iconSw = document.getElementById(`icon-sw-${swUid}`);
+                            const swIsOpen = swRow.style.display !== 'none' && (iconSw ? iconSw.textContent === '−' : false);
+                            blockRow.style.display = (match && swIsOpen) ? '' : 'none';
+                        }
+
+                        if (match) {
+                            swVisibleCount++;
+                            totalVisibleBlocks++;
+                            const plantsStr = (blockRow.cells[4]?.textContent || '').replace(/[^\d]/g, '');
+                            const prodStr = (blockRow.cells[5]?.textContent || '').replace(/[^\d]/g, '');
+                            const plantsVal = parseInt(plantsStr, 10) || 0;
+                            const prodVal = parseInt(prodStr, 10) || 0;
+                            totalFilteredPlants += plantsVal;
+                            totalFilteredProduction += prodVal;
+                        }
 
                         const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
                         if (!match) {
                             harvestRows.forEach(hr => hr.style.display = 'none');
+                            const iconBlk = document.getElementById(`icon-blk-${blockUid}`);
+                            if (iconBlk) iconBlk.textContent = '+';
                         }
                     });
 
-                    if (isFiltering) {
-                        swRow.style.display = swVisibleCount > 0 ? '' : 'none';
-                        const iconSw = document.getElementById(`icon-sw-${swUid}`);
-                        if (iconSw) iconSw.textContent = swVisibleCount > 0 ? '−' : '+';
+                    if (shouldHideGroupTotals) {
+                        swRow.style.display = 'none';
                         if (swVisibleCount > 0) pmVisibleCount++;
                     } else {
-                        // Keep visible if single product
+                        const iconPm = document.getElementById(`icon-pm-${pm}`);
+                        const pmIsOpen = masterRow.style.display !== 'none' && (iconPm ? iconPm.textContent === '−' : false);
                         const isSinglePm = {{ 'true' if (stats.grouped_products | length) == 1 else 'false' }};
-                        swRow.style.display = isSinglePm ? '' : 'none';
-                        blkRows.forEach(b => b.style.display = 'none');
-                        const iconSw = document.getElementById(`icon-sw-${swUid}`);
-                        if (iconSw) iconSw.textContent = '+';
+                        swRow.style.display = (isSinglePm || pmIsOpen) ? '' : 'none';
+                        if (swVisibleCount > 0) pmVisibleCount++;
                     }
                 });
 
-                if (isFiltering) {
-                    masterRow.style.display = pmVisibleCount > 0 ? '' : 'none';
-                    const iconPm = document.getElementById(`icon-pm-${pm}`);
-                    if (iconPm) iconPm.textContent = pmVisibleCount > 0 ? '−' : '+';
+                if (shouldHideGroupTotals) {
+                    masterRow.style.display = 'none';
                 } else {
-                    masterRow.style.display = '';
-                    const iconPm = document.getElementById(`icon-pm-${pm}`);
-                    if (iconPm) {
-                        const isSinglePm = {{ 'true' if (stats.grouped_products | length) == 1 else 'false' }};
-                        iconPm.textContent = isSinglePm ? '−' : '+';
-                    }
+                    masterRow.style.display = pmVisibleCount > 0 ? '' : 'none';
                 }
             });
+
+            // Update Dynamic Filter Summary Banner
+            if (tableSummaryEl) {
+                if (isFiltering || isFlatView) {
+                    tableSummaryEl.style.display = 'flex';
+                    const avgTpl = (totalFilteredPlants > 0 && totalFilteredProduction > 0)
+                        ? (totalFilteredProduction / totalFilteredPlants).toFixed(1)
+                        : '0.0';
+                    tableSummaryEl.innerHTML = `
+                        <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                            <span>${isFiltering ? '🔍 <strong>Filtro de búsqueda activo:</strong>' : '👁️ <strong>Vista Directa de Bloques:</strong>'}</span>
+                            <span>📦 Bloques visibles: <strong>${totalVisibleBlocks}</strong></span>
+                            <span>🌱 Total Plantas: <strong>${totalFilteredPlants.toLocaleString()}</strong></span>
+                            <span>🌸 Total Producción: <strong>${totalFilteredProduction.toLocaleString()} tallos</strong></span>
+                            <span>🎯 Promedio Real: <strong style="color: #0284c7;">${avgTpl} T/pl</strong></span>
+                        </div>
+                        ${isFiltering ? '<button type="button" onclick="document.getElementById(\'t-filter-reset\').click()" style="background: #ffffff; border: 1px solid #7dd3fc; border-radius: 4px; padding: 2px 8px; font-size: 0.70rem; font-weight: 700; color: #0284c7; cursor: pointer;">✕ Quitar Filtro</button>' : ''}
+                    `;
+                } else {
+                    tableSummaryEl.style.display = 'none';
+                }
+            }
+
+            // Handle No Matches Row
+            let noMatchRow = document.getElementById('matrix-no-matches-row');
+            if (totalVisibleBlocks === 0) {
+                if (!noMatchRow) {
+                    noMatchRow = document.createElement('tr');
+                    noMatchRow.id = 'matrix-no-matches-row';
+                    noMatchRow.innerHTML = `<td colspan="12" style="text-align: center; padding: 28px 16px; color: var(--pbi-slate-500); font-weight: 600; font-size: 0.85rem;">🔍 No se encontraron bloques que coincidan con los filtros aplicados. <button type="button" onclick="document.getElementById('t-filter-reset').click()" style="margin-left: 8px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700;">Restablecer</button></td>`;
+                    document.getElementById('matrix-tbody')?.appendChild(noMatchRow);
+                }
+                noMatchRow.style.display = '';
+            } else if (noMatchRow) {
+                noMatchRow.style.display = 'none';
+            }
         }
 
         [filterBlock, filterWeek, filterVar].forEach(ctrl => {
@@ -1222,12 +1354,14 @@
                 const yearVal = document.getElementById('slicer-year')?.value || '';
                 const pmVal = document.getElementById('slicer-pm')?.value || '';
                 const varVal = document.getElementById('slicer-variety')?.value || '';
+                const blkVal = document.getElementById('slicer-block')?.value || '';
                 const acVal = document.getElementById('slicer-ac')?.value || '';
 
                 const params = new URLSearchParams();
                 if (yearVal) params.set('year', yearVal);
                 if (pmVal) params.set('pm', pmVal);
                 if (varVal) params.set('variedad', varVal);
+                if (blkVal) params.set('bloque', blkVal);
                 if (acVal) params.set('ac', acVal);
 
                 window.location.href = `/api/estadistica/export-csv?${params.toString()}`;
