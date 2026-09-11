@@ -640,6 +640,20 @@ def aggregate_for_week(
             },
         }
 
+        lifetime_metrics: dict[tuple[str, str, str, int, str], dict[str, int]] = {}
+        if not projection_frame.empty:
+            for (pm_val, var_val, act_val, sw_val, blk_val), grp in projection_frame.groupby(
+                ["product_master", "variety", "activity", "source_week", "block"], dropna=False
+            ):
+                tot_exp = int(round(grp["exportable_stems"].sum()))
+                tot_dumps = int(grp["dump_stems"].sum()) if "dump_stems" in grp.columns else 0
+                tot_prod = max(tot_exp, tot_dumps)
+                lifetime_metrics[(str(pm_val), str(var_val), str(act_val), int(sw_val), str(blk_val))] = {
+                    "total_production": tot_prod,
+                    "total_exportable": tot_exp,
+                    "total_dumps": tot_dumps,
+                }
+
         if window_projection.empty:
             matrix_rows = []
         else:
@@ -833,6 +847,22 @@ def aggregate_for_week(
                 harvest_start_week = shift_week(int(row.source_week), eff_cycle) if eff_cycle else int(row.source_week)
                 harvest_start_week_short = format_short_week(harvest_start_week)
 
+                b_key = (str(row.product_master), str(row.variety), str(row.activity), int(row.source_week), str(row.block))
+                b_lifetime = lifetime_metrics.get(b_key, {"total_production": 0, "total_exportable": 0, "total_dumps": 0})
+                plants_count = int(row.plants) if int(row.plants) > 0 else 1
+                lifetime_total_prod = b_lifetime["total_production"]
+                lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
+
+                window_total_prod = sum(
+                    max(weekly_projection[w["label"]], dump_stems_by_week[w["label"]])
+                    for w in week_columns
+                )
+                window_real_stems = round(window_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
+
+                is_closed = bool(row.block_closed)
+                effective_total_prod = lifetime_total_prod if is_closed else window_total_prod
+                effective_real_stems = lifetime_real_stems if is_closed else window_real_stems
+
                 matrix_rows.append(
                     {
                         "variety": row.variety,
@@ -866,11 +896,11 @@ def aggregate_for_week(
                         "dump_stems": dump_stems_by_week,
                         "week_code_by_label": week_code_by_label,
                         "window_total": int(sum(weekly_projection.values())),
-                        "block_closed": bool(row.block_closed),
-                        "real_stems_per_plant": round(
-                            (int(sum(weekly_projection.values())) / int(row.plants)) if int(row.plants) > 0 else 0,
-                            2,
-                        ),
+                        "total_production": effective_total_prod,
+                        "block_closed": is_closed,
+                        "real_stems_per_plant": effective_real_stems,
+                        "lifetime_total_production": lifetime_total_prod,
+                        "lifetime_real_stems_per_plant": lifetime_real_stems,
                     }
                 )
 

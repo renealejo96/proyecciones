@@ -1039,7 +1039,7 @@
         </section>
 
         <!-- MASTER MATRIX WITH FROZEN HEADERS, PERSISTENT FROZEN COLUMNS, AND HORIZONTAL SCROLL -->
-        <section class="master-matrix-card">
+        <section class="master-matrix-card" id="master-matrix-section">
             <div class="variety-header">
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
                 <div class="chips">
@@ -1156,9 +1156,15 @@
                                     data-block="{{ row.block }}"
                                     data-bed-location="{{ row.bed_location }}"
                                     data-curve="{{ row.curve_csv }}"
-                                    data-block-closed="{{ 'true' if row.block_closed else 'false' }}">
+                                    data-block-closed="{{ 'true' if row.block_closed else 'false' }}"
+                                    data-lifetime-total-prod="{{ row.lifetime_total_production }}"
+                                    data-lifetime-real-stems="{{ '%.1f'|format(row.lifetime_real_stems_per_plant) if row.lifetime_real_stems_per_plant else '' }}">
                                     <td class="sticky-col sticky-1">
-                                        <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
+                                        {% if page_mode == 'AGRONOMO' and row.block_closed %}
+                                            <span title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales." style="color: #64748b; font-size: 0.9rem; display: inline-block; padding: 2px;">🔒</span>
+                                        {% else %}
+                                            <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
+                                        {% endif %}
                                     </td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                     <td class="sticky-col sticky-ubi" title="Camas: {{ row.bed_location }}"><span class="badge-ubi">{{ row.bed_location or '-' }}</span></td>
@@ -1175,7 +1181,7 @@
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
                                     <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}"></td>
                                     <td class="param-col cell-program-total col-param-export-stems">{{ row.program_total }}</td>
-                                    <td class="param-col cell-total-prod col-param-total-prod">{{ row.window_total }}</td>
+                                    <td class="param-col cell-total-prod col-param-total-prod">{{ row.total_production }}</td>
                                     <td class="param-col cell-real-stems col-param-real-stems">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
                                     {% for week in weekly_view.week_columns %}
@@ -1511,6 +1517,9 @@
         }
 
         function recalcRow(row) {
+            if (row.dataset.blockClosed === 'true') {
+                return;
+            }
             const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell').textContent) || 0));
             const stemsPerPlant = Math.max(0, Number.parseFloat(row.querySelector('.input-stems').value) || 0);
             const wastePercent = Math.min(100, Math.max(0, Number.parseFloat(row.querySelector('.input-waste').value) || 0));
@@ -1541,27 +1550,30 @@
             });
 
             let windowTotal = 0;
+            let prodTotalWithDumps = 0;
             row.querySelectorAll('.week-cell').forEach((cell) => {
                 const label = cell.dataset.weekLabel;
                 const input = cell.querySelector('.week-input');
-                if (cell.dataset.status === 'MODELO') {
+                if (pageMode !== 'REAL' && cell.dataset.status === 'MODELO') {
                     input.value = String(modelByWeek[label] || 0);
                 }
                 const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
                 input.value = String(value);
+                const dVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || 0));
                 windowTotal += value;
+                prodTotalWithDumps += Math.max(value, dVal);
                 normalizeWeeklyCellClass(cell);
             });
 
             row.querySelector('.cell-window-total').textContent = String(windowTotal);
             const totalProdCell = row.querySelector('.cell-total-prod');
             if (totalProdCell) {
-                totalProdCell.textContent = String(windowTotal);
+                totalProdCell.textContent = String(prodTotalWithDumps);
             }
 
             const realStemsCell = row.querySelector('.cell-real-stems');
             if (realStemsCell) {
-                realStemsCell.textContent = (plants > 0) ? (windowTotal / plants).toFixed(1) : '0.0';
+                realStemsCell.textContent = (plants > 0) ? (prodTotalWithDumps / plants).toFixed(1) : '0.0';
             }
 
             return {
@@ -1577,23 +1589,34 @@
 
         function updateRowTotalsFromWeekInputs(row) {
             if (!row) return 0;
+            const isClosed = (row.dataset.blockClosed === 'true');
             let windowTotal = 0;
+            let prodTotalWithDumps = 0;
             row.querySelectorAll('.week-cell').forEach((c) => {
                 const inp = c.querySelector('.week-input');
                 const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
                 windowTotal += val;
+                prodTotalWithDumps += Math.max(val, dVal);
             });
 
             const winTotCell = row.querySelector('.cell-window-total');
             if (winTotCell) winTotCell.textContent = String(windowTotal);
 
             const totalProdCell = row.querySelector('.cell-total-prod');
-            if (totalProdCell) totalProdCell.textContent = String(windowTotal);
-
-            const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
             const realStemsCell = row.querySelector('.cell-real-stems');
-            if (realStemsCell) {
-                realStemsCell.textContent = (plants > 0) ? (windowTotal / plants).toFixed(1) : '0.0';
+            const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
+
+            if (isClosed) {
+                const closedProd = row.dataset.lifetimeTotalProd;
+                const closedStemsPp = row.dataset.lifetimeRealStems;
+                if (totalProdCell && closedProd) totalProdCell.textContent = Number(closedProd).toLocaleString();
+                if (realStemsCell && closedStemsPp) realStemsCell.textContent = closedStemsPp;
+            } else {
+                if (totalProdCell) totalProdCell.textContent = String(prodTotalWithDumps);
+                if (realStemsCell) {
+                    realStemsCell.textContent = (plants > 0) ? (prodTotalWithDumps / plants).toFixed(1) : '0.0';
+                }
             }
             return windowTotal;
         }
@@ -1994,7 +2017,6 @@
                 if (!isVisible) return;
 
                 visibleRowsCount++;
-                const rowResult = fullRecalc ? recalcRow(row) : null;
 
                 const product = row.dataset.productMaster;
                 const variety = row.dataset.variety;
@@ -2023,6 +2045,7 @@
                 }
 
                 let rowWindowTotal = 0;
+                let rowProdTotalWithDumps = 0;
                 row.querySelectorAll('.week-cell').forEach((cell) => {
                     const label = cell.dataset.weekLabel;
                     const input = cell.querySelector('.week-input');
@@ -2032,6 +2055,7 @@
                     const dumpStemsVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || (isDump ? val : 0)));
 
                     rowWindowTotal += val;
+                    rowProdTotalWithDumps += Math.max(val, dumpStemsVal);
                     masterWeekTotals[label] += val;
                     varietyTotalsMap[variety].weeks[label] += val;
                     masterGrandTotal += val;
@@ -2041,13 +2065,12 @@
                         summaryData[key].dump[activity][label] += dumpStemsVal;
                     }
 
-                    const modelVal = rowResult ? (rowResult.modelByWeek[label] || 0) : val;
-                    summaryData[key].proyectado[activity][label] += modelVal;
+                    summaryData[key].proyectado[activity][label] += val;
 
                     if (status === 'AGRONOMO' || status === 'REAL' || status === 'DUMP') {
                         summaryData[key].agronomo[activity][label] += val;
                     } else {
-                        summaryData[key].agronomo[activity][label] += modelVal;
+                        summaryData[key].agronomo[activity][label] += val;
                     }
 
                     if (status === 'REAL' || status === 'DUMP') {
@@ -2060,13 +2083,25 @@
                 const winTotCell = row.querySelector('.cell-window-total');
                 if (winTotCell) winTotCell.textContent = String(rowWindowTotal);
 
+                const isClosed = (row.dataset.blockClosed === 'true');
                 const totalProdCell = row.querySelector('.cell-total-prod');
-                if (totalProdCell) totalProdCell.textContent = String(rowWindowTotal);
-
-                const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
                 const realStemsCell = row.querySelector('.cell-real-stems');
-                if (realStemsCell) {
-                    realStemsCell.textContent = (plants > 0) ? (rowWindowTotal / plants).toFixed(1) : '0.0';
+                const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
+
+                if (isClosed) {
+                    const closedProd = row.dataset.lifetimeTotalProd;
+                    const closedStemsPp = row.dataset.lifetimeRealStems;
+                    if (totalProdCell && closedProd) {
+                        totalProdCell.textContent = Number(closedProd).toLocaleString();
+                    }
+                    if (realStemsCell && closedStemsPp) {
+                        realStemsCell.textContent = closedStemsPp;
+                    }
+                } else {
+                    if (totalProdCell) totalProdCell.textContent = String(rowProdTotalWithDumps);
+                    if (realStemsCell) {
+                        realStemsCell.textContent = (plants > 0) ? (rowProdTotalWithDumps / plants).toFixed(1) : '0.0';
+                    }
                 }
 
                 if (activity === 'SIEMBRA') masterSiembraTotal += rowWindowTotal;
@@ -2276,6 +2311,7 @@
         }
 
         async function resetWeekCell(row, cell, explicitMode = null) {
+            if (row.dataset.blockClosed === 'true') return;
             const targetMode = explicitMode || activeWeekMode;
             const currentStatus = cell.dataset.status;
             const isBlockedByReal = (pageMode === 'AGRONOMO' && currentStatus === 'REAL');
@@ -2309,11 +2345,16 @@
                 }
                 cell.dataset.dumpStems = String(result.dump_stems || 0);
 
-                // Recalculate row to restore input value from curve model calculation
-                recalcRow(row);
+                if (pageMode === 'REAL') {
+                    const inp = cell.querySelector('.week-input');
+                    if (inp) inp.value = '0';
+                    updateRowTotalsFromWeekInputs(row);
+                } else {
+                    recalcRow(row);
+                }
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
-                recalcAll(true);
+                recalcAll(false);
 
                 // Visual flash animation & notification
                 cell.classList.remove('flash-restored');
@@ -2409,12 +2450,16 @@
         // Summary Card Collapsing Toggle
         const summaryCollapseBtn = document.getElementById('summary-collapse-btn') || document.getElementById('toggle-summary-btn');
         const summaryContainer = document.getElementById('summary-table-container');
+        const masterMatrixSection = document.getElementById('master-matrix-section') || document.querySelector('.master-matrix-card');
         if (summaryCollapseBtn && summaryContainer) {
             summaryCollapseBtn.addEventListener('click', () => {
                 const isHidden = summaryContainer.style.display === 'none';
                 summaryContainer.style.display = isHidden ? 'block' : 'none';
+                if (masterMatrixSection) {
+                    masterMatrixSection.style.display = isHidden ? 'none' : '';
+                }
                 summaryCollapseBtn.textContent = isHidden
-                    ? '▼ Ocultar Resumen de Totales'
+                    ? '▼ Ocultar Resumen de Totales (Mostrar Matriz)'
                     : '▶️ Desplegar Resumen de Totales';
             });
         }
@@ -2723,12 +2768,11 @@
             const input = cell.querySelector('.week-input');
 
             const handleReset = async (e) => {
+                const row = cell.closest('.projection-row');
+                if (!row || row.dataset.blockClosed === 'true' || (input && input.disabled)) return;
                 e.preventDefault();
                 e.stopPropagation();
-                const row = cell.closest('.projection-row');
-                if (row) {
-                    await resetWeekCell(row, cell);
-                }
+                await resetWeekCell(row, cell);
             };
 
             cell.addEventListener('dblclick', handleReset);
@@ -2742,12 +2786,11 @@
                 const currentTime = Date.now();
                 const tapLength = currentTime - lastTapTime;
                 if (tapLength > 0 && tapLength < 350) {
+                    const row = cell.closest('.projection-row');
+                    if (!row || row.dataset.blockClosed === 'true' || (input && input.disabled)) return;
                     e.preventDefault();
                     e.stopPropagation();
-                    const row = cell.closest('.projection-row');
-                    if (row) {
-                        await resetWeekCell(row, cell);
-                    }
+                    await resetWeekCell(row, cell);
                 }
                 lastTapTime = currentTime;
             });
@@ -2771,6 +2814,20 @@
                 try {
                     await saveBlockClosure(row, isChecking);
                     row.dataset.blockClosed = isChecking ? 'true' : 'false';
+                    if (isChecking) {
+                        let rowProdTotal = 0;
+                        row.querySelectorAll('.week-cell').forEach((c) => {
+                            const inp = c.querySelector('.week-input');
+                            const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                            const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
+                            rowProdTotal += Math.max(val, dVal);
+                        });
+                        const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
+                        if (!row.dataset.lifetimeTotalProd || row.dataset.lifetimeTotalProd === '0') {
+                            row.dataset.lifetimeTotalProd = String(rowProdTotal);
+                            row.dataset.lifetimeRealStems = (plants > 0) ? (rowProdTotal / plants).toFixed(1) : '0.0';
+                        }
+                    }
                     applyRowEditLocks();
                     recalcAll();
                     showToast(isChecking ? `🔒 Bloque ${blockName} cerrado con éxito.` : `🔓 Bloque ${blockName} reabierto para edición.`);

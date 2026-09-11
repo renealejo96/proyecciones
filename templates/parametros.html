@@ -366,23 +366,29 @@
             </div>
 
         {% if missing_cycles %}
-            <div style="background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
-                <h3 style="margin: 0 0 6px; color: #d48806; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ Variedades y Actividades en Plantaciones (TPSR) sin Configuración de Ciclos ({{ missing_cycles|length }})
-                </h3>
-                <p style="margin: 0 0 10px; font-size: 0.8rem; color: #8c6b00;">
-                    Las siguientes combinaciones tienen siembras o podas registradas en TPSR pero carecen de ciclo/curva configurada. Puedes hacer clic en cualquiera para crear su configuración automáticamente:
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px;">
-                    {% for item in missing_cycles %}
-                        <div onclick="quickCreateCycle('{{ item.product_master }}', '{{ item.variety }}', '{{ item.activity }}')" style="background: #ffffff; border: 1px solid #ffd591; border-radius: 6px; padding: 8px 12px; font-size: 0.78rem; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease;" onmouseover="this.style.boxShadow='0 2px 6px rgba(212,136,6,0.2)'" onmouseout="this.style.boxShadow='none'">
-                            <strong>{{ item.product_master }}</strong> - <span>{{ item.variety }}</span>
-                            <span style="background: #fff7e6; color: #d48806; border: 1px solid #ffd591; font-weight: 800; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; margin-left: 4px;">{{ item.activity }}</span>
-                            <div style="font-size: 0.72rem; color: var(--slate-500); margin-top: 2px;">{{ item.rows }} filas afectadas en TPSR | <strong>+ Configurar</strong></div>
-                        </div>
-                    {% endfor %}
+            <details class="missing-cycles-details" style="margin-bottom: 16px; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm);">
+                <summary style="padding: 10px 16px; font-weight: 700; color: #b45309; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>⚠️</span>
+                        <span>Variedades y Actividades en Plantaciones (TPSR) sin Configuración de Ciclos ({{ missing_cycles|length }} pendientes)</span>
+                    </div>
+                    <span id="badge-missing-toggle" style="font-size: 0.74rem; background: #fef3c7; border: 1px solid #fcd34d; padding: 3px 10px; border-radius: 9999px; font-weight: 600;">▶️ Desplegar Actividades Pendientes</span>
+                </summary>
+                <div style="padding: 12px 18px 16px; border-top: 1px solid #fef08a;">
+                    <p style="margin: 0 0 10px; font-size: 0.8rem; color: #8c6b00;">
+                        Las siguientes combinaciones tienen siembras o podas registradas en TPSR pero carecen de ciclo/curva configurada. Puedes hacer clic en cualquiera para crear su configuración automáticamente:
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto;">
+                        {% for item in missing_cycles %}
+                            <div onclick="quickCreateCycle('{{ item.product_master }}', '{{ item.variety }}', '{{ item.activity }}')" style="background: #ffffff; border: 1px solid #ffd591; border-radius: 6px; padding: 8px 12px; font-size: 0.78rem; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease;" onmouseover="this.style.boxShadow='0 2px 6px rgba(212,136,6,0.2)'" onmouseout="this.style.boxShadow='none'">
+                                <strong>{{ item.product_master }}</strong> - <span>{{ item.variety }}</span>
+                                <span style="background: #fff7e6; color: #d48806; border: 1px solid #ffd591; font-weight: 800; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; margin-left: 4px;">{{ item.activity }}</span>
+                                <div style="font-size: 0.72rem; color: var(--slate-500); margin-top: 2px;">{{ item.rows }} filas afectadas en TPSR | <strong>+ Configurar</strong></div>
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
+            </details>
         {% endif %}
 
             <div class="table-wrap">
@@ -744,6 +750,16 @@
             } catch (err) {
                 alert('❌ Error: ' + err.message);
             }
+        }
+
+        const missingDetails = document.querySelector('.missing-cycles-details');
+        const badgeMissing = document.getElementById('badge-missing-toggle');
+        if (missingDetails && badgeMissing) {
+            missingDetails.addEventListener('toggle', () => {
+                badgeMissing.textContent = missingDetails.open
+                    ? '▼ Ocultar Actividades'
+                    : '▶️ Desplegar Actividades Pendientes';
+            });
         }
     </script>
 </body>
