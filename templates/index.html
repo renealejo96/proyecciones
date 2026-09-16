@@ -476,17 +476,6 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .excel-bar-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 800;
-            color: #38bdf8;
-            border-right: 1px solid rgba(255, 255, 255, 0.15);
-            padding-right: 10px;
-            letter-spacing: 0.02em;
-        }
-
         .excel-bar-stat {
             display: flex;
             align-items: baseline;
@@ -3421,7 +3410,11 @@
 
         function getExcelColKey(cell) {
             if (!cell) return null;
-            if (cell.dataset.weekLabel) return cell.dataset.weekLabel;
+            // Exclude .week-cell in .master-table (where stems are input below weeks)
+            if (cell.closest('.master-table') && cell.classList.contains('week-cell')) {
+                return null;
+            }
+            if (cell.dataset.weekLabel && cell.closest('.summary-table')) return cell.dataset.weekLabel;
             if (cell.classList.contains('cell-window-total') || cell.classList.contains('col-total-final') || cell.classList.contains('col-total-window') || cell.classList.contains('subtotal-variety-window-val')) return '__TOTAL__';
             if (cell.classList.contains('plants-cell')) return '__PLANTS__';
             if (cell.classList.contains('col-param-stems')) return '__STEMS__';
@@ -3434,8 +3427,11 @@
         function getTableColKeyList(table) {
             const list = [];
             if (table.classList.contains('master-table')) {
-                list.push('__PLANTS__', '__PROGRAM__', '__PROD__', '__REALSTEMS__');
+                // In master table: only parameters/totals (real stems per plant, total prod, program, plants, total ventana)
+                list.push('__PLANTS__', '__PROGRAM__', '__PROD__', '__REALSTEMS__', '__TOTAL__');
+                return list;
             }
+            // In summary table: include week columns and total ventana
             weekColumns.forEach(w => list.push(w.label));
             list.push('__TOTAL__');
             return list;
@@ -3498,9 +3494,21 @@
             updateExcelStatusBar();
         }
 
+        // Prevent touch gestures on mobile from triggering selection
+        document.addEventListener('touchstart', () => {
+            isExcelSelecting = false;
+            excelDragOrigin = null;
+            hasExcelDragged = false;
+        }, { passive: true });
+
         // Mouse Drag, Shift-Click & Ctrl-Click Handlers
         document.addEventListener('mousedown', (e) => {
             if (e.target.closest('#excel-status-bar') || e.target.closest('.modal-card')) return;
+
+            // Never initiate selection on week cells in master table (where stem inputs live)
+            if (e.target.closest('.master-table .week-cell')) {
+                return;
+            }
 
             const cell = e.target.closest('td');
             if (!cell) {
@@ -3581,17 +3589,17 @@
             }
         });
 
-        // Click on Column Header to select entire column (and Shift-Click range across headers)
+        // Click on Column Header to select entire column (ONLY in summary table)
         document.addEventListener('click', (e) => {
             const th = e.target.closest('th.col-week-header');
             if (!th) return;
             if (e.target.closest('button') || e.target.closest('input')) return;
 
+            const table = th.closest('.summary-table');
+            if (!table) return;
+
             const weekLabel = th.dataset.weekLabel;
             if (!weekLabel) return;
-
-            const table = th.closest('.master-table, .summary-table');
-            if (!table) return;
 
             const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
             if (!visibleRows.length) return;
@@ -3673,10 +3681,6 @@
 
     <!-- EXCEL STATUS BAR (SUMA, PROMEDIO, RECUENTO AL SELECCIONAR CELDAS) -->
     <div id="excel-status-bar" class="excel-status-bar" style="display: none;">
-        <div class="excel-bar-header">
-            <span>📊</span>
-            <span>Excel Calc</span>
-        </div>
         <div class="excel-bar-stat" id="excel-stat-promedio-wrap" title="Clic para copiar promedio">
             <span class="stat-label">PROMEDIO:</span>
             <span class="stat-val stat-val-avg" id="excel-stat-promedio">0</span>
