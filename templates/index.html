@@ -251,67 +251,320 @@
         .dropdown-item:hover { background: var(--slate-100); color: var(--header-bg); }
         .dropdown-divider { height: 1px; background: var(--slate-200); margin: 3px 0; }
 
-        /* SUMMARY TABULAR CARD - COLLAPSED BY DEFAULT */
-        .summary-panels-card { padding: 8px 10px; }
-        .summary-panels-header {
+        /* SUMMARY TABULAR CARD - EXPANDED / COLLAPSED */
+        .summary-panels-card { 
+            padding: 10px 14px; 
+            transition: all 0.2s ease;
+        }
+        .summary-toggle-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             flex-wrap: wrap;
         }
-        .summary-panels-header h2 { margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--slate-900); }
+        .summary-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .summary-title { 
+            font-size: 0.95rem; 
+            font-weight: 800; 
+            color: var(--slate-900); 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .summary-subtitle {
+            font-size: 0.74rem;
+            color: var(--slate-500);
+            font-weight: 600;
+        }
 
-        .toggle-summary-btn {
-            border: 1px solid var(--slate-300);
+        .summary-toggle-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .summary-kpi-chips {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .chip-kpi {
             background: var(--slate-100);
-            color: var(--header-bg);
+            border: 1px solid var(--slate-200);
             border-radius: 9999px;
-            padding: 3px 9px;
+            padding: 2px 9px;
             font-size: 0.72rem;
             font-weight: 700;
+            color: var(--slate-700);
+        }
+        .chip-kpi-dump {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #b91c1c;
+        }
+        .chip-kpi-total {
+            background: #f0fdf4;
+            border-color: #86efac;
+            color: #15803d;
+        }
+
+        .summary-collapse-btn {
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            color: var(--header-bg);
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 0.78rem;
+            font-weight: 800;
             cursor: pointer;
+            transition: all 0.15s ease;
             box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .summary-collapse-btn:hover {
+            background: #f8fafc;
+            border-color: var(--header-bg);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
 
         .summary-panels-card.collapsed .summary-table-wrap,
         .summary-panels-card.collapsed .table-note { display: none !important; }
 
         .summary-table-wrap {
-            margin-top: 6px;
+            margin-top: 10px;
             overflow-x: auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
             border: 1px solid var(--slate-300);
-            border-radius: 6px;
+            border-radius: 8px;
             background: #ffffff;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: var(--shadow-sm);
         }
 
         .summary-table {
-            width: max-content;
-            border-collapse: collapse;
-            font-size: 0.72rem;
+            width: 100%;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.76rem;
+            table-layout: auto;
         }
         .summary-table th, .summary-table td {
-            padding: 3px 6px;
+            padding: 6px 8px;
             border-bottom: 1px solid var(--slate-200);
             border-right: 1px solid var(--slate-200);
             text-align: right;
             white-space: nowrap;
+            box-sizing: border-box;
         }
-        .summary-table th {
+        .summary-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
             background: var(--header-bg);
             color: #ffffff;
             text-align: center;
             font-weight: 700;
-            font-size: 0.66rem;
+            font-size: 0.72rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .summary-table td.col-name { text-align: left; font-weight: 700; background: var(--slate-50); }
+        .summary-table th.col-name,
+        .summary-table td.col-name {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            text-align: left;
+            font-weight: 700;
+            background: #f8fafc;
+            min-width: 170px;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+        }
+        .summary-table thead th.col-name {
+            z-index: 25;
+            background: var(--header-bg);
+        }
+        .summary-table th.col-act,
+        .summary-table td.col-act {
+            position: sticky;
+            left: 170px;
+            z-index: 5;
+            text-align: center;
+            background: #f8fafc;
+            min-width: 80px;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+        }
+        .summary-table thead th.col-act {
+            z-index: 25;
+            background: var(--header-bg);
+        }
+        .summary-table th.col-total-window,
+        .summary-table td.col-total-window {
+            position: sticky;
+            right: 0;
+            z-index: 5;
+            text-align: right;
+            font-weight: 800;
+            background: #f1f5f9;
+            min-width: 90px;
+            box-shadow: -2px 0 4px rgba(0,0,0,0.04);
+        }
+        .summary-table thead th.col-total-window {
+            z-index: 25;
+            background: var(--header-bg);
+        }
+        .summary-table tr:hover td {
+            background-color: #f1f5f9 !important;
+        }
         .summary-table tr.row-variety-subtotal { background: #f8fafc; font-weight: 700; color: var(--slate-700); }
+        .summary-table tr.row-variety-subtotal td { border-top: 1px solid var(--slate-300); }
         .summary-table tr.row-subtotal { background: #e0f2fe; font-weight: 800; color: #0369a1; }
-        .summary-table tr.row-color-total { background: #dbeafe; font-weight: 900; color: #1e40af; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
-        .summary-table tr.row-color-total td { font-size: 0.74rem; }
+        .summary-table tr.row-subtotal td { border-top: 1px solid #7dd3fc; border-bottom: 1px solid #7dd3fc; }
+        .summary-table tr.row-color-total { background: #dbeafe; font-weight: 900; color: #1e40af; }
+        .summary-table tr.row-color-total td { font-size: 0.76rem; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
         .summary-table tr.row-color-total-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
-        .summary-table tr.row-grandtotal { background: var(--totals-bg); color: var(--totals-text); font-weight: 800; font-size: 0.78rem; }
-        .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; }
+        .summary-table tr.row-grandtotal { background: var(--totals-bg); color: var(--totals-text); font-weight: 900; font-size: 0.82rem; }
+        .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; border-bottom: 2px solid #f59e0b; }
+        .summary-table tr.row-grandtotal-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
+
+        /* EXCEL MULTI-CELL SELECTION & STATUS BAR */
+        .cell-excel-selected {
+            outline: 2px solid #0284c7 !important;
+            outline-offset: -2px !important;
+            background-color: rgba(14, 165, 233, 0.22) !important;
+            position: relative;
+            z-index: 4 !important;
+        }
+        .cell-excel-selected .week-input {
+            background-color: transparent !important;
+        }
+
+        .excel-status-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            padding: 8px 16px;
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            font-size: 0.8rem;
+            animation: excelBarSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+        }
+
+        @keyframes excelBarSlideUp {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .excel-bar-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            color: #38bdf8;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            padding-right: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .excel-bar-stat {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.15s ease;
+        }
+        .excel-bar-stat:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .excel-bar-stat .stat-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.04em;
+        }
+
+        .excel-bar-stat .stat-val {
+            font-weight: 800;
+            font-size: 0.9rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+
+        .excel-bar-stat .stat-val-avg { color: #38bdf8; }
+        .excel-bar-stat .stat-val-count { color: #a7f3d0; }
+        .excel-bar-stat .stat-val-sum { color: #facc15; }
+
+        .excel-bar-minmax {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            cursor: default;
+        }
+        .excel-bar-minmax:hover {
+            background: transparent;
+        }
+
+        .excel-bar-divider {
+            width: 1px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .excel-bar-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.88rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            line-height: 1;
+            margin-left: 2px;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .excel-bar-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .excel-copy-toast {
+            position: fixed;
+            bottom: 72px;
+            right: 28px;
+            background: #059669;
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            z-index: 100000;
+            animation: fadeInOut 1.5s ease forwards;
+            pointer-events: none;
+        }
 
         /* MASTER MATRIX CARD & INLINE HEADER FILTERS */
         .master-matrix-card { padding: 10px; overflow: hidden; }
@@ -1023,18 +1276,29 @@
                     </div>
                 </div>
             </form>
+        </section>
 
-            <!-- SUMMARY CARDS & VARIETY TOTALS (COLLAPSED BY DEFAULT) -->
-            <div class="summary-panels-card" id="summary-panels-wrapper">
-                <div class="summary-toggle-bar">
+        <!-- SUMMARY CARDS & VARIETY TOTALS (COLLAPSED BY DEFAULT) -->
+        <section class="summary-panels-card" id="summary-panels-wrapper">
+            <div class="summary-toggle-bar">
+                <div class="summary-title-group">
                     <span class="summary-title">📈 Resumen de Totales por Variedad y Actividad</span>
+                    <span class="summary-subtitle" id="summary-subtitle-info" style="display: none;">(Matriz general oculta para optimizar la visualización completa del resumen)</span>
+                </div>
+                <div class="summary-toggle-actions">
+                    <div class="summary-kpi-chips" id="summary-kpi-chips" style="display: none;">
+                        <span class="chip-kpi">Siembras: <strong id="summary-chip-siembras">0</strong></span>
+                        <span class="chip-kpi">Podas: <strong id="summary-chip-podas">0</strong></span>
+                        <span class="chip-kpi chip-kpi-dump">Dumps: <strong id="summary-chip-dumps">0</strong></span>
+                        <span class="chip-kpi chip-kpi-total">Total: <strong id="summary-chip-total">0</strong></span>
+                    </div>
                     <button type="button" class="summary-collapse-btn" id="summary-collapse-btn">▶️ Desplegar Resumen de Totales</button>
                 </div>
-                <div class="summary-table-wrap" id="summary-table-container" style="display: none;">
-                    <table class="summary-table" id="table-summary-main">
-                        <!-- Rendered by renderSummaryPanels() JS -->
-                    </table>
-                </div>
+            </div>
+            <div class="summary-table-wrap" id="summary-table-container" style="display: none;">
+                <table class="summary-table" id="table-summary-main">
+                    <!-- Rendered by renderSummaryPanels() JS -->
+                </table>
             </div>
         </section>
 
@@ -1554,7 +1818,7 @@
             row.querySelectorAll('.week-cell').forEach((cell) => {
                 const label = cell.dataset.weekLabel;
                 const input = cell.querySelector('.week-input');
-                if (pageMode !== 'REAL' && cell.dataset.status === 'MODELO') {
+                if (cell.dataset.status === 'MODELO') {
                     input.value = String(modelByWeek[label] || 0);
                 }
                 const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
@@ -1757,9 +2021,9 @@
 
             const mode = pageMode === 'REAL' ? 'real' : 'agronomo';
 
-            let html = `<thead><tr><th class="col-name">Producto / Variedad</th><th>Actividad</th>`;
-            weekLabels.forEach(lbl => { html += `<th>${lbl}</th>`; });
-            html += `<th>Total Ventana</th></tr></thead><tbody>`;
+            let html = `<thead><tr><th class="col-name">Producto / Variedad</th><th class="col-act">Actividad</th>`;
+            weekLabels.forEach(lbl => { html += `<th class="col-week-header" data-week-label="${lbl}">${lbl}</th>`; });
+            html += `<th class="col-total-window">Total Ventana</th></tr></thead><tbody>`;
 
             let grandTotalsByWeek = Object.fromEntries(weekLabels.map(l => [l, 0]));
             let grandDumpsByWeek = Object.fromEntries(weekLabels.map(l => [l, 0]));
@@ -1812,10 +2076,10 @@
                         const actSum = Object.values(weekVals).reduce((a, b) => a + b, 0);
                         const dumpSum = Object.values(dumpVals).reduce((a, b) => a + b, 0);
 
-                        html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td>${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
+                        html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td class="col-act">${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
                         weekLabels.forEach(lbl => {
                             const val = weekVals[lbl] || 0;
-                            html += `<td>${val.toLocaleString()}</td>`;
+                            html += `<td data-week-label="${lbl}" class="summary-val-cell">${val.toLocaleString()}</td>`;
                             varietyWeekSums[lbl] += val;
                             colorWeekSums[lbl] += val;
                             grandTotalsByWeek[lbl] += val;
@@ -1825,7 +2089,7 @@
                             colorDumpSums[lbl] += dVal;
                             grandDumpsByWeek[lbl] += dVal;
                         });
-                        html += `<td><strong>${actSum.toLocaleString()}</strong></td></tr>`;
+                        html += `<td class="col-total-window"><strong>${actSum.toLocaleString()}</strong></td></tr>`;
                         varietyWindowTotal += actSum;
                         colorWindowTotal += actSum;
                         grandWindowTotal += actSum;
@@ -1840,17 +2104,17 @@
 
                     html += `<tr class="${subtotalClass}"><td class="col-name" colspan="2" ${indentStyle}>Subtotal ${item.variety}</td>`;
                     weekLabels.forEach(lbl => {
-                        html += `<td>${varietyWeekSums[lbl].toLocaleString()}</td>`;
+                        html += `<td data-week-label="${lbl}" class="summary-val-cell">${varietyWeekSums[lbl].toLocaleString()}</td>`;
                     });
-                    html += `<td><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+                    html += `<td class="col-total-window"><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
 
                     if (varietyDumpTotal > 0) {
                         html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2" ${indentStyle}>↳ 🗑️ Dumps ${item.variety} (Descarte)</td>`;
                         weekLabels.forEach(lbl => {
                             const dVal = varietyDumpSums[lbl] || 0;
-                            html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                            html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
                         });
-                        html += `<td><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
+                        html += `<td class="col-total-window"><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
                     }
                 });
 
@@ -1863,33 +2127,33 @@
 
                     html += `<tr class="row-color-total"><td class="col-name" colspan="2">⭐ TOTAL ${grp.product} ${grp.color} (${varietyLabels})</td>`;
                     weekLabels.forEach(lbl => {
-                        html += `<td>${colorWeekSums[lbl].toLocaleString()}</td>`;
+                        html += `<td data-week-label="${lbl}" class="summary-val-cell">${colorWeekSums[lbl].toLocaleString()}</td>`;
                     });
-                    html += `<td><strong>${colorWindowTotal.toLocaleString()}</strong></td></tr>`;
+                    html += `<td class="col-total-window"><strong>${colorWindowTotal.toLocaleString()}</strong></td></tr>`;
 
                     if (colorDumpTotal > 0) {
                         html += `<tr class="row-color-total-dump"><td class="col-name" colspan="2">🗑️ TOTAL DUMPS ${grp.product} ${grp.color}</td>`;
                         weekLabels.forEach(lbl => {
                             const dVal = colorDumpSums[lbl] || 0;
-                            html += `<td>${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                            html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
                         });
-                        html += `<td><strong>${colorDumpTotal.toLocaleString()}</strong></td></tr>`;
+                        html += `<td class="col-total-window"><strong>${colorDumpTotal.toLocaleString()}</strong></td></tr>`;
                     }
                 }
             });
 
             html += `<tr class="row-grandtotal"><td class="col-name" colspan="2">TOTAL GENERAL COSECHA / PROYECCIÓN</td>`;
             weekLabels.forEach(lbl => {
-                html += `<td>${grandTotalsByWeek[lbl].toLocaleString()}</td>`;
+                html += `<td data-week-label="${lbl}" class="summary-val-cell">${grandTotalsByWeek[lbl].toLocaleString()}</td>`;
             });
-            html += `<td>${grandWindowTotal.toLocaleString()}</td></tr>`;
+            html += `<td class="col-total-window">${grandWindowTotal.toLocaleString()}</td></tr>`;
 
             html += `<tr class="row-grandtotal-dump" style="background: #fee2e2; color: #b91c1c; font-weight: 800;"><td class="col-name" colspan="2">🗑️ TOTAL GENERAL DUMPS (DESCARTE VENTAS)</td>`;
             weekLabels.forEach(lbl => {
                 const dVal = grandDumpsByWeek[lbl] || 0;
-                html += `<td>${dVal > 0 ? dVal.toLocaleString() : '0'}</td>`;
+                html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '0'}</td>`;
             });
-            html += `<td>${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
+            html += `<td class="col-total-window">${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
 
             targetTable.innerHTML = html;
         }
@@ -2066,16 +2330,8 @@
                     }
 
                     summaryData[key].proyectado[activity][label] += val;
-
-                    if (status === 'AGRONOMO' || status === 'REAL' || status === 'DUMP') {
-                        summaryData[key].agronomo[activity][label] += val;
-                    } else {
-                        summaryData[key].agronomo[activity][label] += val;
-                    }
-
-                    if (status === 'REAL' || status === 'DUMP') {
-                        summaryData[key].real[activity][label] += val;
-                    }
+                    summaryData[key].agronomo[activity][label] += val;
+                    summaryData[key].real[activity][label] += val;
                 });
 
                 varietyTotalsMap[variety].windowTotal += rowWindowTotal;
@@ -2150,6 +2406,15 @@
             if (chipPoda) chipPoda.textContent = String(masterPodaTotal);
             if (chipDumps) chipDumps.textContent = String(masterDumpTotal);
             if (chipTotal) chipTotal.textContent = String(masterGrandTotal);
+
+            const sumChipS = document.getElementById('summary-chip-siembras');
+            const sumChipP = document.getElementById('summary-chip-podas');
+            const sumChipD = document.getElementById('summary-chip-dumps');
+            const sumChipT = document.getElementById('summary-chip-total');
+            if (sumChipS) sumChipS.textContent = masterSiembraTotal.toLocaleString();
+            if (sumChipP) sumChipP.textContent = masterPodaTotal.toLocaleString();
+            if (sumChipD) sumChipD.textContent = masterDumpTotal.toLocaleString();
+            if (sumChipT) sumChipT.textContent = masterGrandTotal.toLocaleString();
 
             const metricGrandTotal = document.getElementById('metric-grand-total');
             if (metricGrandTotal) {
@@ -2345,13 +2610,7 @@
                 }
                 cell.dataset.dumpStems = String(result.dump_stems || 0);
 
-                if (pageMode === 'REAL') {
-                    const inp = cell.querySelector('.week-input');
-                    if (inp) inp.value = '0';
-                    updateRowTotalsFromWeekInputs(row);
-                } else {
-                    recalcRow(row);
-                }
+                recalcRow(row);
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
                 recalcAll(false);
@@ -2450,17 +2709,24 @@
         // Summary Card Collapsing Toggle
         const summaryCollapseBtn = document.getElementById('summary-collapse-btn') || document.getElementById('toggle-summary-btn');
         const summaryContainer = document.getElementById('summary-table-container');
+        const summaryKpiChips = document.getElementById('summary-kpi-chips');
+        const summarySubtitleInfo = document.getElementById('summary-subtitle-info');
         const masterMatrixSection = document.getElementById('master-matrix-section') || document.querySelector('.master-matrix-card');
         if (summaryCollapseBtn && summaryContainer) {
             summaryCollapseBtn.addEventListener('click', () => {
                 const isHidden = summaryContainer.style.display === 'none';
                 summaryContainer.style.display = isHidden ? 'block' : 'none';
+                if (summaryKpiChips) summaryKpiChips.style.display = isHidden ? 'flex' : 'none';
+                if (summarySubtitleInfo) summarySubtitleInfo.style.display = isHidden ? 'inline' : 'none';
                 if (masterMatrixSection) {
                     masterMatrixSection.style.display = isHidden ? 'none' : '';
                 }
                 summaryCollapseBtn.textContent = isHidden
                     ? '▼ Ocultar Resumen de Totales (Mostrar Matriz)'
                     : '▶️ Desplegar Resumen de Totales';
+                summaryCollapseBtn.style.background = isHidden ? '#eff6ff' : '#ffffff';
+                summaryCollapseBtn.style.borderColor = isHidden ? '#3b82f6' : 'var(--slate-300)';
+                summaryCollapseBtn.style.color = isHidden ? '#1d4ed8' : 'var(--header-bg)';
             });
         }
 
@@ -3055,6 +3321,384 @@
         updateStickyHeaderOffsets();
         recalcAll();
         adjustWeekColumnWidths();
+
+        // ==========================================
+        // EXCEL-STYLE CELL SELECTION & STATUS BAR
+        // ==========================================
+        let selectedExcelCells = new Set();
+        let selectionAnchorCell = null;
+        let selectionAnchorHeader = null;
+        let isExcelSelecting = false;
+        let excelDragOrigin = null;
+        let hasExcelDragged = false;
+        let activeExcelTable = null;
+
+        function clearExcelSelection() {
+            selectedExcelCells.forEach(cell => cell.classList.remove('cell-excel-selected'));
+            selectedExcelCells.clear();
+            selectionAnchorCell = null;
+            const bar = document.getElementById('excel-status-bar');
+            if (bar) bar.style.display = 'none';
+        }
+
+        function showExcelCopyToast(text) {
+            const oldToast = document.querySelector('.excel-copy-toast');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'excel-copy-toast';
+            toast.textContent = `📋 ${text}`;
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast.parentNode) toast.remove(); }, 1600);
+        }
+
+        function updateExcelStatusBar() {
+            const bar = document.getElementById('excel-status-bar');
+            if (!bar) return;
+
+            if (selectedExcelCells.size < 2) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            let sum = 0;
+            let count = 0;
+            let min = Infinity;
+            let max = -Infinity;
+
+            selectedExcelCells.forEach(cell => {
+                let val = null;
+                const input = cell.querySelector('input.week-input, input.edit-input');
+                if (input) {
+                    const raw = String(input.value || '').replace(/,/g, '').trim();
+                    if (raw !== '') {
+                        const num = Number.parseFloat(raw);
+                        if (!Number.isNaN(num)) val = num;
+                    }
+                } else {
+                    const raw = String(cell.textContent || '').replace(/[^\d.-]/g, '').trim();
+                    if (raw !== '') {
+                        const num = Number.parseFloat(raw);
+                        if (!Number.isNaN(num)) val = num;
+                    }
+                }
+
+                if (val !== null) {
+                    sum += val;
+                    count++;
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                }
+            });
+
+            if (count === 0) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            const avg = sum / count;
+            const avgStr = (avg % 1 === 0)
+                ? avg.toLocaleString('es-CO')
+                : avg.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+            const sumStr = sum.toLocaleString('es-CO');
+            const minStr = (min === Infinity) ? '0' : min.toLocaleString('es-CO');
+            const maxStr = (max === -Infinity) ? '0' : max.toLocaleString('es-CO');
+
+            const avgEl = document.getElementById('excel-stat-promedio');
+            const countEl = document.getElementById('excel-stat-recuento');
+            const sumEl = document.getElementById('excel-stat-suma');
+            const minEl = document.getElementById('excel-stat-min');
+            const maxEl = document.getElementById('excel-stat-max');
+
+            if (avgEl) avgEl.textContent = avgStr;
+            if (countEl) countEl.textContent = count.toLocaleString('es-CO');
+            if (sumEl) sumEl.textContent = sumStr;
+            if (minEl) minEl.textContent = minStr;
+            if (maxEl) maxEl.textContent = maxStr;
+
+            bar.style.display = 'flex';
+        }
+
+        function getExcelColKey(cell) {
+            if (!cell) return null;
+            if (cell.dataset.weekLabel) return cell.dataset.weekLabel;
+            if (cell.classList.contains('cell-window-total') || cell.classList.contains('col-total-final') || cell.classList.contains('col-total-window') || cell.classList.contains('subtotal-variety-window-val')) return '__TOTAL__';
+            if (cell.classList.contains('plants-cell')) return '__PLANTS__';
+            if (cell.classList.contains('col-param-stems')) return '__STEMS__';
+            if (cell.classList.contains('col-param-export-stems') || cell.classList.contains('cell-program-total')) return '__PROGRAM__';
+            if (cell.classList.contains('col-param-total-prod') || cell.classList.contains('cell-total-prod')) return '__PROD__';
+            if (cell.classList.contains('col-param-real-stems') || cell.classList.contains('cell-real-stems')) return '__REALSTEMS__';
+            return null;
+        }
+
+        function getTableColKeyList(table) {
+            const list = [];
+            if (table.classList.contains('master-table')) {
+                list.push('__PLANTS__', '__PROGRAM__', '__PROD__', '__REALSTEMS__');
+            }
+            weekColumns.forEach(w => list.push(w.label));
+            list.push('__TOTAL__');
+            return list;
+        }
+
+        function selectExcelCellRange(table, startCell, endCell) {
+            if (!table || !startCell || !endCell) return;
+            const startRow = startCell.closest('tr');
+            const endRow = endCell.closest('tr');
+            if (!startRow || !endRow) return;
+
+            const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
+            const startRIdx = visibleRows.indexOf(startRow);
+            const endRIdx = visibleRows.indexOf(endRow);
+            if (startRIdx === -1 || endRIdx === -1) return;
+
+            const colKeys = getTableColKeyList(table);
+            const startColKey = getExcelColKey(startCell);
+            const endColKey = getExcelColKey(endCell);
+            if (!startColKey || !endColKey) return;
+
+            const startCIdx = colKeys.indexOf(startColKey);
+            const endCIdx = colKeys.indexOf(endColKey);
+            if (startCIdx === -1 || endCIdx === -1) return;
+
+            const rMin = Math.min(startRIdx, endRIdx);
+            const rMax = Math.max(startRIdx, endRIdx);
+            const cMin = Math.min(startCIdx, endCIdx);
+            const cMax = Math.max(startCIdx, endCIdx);
+
+            selectedExcelCells.forEach(c => c.classList.remove('cell-excel-selected'));
+            selectedExcelCells.clear();
+
+            for (let r = rMin; r <= rMax; r++) {
+                const tr = visibleRows[r];
+                for (let c = cMin; c <= cMax; c++) {
+                    const key = colKeys[c];
+                    let cell = null;
+                    if (key === '__TOTAL__') {
+                        cell = tr.querySelector('.cell-window-total, .col-total-final, .col-total-window, .subtotal-variety-window-val');
+                    } else if (key === '__PLANTS__') {
+                        cell = tr.querySelector('.plants-cell');
+                    } else if (key === '__PROGRAM__') {
+                        cell = tr.querySelector('.cell-program-total, .col-param-export-stems');
+                    } else if (key === '__PROD__') {
+                        cell = tr.querySelector('.cell-total-prod, .col-param-total-prod');
+                    } else if (key === '__REALSTEMS__') {
+                        cell = tr.querySelector('.cell-real-stems, .col-param-real-stems');
+                    } else {
+                        cell = tr.querySelector(`td[data-week-label="${key}"]`);
+                    }
+
+                    if (cell) {
+                        cell.classList.add('cell-excel-selected');
+                        selectedExcelCells.add(cell);
+                    }
+                }
+            }
+
+            updateExcelStatusBar();
+        }
+
+        // Mouse Drag, Shift-Click & Ctrl-Click Handlers
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#excel-status-bar') || e.target.closest('.modal-card')) return;
+
+            const cell = e.target.closest('td');
+            if (!cell) {
+                if (!e.target.closest('th.col-week-header') && !e.target.closest('.summary-collapse-btn')) {
+                    clearExcelSelection();
+                }
+                return;
+            }
+
+            const table = cell.closest('.master-table, .summary-table');
+            if (!table) return;
+
+            const colKey = getExcelColKey(cell);
+            if (!colKey) return;
+
+            activeExcelTable = table;
+
+            if (e.shiftKey && selectionAnchorCell && selectionAnchorCell.closest('table') === table) {
+                e.preventDefault();
+                selectExcelCellRange(table, selectionAnchorCell, cell);
+                return;
+            }
+
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (selectedExcelCells.has(cell)) {
+                    cell.classList.remove('cell-excel-selected');
+                    selectedExcelCells.delete(cell);
+                } else {
+                    cell.classList.add('cell-excel-selected');
+                    selectedExcelCells.add(cell);
+                }
+                selectionAnchorCell = cell;
+                updateExcelStatusBar();
+                return;
+            }
+
+            // Normal mousedown: prepare for potential drag
+            isExcelSelecting = true;
+            hasExcelDragged = false;
+            excelDragOrigin = cell;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isExcelSelecting || !excelDragOrigin || !activeExcelTable) return;
+
+            const hoverCell = e.target.closest('td');
+            if (!hoverCell || hoverCell.closest('table') !== activeExcelTable) return;
+
+            if (hoverCell !== excelDragOrigin) {
+                if (!hasExcelDragged) {
+                    hasExcelDragged = true;
+                    selectionAnchorCell = excelDragOrigin;
+                    window.getSelection()?.removeAllRanges();
+                    if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                        document.activeElement.blur();
+                    }
+                }
+                selectExcelCellRange(activeExcelTable, excelDragOrigin, hoverCell);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (isExcelSelecting) {
+                if (!hasExcelDragged && excelDragOrigin) {
+                    // Single click: if not clicked on input, highlight single cell
+                    if (!e.target.closest('input')) {
+                        clearExcelSelection();
+                        excelDragOrigin.classList.add('cell-excel-selected');
+                        selectedExcelCells.add(excelDragOrigin);
+                        selectionAnchorCell = excelDragOrigin;
+                        updateExcelStatusBar();
+                    }
+                }
+                isExcelSelecting = false;
+                excelDragOrigin = null;
+                hasExcelDragged = false;
+            }
+        });
+
+        // Click on Column Header to select entire column (and Shift-Click range across headers)
+        document.addEventListener('click', (e) => {
+            const th = e.target.closest('th.col-week-header');
+            if (!th) return;
+            if (e.target.closest('button') || e.target.closest('input')) return;
+
+            const weekLabel = th.dataset.weekLabel;
+            if (!weekLabel) return;
+
+            const table = th.closest('.master-table, .summary-table');
+            if (!table) return;
+
+            const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
+            if (!visibleRows.length) return;
+
+            const colKeys = weekColumns.map(w => w.label);
+
+            if (e.shiftKey && selectionAnchorHeader && selectionAnchorHeader.table === table) {
+                const idx1 = colKeys.indexOf(selectionAnchorHeader.weekLabel);
+                const idx2 = colKeys.indexOf(weekLabel);
+                if (idx1 !== -1 && idx2 !== -1) {
+                    const cMin = Math.min(idx1, idx2);
+                    const cMax = Math.max(idx1, idx2);
+
+                    clearExcelSelection();
+                    for (let c = cMin; c <= cMax; c++) {
+                        const lbl = colKeys[c];
+                        visibleRows.forEach(row => {
+                            const cell = row.querySelector(`td[data-week-label="${lbl}"]`);
+                            if (cell) {
+                                cell.classList.add('cell-excel-selected');
+                                selectedExcelCells.add(cell);
+                            }
+                        });
+                    }
+                    updateExcelStatusBar();
+                    return;
+                }
+            }
+
+            clearExcelSelection();
+            selectionAnchorHeader = { table, weekLabel };
+            visibleRows.forEach(row => {
+                const cell = row.querySelector(`td[data-week-label="${weekLabel}"]`);
+                if (cell) {
+                    cell.classList.add('cell-excel-selected');
+                    selectedExcelCells.add(cell);
+                }
+            });
+            updateExcelStatusBar();
+        });
+
+        // Escape Key to clear selection
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                clearExcelSelection();
+            }
+        });
+
+        // Close button click
+        const excelBarCloseBtn = document.getElementById('excel-bar-close');
+        if (excelBarCloseBtn) {
+            excelBarCloseBtn.addEventListener('click', () => clearExcelSelection());
+        }
+
+        // Copy average on click
+        const statPromedioWrap = document.getElementById('excel-stat-promedio-wrap');
+        if (statPromedioWrap) {
+            statPromedioWrap.addEventListener('click', () => {
+                const val = document.getElementById('excel-stat-promedio')?.textContent;
+                if (val) {
+                    navigator.clipboard.writeText(val);
+                    showExcelCopyToast(`Promedio copiado: ${val}`);
+                }
+            });
+        }
+
+        // Copy sum on click
+        const statSumaWrap = document.getElementById('excel-stat-suma-wrap');
+        if (statSumaWrap) {
+            statSumaWrap.addEventListener('click', () => {
+                const val = document.getElementById('excel-stat-suma')?.textContent;
+                if (val) {
+                    navigator.clipboard.writeText(val);
+                    showExcelCopyToast(`Suma copiada: ${val}`);
+                }
+            });
+        }
     </script>
+
+    <!-- EXCEL STATUS BAR (SUMA, PROMEDIO, RECUENTO AL SELECCIONAR CELDAS) -->
+    <div id="excel-status-bar" class="excel-status-bar" style="display: none;">
+        <div class="excel-bar-header">
+            <span>📊</span>
+            <span>Excel Calc</span>
+        </div>
+        <div class="excel-bar-stat" id="excel-stat-promedio-wrap" title="Clic para copiar promedio">
+            <span class="stat-label">PROMEDIO:</span>
+            <span class="stat-val stat-val-avg" id="excel-stat-promedio">0</span>
+        </div>
+        <div class="excel-bar-divider"></div>
+        <div class="excel-bar-stat" id="excel-stat-recuento-wrap" title="Cantidad de celdas seleccionadas">
+            <span class="stat-label">RECUENTO:</span>
+            <span class="stat-val stat-val-count" id="excel-stat-recuento">0</span>
+        </div>
+        <div class="excel-bar-divider"></div>
+        <div class="excel-bar-stat" id="excel-stat-suma-wrap" title="Clic para copiar suma total">
+            <span class="stat-label">SUMA:</span>
+            <span class="stat-val stat-val-sum" id="excel-stat-suma">0</span>
+        </div>
+        <div class="excel-bar-divider"></div>
+        <div class="excel-bar-stat excel-bar-minmax">
+            <span class="stat-label">MÍN:</span>
+            <span class="stat-val" id="excel-stat-min" style="color: #cbd5e1; font-size: 0.82rem;">0</span>
+            <span class="stat-label" style="margin-left: 5px;">MÁX:</span>
+            <span class="stat-val" id="excel-stat-max" style="color: #cbd5e1; font-size: 0.82rem;">0</span>
+        </div>
+        <button type="button" class="excel-bar-close" id="excel-bar-close" title="Cerrar selección (Esc)">✕</button>
+    </div>
 </body>
 </html>
