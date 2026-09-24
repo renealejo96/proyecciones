@@ -30,44 +30,52 @@
             --font-pbi: 'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic Demi', 'Franklin Gothic', 'Arial Narrow', 'Oswald', sans-serif;
             --font-mono: 'JetBrains Mono', 'Consolas', monospace;
 
-            /* DARK AGRICULTURE CONTROL PALETTE */
-            --bg-canvas-start: #0a1128;
-            --bg-canvas-mid: #050c1b;
-            --bg-canvas-end: #02050e;
+            /* LIGHT AGRICULTURE DASHBOARD PALETTE */
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-subtle: #e2e8f0;
+            --border-card: #cbd5e1;
 
-            --card-glass-bg: rgba(13, 22, 42, 0.78);
-            --card-glass-border: rgba(255, 255, 255, 0.08);
+            /* VIBRANT KPI ACCENT PALETTE */
+            --kpi-green: #10b981;
+            --kpi-green-text: #059669;
+            --kpi-green-bg: #ecfdf5;
+            --kpi-green-border: #a7f3d0;
 
-            /* KPI GLOWING ACCENT PALETTE */
-            --neon-green: #00ff88;
-            --neon-green-glow: rgba(0, 255, 136, 0.28);
-            --neon-green-bg: rgba(0, 255, 136, 0.12);
+            --kpi-gold: #f59e0b;
+            --kpi-gold-text: #d97706;
+            --kpi-gold-bg: #fffbeb;
+            --kpi-gold-border: #fde68a;
 
-            --neon-gold: #fbbf24;
-            --neon-gold-glow: rgba(251, 191, 36, 0.28);
-            --neon-gold-bg: rgba(251, 191, 36, 0.12);
+            --kpi-blue: #0284c7;
+            --kpi-blue-text: #0284c7;
+            --kpi-blue-bg: #f0f9ff;
+            --kpi-blue-border: #bae6fd;
 
-            --neon-blue: #38bdf8;
-            --neon-blue-glow: rgba(56, 189, 248, 0.28);
-            --neon-blue-bg: rgba(56, 189, 248, 0.12);
+            --kpi-grey: #64748b;
+            --kpi-grey-text: #334155;
+            --kpi-grey-bg: #f8fafc;
+            --kpi-grey-border: #cbd5e1;
 
-            --metallic-grey: #94a3b8;
-            --metallic-grey-glow: rgba(148, 163, 184, 0.22);
-            --metallic-grey-bg: rgba(148, 163, 184, 0.12);
+            --kpi-cyan: #06b6d4;
+            --kpi-cyan-text: #0891b2;
+            --kpi-cyan-bg: #ecfeff;
+            --kpi-cyan-border: #a5f3fc;
 
-            --neon-cyan: #00f0ff;
-            --neon-cyan-glow: rgba(0, 240, 255, 0.32);
-            --neon-cyan-bg: rgba(0, 240, 255, 0.14);
-
-            --neon-rose: #f87171;
-            --neon-rose-glow: rgba(248, 113, 113, 0.28);
-            --neon-rose-bg: rgba(248, 113, 113, 0.12);
+            --kpi-rose: #ef4444;
+            --kpi-rose-text: #dc2626;
+            --kpi-rose-bg: #fef2f2;
+            --kpi-rose-border: #fecaca;
 
             /* TEXT COLORS */
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --text-subtle: #64748b;
+            --text-heading: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --text-subtle: #94a3b8;
+
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
         * { box-sizing: border-box; }
@@ -75,8 +83,8 @@
         body {
             margin: 0;
             font-family: var(--font-pbi);
-            color: var(--text-secondary);
-            background: linear-gradient(180deg, var(--bg-canvas-start) 0%, var(--bg-canvas-mid) 50%, var(--bg-canvas-end) 100%);
+            color: var(--text-body);
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
@@ -89,52 +97,50 @@
             width: 100%;
             max-width: 1720px;
             margin: 0 auto;
-            padding: 10px 14px 40px;
+            padding: 12px 16px 50px;
         }
 
-        /* ---------------- TOP NAVIGATION MENU (DARK THEME) ---------------- */
+        /* ---------------- TOP NAVIGATION MENU ---------------- */
         .main-menu {
             display: flex;
             gap: 6px;
             margin-bottom: 12px;
             flex-wrap: wrap;
             align-items: center;
-            background: rgba(11, 18, 33, 0.7);
-            padding: 6px 10px;
+            background: #ffffff;
+            padding: 6px 12px;
             border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-sm);
         }
 
         .menu-link {
             text-decoration: none;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid var(--border-card);
             border-radius: 9999px;
             padding: 5px 13px;
             font-size: 0.78rem;
             font-weight: 700;
-            color: var(--text-secondary);
-            background: rgba(15, 23, 42, 0.6);
-            transition: all 0.18s ease;
+            color: var(--text-body);
+            background: #ffffff;
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
             gap: 5px;
         }
 
         .menu-link:hover {
-            background: rgba(30, 41, 59, 0.9);
-            color: #ffffff;
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+            background: #f1f5f9;
+            color: var(--text-heading);
+            border-color: var(--kpi-blue);
             transform: translateY(-1px);
         }
 
         .menu-link.active {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            background: #0284c7;
             color: #ffffff;
-            border-color: #38bdf8;
-            box-shadow: 0 0 18px rgba(2, 132, 199, 0.45);
+            border-color: #0284c7;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
         }
 
         .user-nav-box {
@@ -145,14 +151,14 @@
         }
 
         .user-badge {
-            background: rgba(2, 132, 199, 0.15);
-            color: #38bdf8;
+            background: #e0f2fe;
+            color: #0369a1;
             padding: 4px 12px;
             border-radius: 9999px;
             font-size: 0.76rem;
             font-weight: 700;
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+            border: 1px solid #bae6fd;
+            box-shadow: var(--shadow-sm);
         }
 
         /* ---------------- DASHBOARD HEADER TITLE ---------------- */
@@ -169,9 +175,7 @@
             margin: 0;
             font-size: clamp(1.25rem, 2.2vw, 1.6rem);
             font-weight: 900;
-            background: linear-gradient(90deg, #38bdf8 0%, #00f0ff 45%, #00ff88 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #0f172a;
             letter-spacing: -0.01em;
             display: flex;
             align-items: center;
@@ -182,23 +186,24 @@
             margin: 2px 0 0;
             font-size: 0.80rem;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         /* ---------------- SLICERS CARD (POWER BI GLOBAL FILTERS) ---------------- */
         .slicers-card {
-            background: var(--card-glass-bg);
-            border: 1px solid rgba(56, 189, 248, 0.22);
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
             border-radius: 14px;
             padding: 10px 14px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+            box-shadow: var(--shadow-card);
             margin-bottom: 14px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             align-items: flex-end;
+            position: relative;
+            z-index: 1000;
+            overflow: visible !important;
         }
 
         .slicer-group {
@@ -216,84 +221,85 @@
         }
 
         .slicer-select {
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            border: 1px solid var(--border-card);
             border-radius: 6px;
-            padding: 5px 8px;
+            padding: 5px 9px;
             font-size: 0.78rem;
             font-weight: 600;
-            background: rgba(7, 13, 26, 0.9);
-            color: var(--text-primary);
+            background: #ffffff;
+            color: var(--text-heading);
             outline: none;
-            min-width: 110px;
+            min-width: 120px;
             cursor: pointer;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
-            transition: all 0.18s ease;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+            transition: all 0.15s ease;
         }
 
         .slicer-select:focus {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
-        }
-
-        .slicer-select option {
-            background: #091322;
-            color: #f1f5f9;
+            border-color: var(--kpi-blue);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
         .btn-slicer-submit {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            background: #0284c7;
             color: #ffffff;
-            border: 1px solid #38bdf8;
+            border: 1px solid #0284c7;
             border-radius: 6px;
-            padding: 6px 14px;
+            padding: 6px 15px;
             font-size: 0.78rem;
             font-weight: 800;
             cursor: pointer;
-            box-shadow: 0 0 16px rgba(2, 132, 199, 0.4);
-            transition: all 0.18s ease;
+            box-shadow: 0 2px 5px rgba(2, 132, 199, 0.3);
+            transition: all 0.15s ease;
         }
 
         .btn-slicer-submit:hover {
-            background: #0284c7;
-            box-shadow: 0 0 22px rgba(56, 189, 248, 0.6);
+            background: #0369a1;
             transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(2, 132, 199, 0.4);
         }
 
         .btn-slicer-clear {
-            background: rgba(30, 41, 59, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid var(--border-card);
             border-radius: 6px;
             padding: 5px 12px;
             font-size: 0.78rem;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--text-body);
             text-decoration: none;
             cursor: pointer;
             transition: all 0.15s ease;
         }
 
         .btn-slicer-clear:hover {
-            background: rgba(51, 65, 85, 0.85);
-            color: #ffffff;
-            border-color: var(--text-muted);
+            background: #f1f5f9;
+            color: var(--text-heading);
         }
 
-        /* MULTI-SELECT VARIETY SLICER */
+        /* MULTI-SELECT VARIETY SLICER WITH GUARANTEED TOP Z-INDEX */
         .slicer-group-multiselect {
             position: relative;
             min-width: 190px;
+            z-index: 1100;
+        }
+
+        .pbi-multiselect {
+            position: relative;
+            width: 100%;
+            z-index: 1101;
         }
 
         .pbi-multiselect-btn {
             width: 100%;
             min-width: 190px;
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            border: 1px solid var(--border-card);
             border-radius: 6px;
-            padding: 5px 8px;
+            padding: 5px 9px;
             font-size: 0.78rem;
             font-weight: 700;
-            background: rgba(7, 13, 26, 0.9);
-            color: var(--text-primary);
+            background: #ffffff;
+            color: var(--text-heading);
             outline: none;
             cursor: pointer;
             display: flex;
@@ -301,23 +307,23 @@
             align-items: center;
             gap: 6px;
             text-align: left;
-            transition: all 0.18s ease;
+            transition: all 0.15s ease;
         }
 
         .pbi-multiselect-btn:focus, .pbi-multiselect-btn.open {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+            border-color: var(--kpi-blue);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
         .pbi-multiselect-dropdown {
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
-            z-index: 1000;
-            background: #091322;
-            border: 1px solid rgba(56, 189, 248, 0.35);
+            z-index: 99999 !important;
+            background: #ffffff;
+            border: 1px solid var(--kpi-blue);
             border-radius: 8px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 15px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.18), 0 5px 15px rgba(0,0,0,0.08);
             min-width: 260px;
             width: max-content;
             max-width: 340px;
@@ -329,24 +335,24 @@
             flex-direction: column;
             gap: 5px;
             padding-bottom: 6px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border-subtle);
             margin-bottom: 6px;
         }
 
         .pbi-ms-search {
             width: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid var(--border-card);
             border-radius: 4px;
             padding: 5px 8px;
             font-size: 0.75rem;
-            background: #040914;
-            color: #ffffff;
+            background: #f8fafc;
+            color: var(--text-heading);
             outline: none;
         }
 
         .pbi-ms-search:focus {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+            border-color: var(--kpi-blue);
+            background: #ffffff;
         }
 
         .pbi-ms-quick-links {
@@ -361,13 +367,13 @@
             padding: 2px 6px;
             font-size: 0.72rem;
             font-weight: 700;
-            color: var(--neon-cyan);
+            color: var(--kpi-blue);
             cursor: pointer;
             border-radius: 3px;
         }
 
         .pbi-ms-btn-link:hover {
-            background: rgba(0, 240, 255, 0.15);
+            background: #eff6ff;
             text-decoration: underline;
         }
 
@@ -388,19 +394,19 @@
             cursor: pointer;
             font-size: 0.76rem;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--text-body);
             transition: background 0.1s ease;
             user-select: none;
         }
 
         .pbi-ms-item:hover {
-            background: rgba(56, 189, 248, 0.15);
-            color: #ffffff;
+            background: #f0f9ff;
+            color: var(--kpi-blue);
         }
 
         .pbi-ms-item input[type="checkbox"] {
             cursor: pointer;
-            accent-color: #0284c7;
+            accent-color: var(--kpi-blue);
             width: 14px;
             height: 14px;
             margin: 0;
@@ -411,13 +417,15 @@
             display: flex;
             gap: 8px;
             margin-bottom: 14px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 2px solid var(--border-subtle);
             padding-bottom: 0px;
+            position: relative;
+            z-index: 10;
         }
 
         .subtab-btn {
-            background: rgba(13, 22, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
             border-bottom: 3px solid transparent;
             padding: 9px 20px;
             font-size: 0.88rem;
@@ -425,191 +433,184 @@
             letter-spacing: 0.02em;
             color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.18s ease;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             gap: 8px;
             border-radius: 10px 10px 0 0;
-            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
 
         .subtab-btn:hover {
-            color: #ffffff;
-            background: rgba(22, 36, 68, 0.75);
-            border-color: rgba(56, 189, 248, 0.3);
+            color: var(--kpi-blue);
+            background: #f8fafc;
         }
 
         .subtab-btn.active {
-            color: var(--neon-cyan);
-            background: rgba(18, 30, 56, 0.95);
-            border-color: rgba(56, 189, 248, 0.4);
-            border-bottom: 3px solid var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.22);
+            color: var(--kpi-blue);
+            background: #ffffff;
+            border-color: var(--border-card);
+            border-bottom: 3px solid var(--kpi-blue);
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
         }
 
-        /* ---------------- ROUNDED KPI CARDS WITH LUMINOUS COLOR BORDERS ---------------- */
+        /* ---------------- ROUNDED KPI CARDS WITH LUMINOUS BORDERS & WHITE BACKGROUNDS ---------------- */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
             margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
         }
 
         .kpi-card {
-            background: var(--card-glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: #ffffff;
             border-radius: 16px;
-            padding: 13px 15px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
 
         .kpi-card:hover {
             transform: translateY(-2px);
         }
 
-        /* 1. VERDE BRILLANTE - PRODUCCION TOTAL / TENDENCIAS POSITIVAS */
-        .kpi-glow-emerald {
-            border: 1px solid rgba(0, 255, 136, 0.45);
-            box-shadow: 0 0 22px var(--neon-green-glow), inset 0 1px 0 rgba(0, 255, 136, 0.3);
+        /* 1. VERDE BRILLANTE - PRODUCCION TOTAL */
+        .kpi-card-emerald {
+            border: 2px solid var(--kpi-green);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
         }
-        .kpi-glow-emerald:hover {
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.42), inset 0 1px 0 rgba(0, 255, 136, 0.5);
+        .kpi-card-emerald:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
         }
         .kpi-icon-emerald {
-            background: var(--neon-green-bg);
-            color: var(--neon-green);
-            border: 1px solid rgba(0, 255, 136, 0.35);
+            background: var(--kpi-green-bg);
+            color: var(--kpi-green-text);
+            border: 1px solid var(--kpi-green-border);
         }
         .kpi-val-emerald {
-            color: var(--neon-green);
-            text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+            color: var(--kpi-green-text);
         }
         .kpi-badge-emerald {
-            background: var(--neon-green-bg);
-            color: var(--neon-green);
-            border: 1px solid rgba(0, 255, 136, 0.3);
+            background: var(--kpi-green-bg);
+            color: var(--kpi-green-text);
+            border: 1px solid var(--kpi-green-border);
         }
 
         /* 2. DORADO - RENDIMIENTO DE PLANTA */
-        .kpi-glow-gold {
-            border: 1px solid rgba(251, 191, 36, 0.45);
-            box-shadow: 0 0 22px var(--neon-gold-glow), inset 0 1px 0 rgba(251, 191, 36, 0.3);
+        .kpi-card-gold {
+            border: 2px solid var(--kpi-gold);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
         }
-        .kpi-glow-gold:hover {
-            box-shadow: 0 0 30px rgba(251, 191, 36, 0.42), inset 0 1px 0 rgba(251, 191, 36, 0.5);
+        .kpi-card-gold:hover {
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25);
         }
         .kpi-icon-gold {
-            background: var(--neon-gold-bg);
-            color: var(--neon-gold);
-            border: 1px solid rgba(251, 191, 36, 0.35);
+            background: var(--kpi-gold-bg);
+            color: var(--kpi-gold-text);
+            border: 1px solid var(--kpi-gold-border);
         }
         .kpi-val-gold {
-            color: var(--neon-gold);
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            color: var(--kpi-gold-text);
         }
         .kpi-badge-gold {
-            background: var(--neon-gold-bg);
-            color: var(--neon-gold);
-            border: 1px solid rgba(251, 191, 36, 0.3);
+            background: var(--kpi-gold-bg);
+            color: var(--kpi-gold-text);
+            border: 1px solid var(--kpi-gold-border);
         }
 
         /* 3. AZUL - BLOQUES */
-        .kpi-glow-blue {
-            border: 1px solid rgba(56, 189, 248, 0.45);
-            box-shadow: 0 0 22px var(--neon-blue-glow), inset 0 1px 0 rgba(56, 189, 248, 0.3);
+        .kpi-card-blue {
+            border: 2px solid var(--kpi-blue);
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);
         }
-        .kpi-glow-blue:hover {
-            box-shadow: 0 0 30px rgba(56, 189, 248, 0.42), inset 0 1px 0 rgba(56, 189, 248, 0.5);
+        .kpi-card-blue:hover {
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.25);
         }
         .kpi-icon-blue {
-            background: var(--neon-blue-bg);
-            color: var(--neon-blue);
-            border: 1px solid rgba(56, 189, 248, 0.35);
+            background: var(--kpi-blue-bg);
+            color: var(--kpi-blue-text);
+            border: 1px solid var(--kpi-blue-border);
         }
         .kpi-val-blue {
-            color: var(--neon-blue);
-            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            color: var(--kpi-blue-text);
         }
         .kpi-badge-blue {
-            background: var(--neon-blue-bg);
-            color: var(--neon-blue);
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: var(--kpi-blue-bg);
+            color: var(--kpi-blue-text);
+            border: 1px solid var(--kpi-blue-border);
         }
 
         /* 4. GRIS OSCURO / METALICO - CICLO PROMEDIO */
-        .kpi-glow-metallic {
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            box-shadow: 0 0 18px var(--metallic-grey-glow), inset 0 1px 0 rgba(148, 163, 184, 0.25);
+        .kpi-card-metallic {
+            border: 2px solid var(--kpi-grey);
+            box-shadow: 0 4px 15px rgba(100, 116, 139, 0.15);
         }
-        .kpi-glow-metallic:hover {
-            box-shadow: 0 0 26px rgba(148, 163, 184, 0.35), inset 0 1px 0 rgba(148, 163, 184, 0.4);
+        .kpi-card-metallic:hover {
+            box-shadow: 0 6px 20px rgba(100, 116, 139, 0.25);
         }
         .kpi-icon-metallic {
-            background: var(--metallic-grey-bg);
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: var(--kpi-grey-bg);
+            color: var(--kpi-grey-text);
+            border: 1px solid var(--kpi-grey-border);
         }
         .kpi-val-metallic {
-            color: #e2e8f0;
-            text-shadow: 0 0 12px rgba(226, 232, 240, 0.3);
+            color: var(--kpi-grey-text);
         }
         .kpi-badge-metallic {
-            background: var(--metallic-grey-bg);
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: var(--kpi-grey-bg);
+            color: var(--kpi-grey-text);
+            border: 1px solid var(--kpi-grey-border);
         }
 
-        /* 5. AZUL BRILLANTE - DESPERDICIO CON GRAFICO DE PASTEL */
-        .kpi-glow-cyan {
-            border: 1px solid rgba(0, 240, 255, 0.5);
-            box-shadow: 0 0 24px var(--neon-cyan-glow), inset 0 1px 0 rgba(0, 240, 255, 0.35);
+        /* 5. AZUL BRILLANTE - DESPERDICIO PROMEDIO (SIN ESFERA) */
+        .kpi-card-cyan {
+            border: 2px solid var(--kpi-cyan);
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.15);
         }
-        .kpi-glow-cyan:hover {
-            box-shadow: 0 0 32px rgba(0, 240, 255, 0.48), inset 0 1px 0 rgba(0, 240, 255, 0.55);
+        .kpi-card-cyan:hover {
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25);
         }
         .kpi-icon-cyan {
-            background: var(--neon-cyan-bg);
-            color: var(--neon-cyan);
-            border: 1px solid rgba(0, 240, 255, 0.4);
+            background: var(--kpi-cyan-bg);
+            color: var(--kpi-cyan-text);
+            border: 1px solid var(--kpi-cyan-border);
         }
         .kpi-val-cyan {
-            color: var(--neon-cyan);
-            text-shadow: 0 0 15px rgba(0, 240, 255, 0.45);
+            color: var(--kpi-cyan-text);
         }
         .kpi-badge-cyan {
-            background: var(--neon-cyan-bg);
-            color: var(--neon-cyan);
-            border: 1px solid rgba(0, 240, 255, 0.35);
+            background: var(--kpi-cyan-bg);
+            color: var(--kpi-cyan-text);
+            border: 1px solid var(--kpi-cyan-border);
         }
 
         /* 6. TALLOS DUMP */
-        .kpi-glow-rose {
-            border: 1px solid rgba(248, 113, 113, 0.45);
-            box-shadow: 0 0 20px var(--neon-rose-glow), inset 0 1px 0 rgba(248, 113, 113, 0.3);
+        .kpi-card-rose {
+            border: 2px solid var(--kpi-rose);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
         }
-        .kpi-glow-rose:hover {
-            box-shadow: 0 0 28px rgba(248, 113, 113, 0.4), inset 0 1px 0 rgba(248, 113, 113, 0.45);
+        .kpi-card-rose:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.25);
         }
         .kpi-icon-rose {
-            background: var(--neon-rose-bg);
-            color: var(--neon-rose);
-            border: 1px solid rgba(248, 113, 113, 0.35);
+            background: var(--kpi-rose-bg);
+            color: var(--kpi-rose-text);
+            border: 1px solid var(--kpi-rose-border);
         }
         .kpi-val-rose {
-            color: var(--neon-rose);
-            text-shadow: 0 0 12px rgba(248, 113, 113, 0.35);
+            color: var(--kpi-rose-text);
         }
         .kpi-badge-rose {
-            background: var(--neon-rose-bg);
-            color: var(--neon-rose);
-            border: 1px solid rgba(248, 113, 113, 0.3);
+            background: var(--kpi-rose-bg);
+            color: var(--kpi-rose-text);
+            border: 1px solid var(--kpi-rose-border);
         }
 
         /* KPI INTERNALS */
@@ -629,7 +630,7 @@
             justify-content: center;
             font-size: 1.25rem;
             flex-shrink: 0;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-sm);
         }
 
         .kpi-meta {
@@ -658,7 +659,7 @@
         }
 
         .kpi-value {
-            font-size: 1.7rem;
+            font-size: 1.75rem;
             font-weight: 900;
             font-family: var(--font-pbi);
             line-height: 1.15;
@@ -667,17 +668,9 @@
         }
 
         .kpi-sub {
-            font-size: 0.69rem;
+            font-size: 0.70rem;
             color: var(--text-muted);
             font-weight: 600;
-        }
-
-        .kpi-donut-container {
-            width: 52px;
-            height: 52px;
-            flex-shrink: 0;
-            position: relative;
-            filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.35));
         }
 
         /* ---------------- 2-COLUMN DUAL CHARTS GRID ---------------- */
@@ -686,6 +679,8 @@
             grid-template-columns: 420px 1fr;
             gap: 14px;
             margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
         }
 
         @media (max-width: 1120px) {
@@ -693,13 +688,11 @@
         }
 
         .chart-card {
-            background: var(--card-glass-bg);
-            border: 1px solid rgba(56, 189, 248, 0.22);
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
             border-radius: 16px;
             padding: 14px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
         }
@@ -717,7 +710,7 @@
             margin: 0;
             font-size: 0.88rem;
             font-weight: 800;
-            color: #38bdf8;
+            color: #0f172a;
             letter-spacing: 0.01em;
             display: flex;
             align-items: center;
@@ -729,9 +722,9 @@
             font-weight: 700;
             padding: 2px 7px;
             border-radius: 4px;
-            background: rgba(56, 189, 248, 0.12);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.28);
+            background: #f0f9ff;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
         }
 
         .chart-body {
@@ -740,15 +733,13 @@
             height: 250px;
         }
 
-        /* ---------------- HIERARCHICAL MATRIX TABLE (DARK THEME) ---------------- */
+        /* ---------------- HIERARCHICAL MATRIX TABLE ---------------- */
         .table-card {
-            background: var(--card-glass-bg);
-            border: 1px solid rgba(56, 189, 248, 0.2);
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
             border-radius: 16px;
             padding: 14px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-card);
         }
 
         .table-header-flex {
@@ -764,37 +755,37 @@
             margin: 0;
             font-size: 0.95rem;
             font-weight: 800;
-            color: #38bdf8;
+            color: #0f172a;
             letter-spacing: 0.01em;
         }
 
         .btn-table-action {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #ffffff;
+            border: 1px solid var(--border-card);
             border-radius: 6px;
             padding: 5px 11px;
             font-size: 0.74rem;
             font-weight: 700;
-            color: var(--text-secondary);
+            color: var(--text-body);
             cursor: pointer;
             transition: all 0.15s ease;
         }
 
         .btn-table-action:hover {
-            background: rgba(30, 41, 59, 0.9);
-            color: #ffffff;
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+            background: #f1f5f9;
+            color: var(--text-heading);
+            border-color: var(--kpi-blue);
         }
 
         .btn-export-csv {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: #059669;
             color: #ffffff;
-            border-color: #34d399;
-            box-shadow: 0 0 12px rgba(5, 150, 105, 0.35);
+            border-color: #059669;
+            box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);
         }
         .btn-export-csv:hover {
-            box-shadow: 0 0 18px rgba(52, 211, 153, 0.55);
+            background: #047857;
+            color: #ffffff;
             transform: translateY(-1px);
         }
 
@@ -804,8 +795,8 @@
             flex-wrap: wrap;
             align-items: center;
             padding: 8px 12px;
-            background: rgba(7, 13, 26, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #f8fafc;
+            border: 1px solid var(--border-subtle);
             border-radius: 8px;
             margin-bottom: 12px;
         }
@@ -820,24 +811,24 @@
         }
 
         .t-filter-ctrl {
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            border: 1px solid var(--border-card);
             border-radius: 4px;
             padding: 4px 7px;
             font-size: 0.74rem;
             font-weight: 600;
-            background: #040914;
-            color: #ffffff;
+            background: #ffffff;
+            color: var(--text-heading);
             outline: none;
         }
         .t-filter-ctrl:focus {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+            border-color: var(--kpi-blue);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
         }
 
         .matrix-table-wrap {
             width: 100%;
             overflow-x: auto;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-subtle);
             border-radius: 8px;
         }
 
@@ -846,16 +837,16 @@
             border-collapse: collapse;
             font-size: 0.76rem;
             font-family: var(--font-pbi);
-            color: var(--text-secondary);
+            color: var(--text-body);
         }
 
         .matrix-table th {
-            background: #081120;
-            color: #e2e8f0;
+            background: #f1f5f9;
+            color: #1e293b;
             font-weight: 800;
             text-align: right;
             padding: 8px 10px;
-            border-bottom: 2px solid rgba(56, 189, 248, 0.35);
+            border-bottom: 2px solid var(--kpi-blue);
             white-space: nowrap;
             letter-spacing: 0.02em;
         }
@@ -864,48 +855,47 @@
 
         .matrix-table td {
             padding: 6px 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-subtle);
             text-align: right;
             white-space: nowrap;
         }
 
         .matrix-table td.col-left { text-align: left; }
 
-        /* HIERARCHICAL ROW STYLING */
+        /* HIERARCHICAL ROW STYLING IN LIGHT MODE */
         .group-master-row {
-            background: rgba(26, 41, 68, 0.85);
+            background: #f0f9ff;
             font-weight: 800;
-            color: #ffffff;
+            color: #0369a1;
             cursor: pointer;
             transition: background 0.12s ease;
         }
-        .group-master-row:hover { background: rgba(37, 56, 92, 0.95); }
+        .group-master-row:hover { background: #e0f2fe; }
 
         .group-sw-row {
-            background: rgba(14, 25, 46, 0.78);
+            background: #f8fafc;
             font-weight: 700;
-            color: #38bdf8;
+            color: #0284c7;
             cursor: pointer;
             transition: background 0.12s ease;
         }
-        .group-sw-row:hover { background: rgba(22, 38, 70, 0.9); }
+        .group-sw-row:hover { background: #f1f5f9; }
 
         .group-block-row {
-            background: rgba(9, 16, 31, 0.65);
+            background: #ffffff;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--text-body);
             cursor: pointer;
             transition: background 0.12s ease;
         }
         .group-block-row:hover {
-            background: rgba(56, 189, 248, 0.12);
-            color: #ffffff;
+            background: #f0fdf4;
         }
 
         .group-harvest-row {
-            background: rgba(6, 11, 22, 0.92);
+            background: #faf5ff;
             font-size: 0.72rem;
-            color: #cbd5e1;
+            color: #581c87;
         }
 
         .toggle-icon, .toggle-icon-sw, .toggle-icon-sm {
@@ -915,12 +905,12 @@
             width: 17px;
             height: 17px;
             border-radius: 4px;
-            background: rgba(56, 189, 248, 0.2);
-            color: #38bdf8;
+            background: #e0f2fe;
+            color: #0284c7;
             font-weight: 800;
             font-size: 0.75rem;
             margin-right: 6px;
-            border: 1px solid rgba(56, 189, 248, 0.35);
+            border: 1px solid #bae6fd;
         }
 
         /* METRIC BADGES & STATUSES */
@@ -933,42 +923,38 @@
             font-size: 0.78rem;
         }
         .metric-optimal {
-            color: var(--neon-green);
-            background: var(--neon-green-bg);
-            border: 1px solid rgba(0, 255, 136, 0.35);
-            box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+            color: #166534;
+            background: #dcfce7;
+            border: 1px solid #86efac;
         }
         .metric-low {
-            color: var(--neon-rose);
-            background: var(--neon-rose-bg);
-            border: 1px solid rgba(248, 113, 113, 0.35);
-            box-shadow: 0 0 8px rgba(248, 113, 113, 0.2);
+            color: #991b1b;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
         }
 
         .badge-status-closed {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.45);
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
             font-size: 0.62rem;
             font-weight: 800;
             padding: 2px 6px;
             border-radius: 4px;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
         }
         .badge-status-harvest {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.45);
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
             font-size: 0.62rem;
             font-weight: 800;
             padding: 2px 6px;
             border-radius: 4px;
-            box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
         }
         .badge-status-pending {
-            background: rgba(148, 163, 184, 0.18);
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
             font-size: 0.62rem;
             font-weight: 700;
             padding: 2px 6px;
@@ -982,14 +968,14 @@
             border-radius: 3px;
         }
         .badge-s {
-            background: rgba(2, 132, 199, 0.2);
-            color: #38bdf8;
-            border: 1px solid rgba(2, 132, 199, 0.4);
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
         }
         .badge-p {
-            background: rgba(147, 51, 234, 0.2);
-            color: #c084fc;
-            border: 1px solid rgba(147, 51, 234, 0.4);
+            background: #f3e8ff;
+            color: #7e22ce;
+            border: 1px solid #e9d5ff;
         }
     </style>
 </head>
@@ -1013,14 +999,14 @@
             <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
             {% endif %}
             {% if user_role == 'admin' %}
-            <a class="menu-link" href="/usuarios" style="color: #f472b6; border-color: rgba(244, 114, 182, 0.4); background: rgba(244, 114, 182, 0.1);">👥 Usuarios</a>
+            <a class="menu-link" href="/usuarios" style="color: #9d174d; border-color: #fbcfe8; background: #fdf2f8;">👥 Usuarios</a>
             {% endif %}
 
             <div class="user-nav-box">
                 <span class="user-badge">
                     👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Administrador' if user_role == 'admin' else ('Agrónomo' if user_role == 'agronomo' else 'Visita / Gerencia') }})
                 </span>
-                <a href="/logout" class="menu-link" style="color: #f87171; border-color: rgba(248, 113, 113, 0.35); background: rgba(248, 113, 113, 0.1);" title="Cerrar sesión">🚪 Salir</a>
+                <a href="/logout" class="menu-link" style="color: #dc2626; border-color: #fca5a5; background: #fff5f5;" title="Cerrar sesión">🚪 Salir</a>
             </div>
         </nav>
 
@@ -1032,7 +1018,7 @@
             </div>
         </div>
 
-        <!-- GLOBAL FILTERS (POWER BI SLICERS) WITH WEEK RANGE SELECTOR -->
+        <!-- GLOBAL FILTERS (POWER BI SLICERS) WITH SELECTOR DROPDOWNS FOR WEEKS -->
         <form class="slicers-card" id="slicers-form" method="GET" action="/estadistica">
             <div class="slicer-group">
                 <label for="slicer-year">📅 Año:</label>
@@ -1044,22 +1030,26 @@
                 </select>
             </div>
 
-            <!-- WEEK RANGE SELECTOR: DESDE SEMANA HASTA SEMANA -->
+            <!-- WEEK RANGE SELECT SLICERS: POINT AND CLICK WITHOUT TYPING -->
             <div class="slicer-group">
                 <label for="slicer-week-from">📅 Desde Sem. Siembra:</label>
-                <input type="text" name="week_from" id="slicer-week-from" list="available-weeks-list" class="slicer-select" placeholder="ej. 2619" value="{{ stats.selected_week_from }}" autocomplete="off" style="width: 110px;">
+                <select name="week_from" id="slicer-week-from" class="slicer-select">
+                    <option value="">(Desde el inicio)</option>
+                    {% for w in stats.available_weeks %}
+                        <option value="{{ w }}" {{ 'selected' if stats.selected_week_from == w else '' }}>Semana {{ w }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="slicer-group">
                 <label for="slicer-week-to">📅 Hasta Sem. Siembra:</label>
-                <input type="text" name="week_to" id="slicer-week-to" list="available-weeks-list" class="slicer-select" placeholder="ej. 2627" value="{{ stats.selected_week_to }}" autocomplete="off" style="width: 110px;">
+                <select name="week_to" id="slicer-week-to" class="slicer-select">
+                    <option value="">(Hasta la última)</option>
+                    {% for w in stats.available_weeks %}
+                        <option value="{{ w }}" {{ 'selected' if stats.selected_week_to == w else '' }}>Semana {{ w }}</option>
+                    {% endfor %}
+                </select>
             </div>
-
-            <datalist id="available-weeks-list">
-                {% for w in stats.available_weeks %}
-                    <option value="{{ w }}">
-                {% endfor %}
-            </datalist>
 
             <div class="slicer-group">
                 <label for="slicer-pm">🌿 Producto Maestro:</label>
@@ -1071,12 +1061,13 @@
                 </select>
             </div>
 
+            <!-- VARIETIES MULTI-SELECT DROPDOWN -->
             <div class="slicer-group slicer-group-multiselect">
                 <label>🌸 Variedades (Selección Múltiple):</label>
                 <div class="pbi-multiselect" id="variety-multiselect">
                     <button type="button" class="pbi-multiselect-btn" id="variety-dropdown-btn">
                         <span id="variety-dropdown-text">(Todas las Variedades)</span>
-                        <span style="font-size: 0.65rem; color: var(--neon-cyan);">▼</span>
+                        <span style="font-size: 0.65rem; color: var(--kpi-blue);">▼</span>
                     </button>
                     <div class="pbi-multiselect-dropdown" id="variety-dropdown-panel" style="display: none;">
                         <div class="pbi-ms-actions">
@@ -1118,9 +1109,9 @@
 
         <!-- ACTIVE RANGE CHIP NOTIFICATION IF SELECTED -->
         {% if stats.selected_week_from or stats.selected_week_to %}
-        <div style="margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: rgba(2, 132, 199, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 9999px; padding: 4px 14px; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">
+        <div style="margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 9999px; padding: 4px 14px; font-size: 0.78rem; color: #0369a1; font-weight: 700; box-shadow: var(--shadow-sm);">
             <span>📅 Rango Activo: Sem. {{ stats.selected_week_from or 'Inicio' }} ➔ {{ stats.selected_week_to or 'Fin' }}</span>
-            <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" style="color: #f87171; text-decoration: none; margin-left: 4px;" title="Quitar filtro de rango de semanas">✕</a>
+            <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" style="color: #dc2626; text-decoration: none; margin-left: 4px; font-weight: 800;" title="Quitar filtro de rango de semanas">✕</a>
         </div>
         {% endif %}
 
@@ -1136,10 +1127,10 @@
 
         <!-- SUBTAB 1: VISUAL DASHBOARD -->
         <div id="subtab-content-dashboard">
-            <!-- ROUNDED KPI CARDS WITH LUMINOUS COLOR BORDERS & SEMI-TRANSPARENT BACKGROUNDS -->
+            <!-- ROUNDED KPI CARDS WITH LUMINOUS BORDERS & WHITE BACKGROUNDS -->
             <div class="kpi-grid">
-                <!-- 1. VERDE BRILLANTE - PRODUCCION TOTAL / TENDENCIAS POSITIVAS -->
-                <div class="kpi-card kpi-glow-emerald">
+                <!-- 1. VERDE BRILLANTE - PRODUCCION TOTAL -->
+                <div class="kpi-card kpi-card-emerald">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-emerald">🌾</div>
                         <div class="kpi-meta">
@@ -1152,7 +1143,7 @@
                 </div>
 
                 <!-- 2. DORADO - RENDIMIENTO DE PLANTA -->
-                <div class="kpi-card kpi-glow-gold">
+                <div class="kpi-card kpi-card-gold">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-gold">🏆</div>
                         <div class="kpi-meta">
@@ -1161,13 +1152,13 @@
                         </div>
                     </div>
                     <div class="kpi-value kpi-val-gold" id="kpi-stems-pp">
-                        {{ stats.kpis.avg_real_stems_per_plant }} <span style="font-size: 0.85rem; font-weight: 700; color: #fbbf24;">T/pl</span>
+                        {{ stats.kpis.avg_real_stems_per_plant }} <span style="font-size: 0.85rem; font-weight: 700;">T/pl</span>
                     </div>
-                    <div class="kpi-sub">🎯 Meta Ideal: <strong style="color: #fde047;">{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
+                    <div class="kpi-sub">🎯 Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
                 </div>
 
                 <!-- 3. AZUL - BLOQUES -->
-                <div class="kpi-card kpi-glow-blue">
+                <div class="kpi-card kpi-card-blue">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-blue">📦</div>
                         <div class="kpi-meta">
@@ -1176,13 +1167,13 @@
                         </div>
                     </div>
                     <div class="kpi-value kpi-val-blue" id="kpi-closed">
-                        {{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">bloques</span>
+                        {{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">bloques</span>
                     </div>
                     <div class="kpi-sub">✅ <strong>{{ stats.kpis.total_closed_blocks }}</strong> cerrados | ⏳ <strong>{{ stats.kpis.total_lots - stats.kpis.total_closed_blocks }}</strong> en cosecha</div>
                 </div>
 
                 <!-- 4. GRIS OSCURO / METALICO - CICLO PROMEDIO -->
-                <div class="kpi-card kpi-glow-metallic">
+                <div class="kpi-card kpi-card-metallic">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-metallic">⏱️</div>
                         <div class="kpi-meta">
@@ -1191,13 +1182,13 @@
                         </div>
                     </div>
                     <div class="kpi-value kpi-val-metallic" id="kpi-cycle">
-                        {{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem; color: #cbd5e1;">sem</span>
+                        {{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span>
                     </div>
                     <div class="kpi-sub">🔄 Tiempo promedio desde origen a corte</div>
                 </div>
 
-                <!-- 5. AZUL BRILLANTE CON GRAFICO DE PASTEL INTEGRADO - DESPERDICIO -->
-                <div class="kpi-card kpi-glow-cyan">
+                <!-- 5. AZUL BRILLANTE - DESPERDICIO PROMEDIO (SIN ESFERA) -->
+                <div class="kpi-card kpi-card-cyan">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-cyan">📉</div>
                         <div class="kpi-meta">
@@ -1205,19 +1196,12 @@
                             <span class="kpi-badge kpi-badge-cyan">% Merma</span>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                        <div>
-                            <div class="kpi-value kpi-val-cyan" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
-                            <div class="kpi-sub">Tasa de merma en ciclo</div>
-                        </div>
-                        <div class="kpi-donut-container" title="Gráfico de Pastel: {{ stats.kpis.avg_waste_pct }}% Desperdicio">
-                            <canvas id="kpiWasteDonut" width="52" height="52"></canvas>
-                        </div>
-                    </div>
+                    <div class="kpi-value kpi-val-cyan" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
+                    <div class="kpi-sub">Tasa de merma estimada en ciclo</div>
                 </div>
 
                 <!-- 6. TALLOS DUMP DESCARTADOS -->
-                <div class="kpi-card kpi-glow-rose">
+                <div class="kpi-card kpi-card-rose">
                     <div class="kpi-header-row">
                         <div class="kpi-icon-badge kpi-icon-rose">🗑️</div>
                         <div class="kpi-meta">
@@ -1273,11 +1257,11 @@
                 </div>
 
                 <!-- DYNAMIC FILTER SUMMARY NOTIFICATION BANNER -->
-                <div id="table-filter-summary" style="display: none; margin-bottom: 8px; background: rgba(2, 132, 199, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 6px 12px; font-size: 0.76rem; color: #38bdf8; font-weight: 700; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div id="table-filter-summary" style="display: none; margin-bottom: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 6px; padding: 6px 12px; font-size: 0.76rem; color: #0369a1; font-weight: 700; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                     <!-- Filled dynamically by JavaScript -->
                 </div>
 
-                <!-- INLINE FILTERS TOOLBAR (SUPPORTS SINGLE WEEKS AND RANGES LIKE 2619-2627) -->
+                <!-- INLINE FILTERS TOOLBAR -->
                 <div class="table-filters-toolbar">
                     <div class="t-filter-item">
                         <span>🔍 Bloque:</span>
@@ -1351,9 +1335,9 @@
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
                                     <td><strong>{{ '{:,}'.format(grp.total_plants) }}</strong></td>
-                                    <td style="color: var(--neon-green);"><strong>{{ '{:,}'.format(grp.total_production) }}</strong></td>
+                                    <td style="color: var(--kpi-green-text);"><strong>{{ '{:,}'.format(grp.total_production) }}</strong></td>
                                     <td><span class="metric-real-pp {{ 'metric-optimal' if grp.avg_real_stems_pp >= grp.avg_ideal_stems_pp else 'metric-low' }}" style="font-size: 0.80rem;">{{ grp.avg_real_stems_pp }}</span></td>
-                                    <td style="color: var(--neon-gold); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
+                                    <td style="color: var(--kpi-gold-text); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
                                     <td><strong>{{ grp.avg_cycle_weeks }} sem</strong></td>
                                     <td>{{ grp.avg_waste_pct }}%</td>
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
@@ -1380,15 +1364,15 @@
                                             <span class="toggle-icon-sw" id="icon-sw-{{ sw_uid }}">+</span>
                                             <strong>📅 Sem. {{ sw_group.source_week_short }} ({{ sw_group.activity }})</strong>
                                         </td>
-                                        <td class="col-left" style="color: #38bdf8; font-weight: 600;">
+                                        <td class="col-left" style="color: var(--kpi-blue); font-weight: 600;">
                                             {{ sw_group.blocks_count }} bloque(s) sembrados
                                         </td>
                                         <td><code>{{ sw_group.source_week_short }}</code></td>
                                         <td><span class="badge-ac {{ 'badge-s' if sw_group.activity == 'SIEMBRA' else 'badge-p' }}">{{ sw_group.activity }}</span></td>
                                         <td><strong>{{ '{:,}'.format(sw_group.total_plants) }}</strong></td>
-                                        <td style="color: var(--neon-cyan); font-weight: 800;">{{ '{:,}'.format(sw_group.total_production) }}</td>
+                                        <td style="color: var(--kpi-blue); font-weight: 800;">{{ '{:,}'.format(sw_group.total_production) }}</td>
                                         <td><span class="metric-real-pp {{ 'metric-optimal' if sw_group.avg_real_stems_pp >= sw_group.avg_ideal_stems_pp else 'metric-low' }}">{{ sw_group.avg_real_stems_pp }}</span></td>
-                                        <td style="color: var(--neon-gold); font-weight: 700;">{{ sw_group.avg_ideal_stems_pp }}</td>
+                                        <td style="color: var(--kpi-gold-text); font-weight: 700;">{{ sw_group.avg_ideal_stems_pp }}</td>
                                         <td><strong>{{ sw_group.avg_cycle_weeks }} sem</strong></td>
                                         <td>{{ sw_group.avg_waste_pct }}%</td>
                                         <td style="text-align: center; color: var(--text-subtle);">-</td>
@@ -1429,10 +1413,10 @@
                                             <td><code>{{ row.source_week_short }}</code></td>
                                             <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
                                             <td>{{ '{:,}'.format(row.plants) }}</td>
-                                            <td style="color: var(--text-primary);">
+                                            <td style="color: var(--text-heading);">
                                                 <strong>{{ '{:,}'.format(row.total_production) }}</strong>
                                                 {% if row.dump_stems and row.dump_stems > 0 %}
-                                                    <div style="font-size: 0.62rem; color: #f87171; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
+                                                    <div style="font-size: 0.62rem; color: #dc2626; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
                                                         🗑️ {{ '{:,}'.format(row.dump_stems) }} dump
                                                     </div>
                                                 {% endif %}
@@ -1442,7 +1426,7 @@
                                                     {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
                                                 </span>
                                             </td>
-                                            <td style="color: var(--neon-gold);">{{ row.ideal_stems_per_plant }}</td>
+                                            <td style="color: var(--kpi-gold-text);">{{ row.ideal_stems_per_plant }}</td>
                                             <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
                                             <td>{{ row.waste_pct }}%</td>
                                             <td style="font-size: 0.68rem; color: var(--text-muted);">{{ row.harvest_weeks_str }}</td>
@@ -1465,10 +1449,10 @@
                                                 data-block="{{ row.block }}"
                                                 data-variety="{{ row.variety }}"
                                                 data-week="{{ row.source_week_short }}">
-                                                <td class="col-left" style="padding-left: 56px; color: #c084fc; font-weight: 700;">
+                                                <td class="col-left" style="padding-left: 56px; color: #7e22ce; font-weight: 700;">
                                                     ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
                                                     {% if hw.dump_stems and hw.dump_stems > 0 %}
-                                                        <span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(248, 113, 113, 0.2); color: #f87171; font-size: 0.62rem; font-weight: 700; border: 1px solid rgba(248, 113, 113, 0.4);">
+                                                        <span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">
                                                             🗑️ {{ '{:,}'.format(hw.dump_stems) }} Dumps
                                                         </span>
                                                     {% endif %}
@@ -1476,18 +1460,18 @@
                                                 <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
                                                     Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
                                                     {% if hw.dump_stems and hw.dump_stems > 0 %}
-                                                        &nbsp;|&nbsp; <span style="color: #34d399; font-weight: 700;">🌸 {{ '{:,}'.format(hw.stems - hw.dump_stems) }} Exportables</span>
+                                                        &nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">🌸 {{ '{:,}'.format(hw.stems - hw.dump_stems) }} Exportables</span>
                                                     {% endif %}
                                                 </td>
                                                 <td style="text-align: center; color: var(--text-subtle);">{{ row.source_week_short }}</td>
                                                 <td style="text-align: center; color: var(--text-subtle);">-</td>
                                                 <td style="color: var(--text-subtle);">-</td>
-                                                <td style="color: #c084fc; font-weight: 700;">{{ '{:,}'.format(hw.stems) }}</td>
-                                                <td style="color: #c084fc; font-weight: 700; font-family: var(--font-mono);">{{ hw.stems_pp }}</td>
+                                                <td style="color: #7e22ce; font-weight: 700;">{{ '{:,}'.format(hw.stems) }}</td>
+                                                <td style="color: #7e22ce; font-weight: 700; font-family: var(--font-mono);">{{ hw.stems_pp }}</td>
                                                 <td style="color: var(--text-subtle);">-</td>
                                                 <td style="color: var(--text-subtle);">-</td>
                                                 <td style="color: var(--text-subtle);">-</td>
-                                                <td style="text-align: center; font-weight: 600; color: #c084fc;">Sem {{ hw.harvest_week_short }}</td>
+                                                <td style="text-align: center; font-weight: 600; color: #7e22ce;">Sem {{ hw.harvest_week_short }}</td>
                                                 <td>
                                                     {% if hw.source == 'REAL' %}
                                                         <span class="badge-status-closed" style="font-size: 0.58rem;">✅ Real Cosechado</span>
@@ -1526,7 +1510,6 @@
         const selectedBlock = {{ stats.selected_block | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
-        const kpiWastePct = parseFloat("{{ stats.kpis.avg_waste_pct }}") || 10.0;
 
         // SUBTAB SWITCHING WITH LOCALSTORAGE PERSISTENCE
         function switchSubTab(tabName) {
@@ -1740,8 +1723,8 @@
             btnToggleView.addEventListener('click', () => {
                 isFlatView = !isFlatView;
                 btnToggleView.textContent = isFlatView ? '📁 Vista Jerárquica' : '👁️ Vista Solo Bloques';
-                btnToggleView.style.background = isFlatView ? 'rgba(2, 132, 199, 0.3)' : '';
-                btnToggleView.style.color = isFlatView ? '#38bdf8' : '';
+                btnToggleView.style.background = isFlatView ? '#e0f2fe' : '';
+                btnToggleView.style.color = isFlatView ? '#0369a1' : '';
                 applyTableFilters();
             });
         }
@@ -1972,7 +1955,7 @@
                             &nbsp;|&nbsp; <span>🌸 Producción: <strong>${totalFilteredProduction.toLocaleString()} tallos</strong></span>
                             &nbsp;|&nbsp; <span>🏆 T/pl Ponderado: <strong>${avgTPl}</strong></span>
                         </div>
-                        <button type="button" onclick="document.getElementById('t-filter-reset').click()" style="background: transparent; border: 1px solid #38bdf8; border-radius: 4px; color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; cursor: pointer;">Limpiar</button>
+                        <button type="button" onclick="document.getElementById('t-filter-reset').click()" style="background: transparent; border: 1px solid #0284c7; border-radius: 4px; color: #0284c7; font-size: 0.72rem; padding: 2px 8px; cursor: pointer;">Limpiar</button>
                     `;
                 } else {
                     tableSummaryEl.style.display = 'none';
@@ -1985,7 +1968,7 @@
                 if (!noMatchRow) {
                     noMatchRow = document.createElement('tr');
                     noMatchRow.id = 'matrix-no-filter-match-row';
-                    noMatchRow.innerHTML = `<td colspan="12" style="text-align: center; padding: 24px; color: #f87171; font-weight: 700;">No se encontraron bloques que coincidan con los filtros aplicados.</td>`;
+                    noMatchRow.innerHTML = `<td colspan="12" style="text-align: center; padding: 24px; color: #dc2626; font-weight: 700;">No se encontraron bloques que coincidan con los filtros aplicados.</td>`;
                     document.getElementById('matrix-tbody').appendChild(noMatchRow);
                 }
                 noMatchRow.style.display = '';
@@ -2013,7 +1996,7 @@
             });
         }
 
-        // DIRECT CSV EXPORT WITH WEEK RANGE SUPPORT
+        // DIRECT CSV EXPORT WITH SELECT WEEK RANGE SUPPORT
         const btnExportCsv = document.getElementById('btn-export-csv');
         if (btnExportCsv) {
             btnExportCsv.addEventListener('click', () => {
@@ -2039,49 +2022,14 @@
             });
         }
 
-        // ---------------- CHART.JS CONFIGURATION - DARK THEME ----------------
+        // ---------------- CHART.JS CONFIGURATION - LIGHT POWER BI STYLE ----------------
         const pbiFontFamily = "'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic Demi', 'Franklin Gothic', 'Arial Narrow', sans-serif";
         if (typeof Chart !== 'undefined') {
             Chart.defaults.font.family = pbiFontFamily;
-            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.color = '#475569';
         }
 
-        // 1. RENDER INTEGRATED DONUT CHART FOR WASTE (DESPERDICIO)
-        const ctxWaste = document.getElementById('kpiWasteDonut');
-        if (ctxWaste && typeof Chart !== 'undefined') {
-            new Chart(ctxWaste, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Desperdicio / Merma', 'Aprovechamiento'],
-                    datasets: [{
-                        data: [kpiWastePct, Math.max(0, 100 - kpiWastePct)],
-                        backgroundColor: ['#00f0ff', 'rgba(255, 255, 255, 0.08)'],
-                        borderColor: ['#00f0ff', 'transparent'],
-                        borderWidth: 1.5,
-                        hoverOffset: 3
-                    }]
-                },
-                options: {
-                    responsive: false,
-                    maintainAspectRatio: false,
-                    cutout: '72%',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(c) {
-                                    return c.dataIndex === 0 ? `Merma: ${kpiWastePct}%` : `Exportable: ${(100 - kpiWastePct).toFixed(1)}%`;
-                                }
-                            },
-                            titleFont: { family: pbiFontFamily, weight: '800' },
-                            bodyFont: { family: pbiFontFamily, weight: '600' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 2. RENDER CHART 1: RELATIVE HARVEST CURVE (LINEAS FINAS EN AZUL BRILLANTE Y DISCONTINUA EN NARANJA)
+        // 1. RENDER CHART 1: RELATIVE HARVEST CURVE (LINEAS FINAS EN AZUL BRILLANTE Y DISCONTINUA EN NARANJA)
         const ctxRelative = document.getElementById('relativeCurveChart');
         if (ctxRelative && typeof Chart !== 'undefined') {
             new Chart(ctxRelative, {
@@ -2092,29 +2040,29 @@
                         {
                             label: 'Curva Real (%)',
                             data: chartRelativeData.real_curve,
-                            borderColor: '#00d2ff',
-                            backgroundColor: 'rgba(0, 210, 255, 0.14)',
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.08)',
                             fill: true,
                             tension: 0.35,
                             borderWidth: 2,
                             pointRadius: 4,
                             pointHoverRadius: 6,
-                            pointBackgroundColor: '#00d2ff',
-                            pointBorderColor: '#0a1128',
+                            pointBackgroundColor: '#0284c7',
+                            pointBorderColor: '#ffffff',
                             pointBorderWidth: 1.5,
                         },
                         {
                             label: 'Curva Ideal (%)',
                             data: chartRelativeData.ideal_curve,
-                            borderColor: '#ff5722',
+                            borderColor: '#ea580c',
                             backgroundColor: 'transparent',
                             borderDash: [5, 5],
                             tension: 0.35,
                             borderWidth: 2,
                             pointRadius: 3,
                             pointHoverRadius: 5,
-                            pointBackgroundColor: '#ff5722',
-                            pointBorderColor: '#0a1128',
+                            pointBackgroundColor: '#ea580c',
+                            pointBorderColor: '#ffffff',
                             pointBorderWidth: 1,
                         }
                     ]
@@ -2127,18 +2075,18 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                color: '#e2e8f0',
+                                color: '#1e293b',
                                 font: { family: pbiFontFamily, size: 11, weight: '700' },
                                 usePointStyle: true,
                                 boxWidth: 7
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(10, 17, 35, 0.95)',
-                            borderColor: '#00d2ff',
+                            backgroundColor: '#0f172a',
+                            borderColor: '#0284c7',
                             borderWidth: 1,
                             titleColor: '#ffffff',
-                            bodyColor: '#e2e8f0',
+                            bodyColor: '#f1f5f9',
                             callbacks: {
                                 label: function(c) { return `${c.dataset.label}: ${c.parsed.y}%`; }
                             },
@@ -2150,15 +2098,15 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                color: '#94a3b8',
+                                color: '#64748b',
                                 callback: function(v) { return v + '%'; },
                                 font: { family: pbiFontFamily, size: 10, weight: '700' }
                             },
-                            grid: { color: 'rgba(255, 255, 255, 0.06)' }
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
                         },
                         x: {
                             ticks: {
-                                color: '#94a3b8',
+                                color: '#64748b',
                                 font: { family: pbiFontFamily, size: 10, weight: '700' }
                             },
                             grid: { display: false }
@@ -2168,12 +2116,12 @@
             });
         }
 
-        // 3. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
+        // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
             const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
                 const target = chartStemsPpData.target_stems_pp[i] || 0;
-                return v >= target ? '#00ff88' : '#ef4444';
+                return v >= target ? '#059669' : '#dc2626';
             });
 
             new Chart(ctxStemsPp, {
@@ -2184,21 +2132,21 @@
                         {
                             label: 'Rendimiento Real T/pl Sem. Siembra',
                             data: chartStemsPpData.real_stems_pp,
-                            borderColor: '#00d2ff',
-                            backgroundColor: 'rgba(0, 210, 255, 0.10)',
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.06)',
                             fill: true,
                             tension: 0.25,
                             borderWidth: 2,
                             pointRadius: 5,
                             pointHoverRadius: 7,
                             pointBackgroundColor: pointColors,
-                            pointBorderColor: '#0a1128',
+                            pointBorderColor: '#ffffff',
                             pointBorderWidth: 1.5,
                         },
                         {
                             label: 'Meta Ideal T/pl',
                             data: chartStemsPpData.target_stems_pp,
-                            borderColor: '#ff3366',
+                            borderColor: '#dc2626',
                             borderDash: [6, 4],
                             backgroundColor: 'transparent',
                             borderWidth: 2,
@@ -2217,18 +2165,18 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                color: '#e2e8f0',
+                                color: '#1e293b',
                                 font: { family: pbiFontFamily, size: 11, weight: '700' },
                                 usePointStyle: true,
                                 boxWidth: 7
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(10, 17, 35, 0.95)',
-                            borderColor: '#00d2ff',
+                            backgroundColor: '#0f172a',
+                            borderColor: '#0284c7',
                             borderWidth: 1,
                             titleColor: '#ffffff',
-                            bodyColor: '#e2e8f0',
+                            bodyColor: '#f1f5f9',
                             callbacks: {
                                 label: function(context) {
                                     const val = context.parsed.y;
@@ -2245,15 +2193,15 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                color: '#94a3b8',
+                                color: '#64748b',
                                 callback: function(v) { return v + ' T/pl'; },
                                 font: { family: pbiFontFamily, size: 10, weight: '700' }
                             },
-                            grid: { color: 'rgba(255, 255, 255, 0.06)' }
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
                         },
                         x: {
                             ticks: {
-                                color: '#94a3b8',
+                                color: '#64748b',
                                 font: { family: pbiFontFamily, size: 10, weight: '700' },
                                 maxRotation: 45,
                                 minRotation: 0,
