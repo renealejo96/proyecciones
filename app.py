@@ -1563,6 +1563,8 @@ def get_statistics_data(
     variety_filter: str = "",
     activity_filter: str = "",
     block_filter: str = "",
+    week_from: str | None = None,
+    week_to: str | None = None,
 ) -> dict[str, Any]:
     db = SessionLocal()
     try:
@@ -1586,11 +1588,18 @@ def get_statistics_data(
         available_blocks = sorted(list(set(b[0].strip() for b in all_blocks_query if b[0] and str(b[0]).strip())))
 
         sws = db.query(TpsrRecord.source_week).distinct().all()
+        all_source_weeks_raw = sorted(list(set(s[0] for s in sws if s[0])))
+        available_weeks = [format_short_week(w) for w in all_source_weeks_raw]
         extracted_years = sorted(
             list(set(int(str(s[0])[:4]) for s in sws if s[0] and len(str(s[0])) >= 4)),
             reverse=True,
         )
         available_years = [str(y) for y in extracted_years]
+
+        parsed_sw_from = parse_week_code(week_from) if week_from and str(week_from).strip() else None
+        parsed_sw_to = parse_week_code(week_to) if week_to and str(week_to).strip() else None
+        if parsed_sw_from and parsed_sw_to and parsed_sw_from > parsed_sw_to:
+            parsed_sw_from, parsed_sw_to = parsed_sw_to, parsed_sw_from
         # 2. Cycle Definitions Map & Valid Curve PMs
         cycles_list = db.query(CycleDefinitionDB).all()
         cycles_map: dict[tuple[str, str, str], dict[str, Any]] = {}
@@ -1657,6 +1666,10 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
+        if parsed_sw_from:
+            closure_query = closure_query.filter(BlockClosureDB.source_week >= parsed_sw_from)
+        if parsed_sw_to:
+            closure_query = closure_query.filter(BlockClosureDB.source_week <= parsed_sw_to)
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
                 closure_query = closure_query.filter(BlockClosureDB.product_master_norm.like("%VERONICA%"))
@@ -1687,6 +1700,10 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
+        if parsed_sw_from:
+            tpsr_query = tpsr_query.filter(TpsrRecord.source_week >= parsed_sw_from)
+        if parsed_sw_to:
+            tpsr_query = tpsr_query.filter(TpsrRecord.source_week <= parsed_sw_to)
 
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
@@ -1718,6 +1735,10 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
+        if parsed_sw_from:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week >= parsed_sw_from)
+        if parsed_sw_to:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week <= parsed_sw_to)
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
                 week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm.like("%VERONICA%"))
@@ -2107,11 +2128,14 @@ def get_statistics_data(
                 "projected_stems": chart_hybrid_projected,
             },
             "available_years": available_years,
+            "available_weeks": available_weeks,
             "available_pms": available_pms,
             "available_blocks": available_blocks,
             "pm_varieties_map": pm_varieties_map,
             "pm_blocks_map": pm_blocks_map,
             "selected_year": resolved_year,
+            "selected_week_from": format_short_week(parsed_sw_from) if parsed_sw_from else (week_from or ""),
+            "selected_week_to": format_short_week(parsed_sw_to) if parsed_sw_to else (week_to or ""),
             "selected_pm": resolved_pm,
             "selected_varieties": selected_varieties,
             "selected_variety": selected_varieties[0] if len(selected_varieties) == 1 else (", ".join(selected_varieties) if selected_varieties else ""),
@@ -2125,6 +2149,8 @@ def get_statistics_data(
 @app.route("/estadistica")
 def estadistica_view() -> str:
     year_filter = request.args.get("year")
+    week_from = request.args.get("week_from", "").strip()
+    week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
     varieties = request.args.getlist("variedad")
     if not varieties and request.args.get("variedad"):
@@ -2138,6 +2164,8 @@ def estadistica_view() -> str:
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        week_from=week_from,
+        week_to=week_to,
     )
 
     return render_template(
@@ -2151,6 +2179,8 @@ def estadistica_view() -> str:
 @app.route("/api/estadistica")
 def estadistica_api():
     year_filter = request.args.get("year")
+    week_from = request.args.get("week_from", "").strip()
+    week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
     varieties = request.args.getlist("variedad")
     if not varieties and request.args.get("variedad"):
@@ -2164,6 +2194,8 @@ def estadistica_api():
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        week_from=week_from,
+        week_to=week_to,
     )
     return jsonify(stats_data)
 
@@ -2171,6 +2203,8 @@ def estadistica_api():
 @app.route("/api/estadistica/export-csv")
 def estadistica_export_csv():
     year_filter = request.args.get("year")
+    week_from = request.args.get("week_from", "").strip()
+    week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
     varieties = request.args.getlist("variedad")
     if not varieties and request.args.get("variedad"):
@@ -2184,6 +2218,8 @@ def estadistica_export_csv():
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        week_from=week_from,
+        week_to=week_to,
     )
 
     output = io.StringIO()
