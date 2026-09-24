@@ -2035,12 +2035,26 @@ def get_statistics_data(
                         "sw_short": sw_short,
                         "total_plants": 0,
                         "total_production": 0,
+                        "siem_plants": 0,
+                        "siem_prod": 0,
+                        "siem_blocks": 0,
+                        "poda_plants": 0,
+                        "poda_prod": 0,
+                        "poda_blocks": 0,
                         "ideal_target": sw_ideal_t_pl,
                         "blocks_count": 0,
                     }
                 chart3_weeks_map[chart3_label]["total_plants"] += sw_plants
                 chart3_weeks_map[chart3_label]["total_production"] += sw_prod
                 chart3_weeks_map[chart3_label]["blocks_count"] += len(blocks)
+                if ac == "SIEMBRA":
+                    chart3_weeks_map[chart3_label]["siem_plants"] += sw_plants
+                    chart3_weeks_map[chart3_label]["siem_prod"] += sw_prod
+                    chart3_weeks_map[chart3_label]["siem_blocks"] += len(blocks)
+                elif ac == "PODA":
+                    chart3_weeks_map[chart3_label]["poda_plants"] += sw_plants
+                    chart3_weeks_map[chart3_label]["poda_prod"] += sw_prod
+                    chart3_weeks_map[chart3_label]["poda_blocks"] += len(blocks)
 
                 sw_groups.append({
                     "source_week": sw,
@@ -2121,11 +2135,27 @@ def get_statistics_data(
         chart3_sorted_labels = sorted(list(chart3_weeks_map.keys()))[-20:]
         chart_stems_pp_real = []
         chart_stems_pp_target = []
+        chart_stems_pp_details = []
         for lbl in chart3_sorted_labels:
             info = chart3_weeks_map[lbl]
             pp = round(info["total_production"] / info["total_plants"], 1) if info["total_plants"] > 0 else 0.0
             chart_stems_pp_real.append(pp)
             chart_stems_pp_target.append(avg_ideal_stems_pp)
+
+            siem_pp = round(info["siem_prod"] / info["siem_plants"], 1) if info.get("siem_plants", 0) > 0 else None
+            poda_pp = round(info["poda_prod"] / info["poda_plants"], 1) if info.get("poda_plants", 0) > 0 else None
+            avg_stems = round(info["total_production"] / info["blocks_count"]) if info.get("blocks_count", 0) > 0 else 0
+
+            chart_stems_pp_details.append({
+                "total_t_pl": pp,
+                "siem_t_pl": siem_pp,
+                "poda_t_pl": poda_pp,
+                "total_production": info["total_production"],
+                "total_plants": info["total_plants"],
+                "avg_stems": avg_stems,
+                "blocks_count": info["blocks_count"],
+                "target": avg_ideal_stems_pp,
+            })
 
         # Chart 4: Hybrid Lifecycle Curve (Closed Real Stems + Future Projected Estimates)
         hybrid_weeks = sorted_chrono_weeks
@@ -2162,6 +2192,7 @@ def get_statistics_data(
                 "labels": chart3_sorted_labels,
                 "real_stems_pp": chart_stems_pp_real,
                 "target_stems_pp": chart_stems_pp_target,
+                "details": chart_stems_pp_details,
             },
             "chart_hybrid": {
                 "labels": hybrid_weeks,

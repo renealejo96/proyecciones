@@ -537,77 +537,56 @@
             background: #fee2e2;
         }
 
-        .chiclet-scroll-wrap {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            position: relative;
-            width: 100%;
-        }
-
-        .chiclet-nav-btn {
-            background: #ffffff;
-            border: 1px solid var(--border-card);
-            border-radius: 6px;
-            width: 28px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-body);
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: all 0.15s ease;
-            user-select: none;
-        }
-
-        .chiclet-nav-btn:hover {
-            background: #f0f9ff;
-            color: var(--kpi-blue);
-            border-color: var(--kpi-blue);
-        }
-
-        .chiclet-pills-row {
-            display: flex;
+        .chiclet-grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 6px;
-            overflow-x: auto;
-            padding: 3px 2px;
-            scroll-behavior: smooth;
-            width: 100%;
+            max-height: 126px; /* Shows exactly 3 rows of week pills */
+            overflow-y: auto;
+            padding: 4px 3px;
             scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
+            scrollbar-color: #0284c7 #f1f5f9;
         }
 
-        .chiclet-pills-row::-webkit-scrollbar {
-            height: 5px;
+        .chiclet-grid-container::-webkit-scrollbar {
+            width: 6px;
         }
-        .chiclet-pills-row::-webkit-scrollbar-track {
-            background: transparent;
+        .chiclet-grid-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 9999px;
         }
-        .chiclet-pills-row::-webkit-scrollbar-thumb {
+        .chiclet-grid-container::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 9999px;
+        }
+        .chiclet-grid-container::-webkit-scrollbar-thumb:hover {
+            background: #0284c7;
+        }
+
+        @media (max-width: 768px) {
+            .chiclet-grid-container {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
         }
 
         .chiclet-pill {
             background: #ffffff;
             border: 1.5px solid var(--border-card);
             border-radius: 7px;
-            padding: 5px 10px;
+            padding: 6px 8px;
             font-size: 0.76rem;
             font-weight: 700;
             color: var(--text-heading);
             cursor: pointer;
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: center;
             gap: 5px;
             white-space: nowrap;
-            flex-shrink: 0;
             transition: all 0.15s ease;
             user-select: none;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-align: center;
         }
 
         .chiclet-pill:hover {
@@ -1375,19 +1354,28 @@
             <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
         </form>
 
-        <!-- POWER BI HORIZONTAL CHICLET WEEK SLICER (BARRA INTERACTIVA DE SEMANAS) -->
+        <!-- POWER BI CHICLET WEEK SLICER (CUADRÍCULA 5 COLUMNAS X 3 FILAS) -->
         <div class="week-chiclet-card" id="week-chiclet-bar">
             <div class="chiclet-header">
                 <div class="chiclet-title">
                     <span class="chiclet-badge-icon">📅</span>
                     <div>
-                        <span class="chiclet-title-main">Slicer de Semanas de Siembra / Poda</span>
-                        <span class="chiclet-title-sub">Haz clic en una o varias semanas para filtrar. Puedes elegir varias semanas simultáneamente.</span>
+                        <span class="chiclet-title-main">Slicer de Semanas de Siembra / Poda (Cuadrícula 5x3)</span>
+                        <span class="chiclet-title-sub">5 columnas con desplazamiento vertical (haz clic para alternar semanas o usa la lista desplegable de arriba).</span>
                     </div>
                 </div>
                 <div class="chiclet-actions">
                     <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas sin filtro">
-                        🌟 (Todas las Semanas)
+                        🌟 (Todas)
+                    </button>
+                    <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Seleccionar las últimas 4 semanas disponibles">
+                        ⚡ Últimas 4
+                    </button>
+                    <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Seleccionar las últimas 8 semanas disponibles">
+                        ⚡ Últimas 8
+                    </button>
+                    <button type="button" id="btn-chiclet-none" class="btn-chiclet-all" title="Deseleccionar todas las semanas">
+                        ✕ Ninguna
                     </button>
                     <button type="button" id="btn-chiclet-apply" class="btn-chiclet-submit" style="display: none;" title="Aplicar las semanas seleccionadas al tablero">
                         ✓ Aplicar (<span id="chiclet-count">0</span>)
@@ -1400,22 +1388,18 @@
                 </div>
             </div>
             
-            <div class="chiclet-scroll-wrap">
-                <button type="button" class="chiclet-nav-btn prev" id="chiclet-nav-prev" title="Desplazar hacia la izquierda">‹</button>
-                <div class="chiclet-pills-row" id="chiclet-pills-row">
-                    {% for w in stats.available_weeks %}
-                        {% set is_sel = stats.selected_weeks and (w in stats.selected_weeks) %}
-                        <button type="button" 
-                                class="chiclet-pill {{ 'active' if is_sel else '' }}" 
-                                data-week="{{ w }}" 
-                                id="chiclet-pill-{{ w }}"
-                                title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
-                            <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
-                            <span class="chiclet-pill-label">Sem {{ w }}</span>
-                        </button>
-                    {% endfor %}
-                </div>
-                <button type="button" class="chiclet-nav-btn next" id="chiclet-nav-next" title="Desplazar hacia la derecha">›</button>
+            <div class="chiclet-grid-container" id="chiclet-grid-container">
+                {% for w in stats.available_weeks %}
+                    {% set is_sel = stats.selected_weeks and (w in stats.selected_weeks) %}
+                    <button type="button" 
+                            class="chiclet-pill {{ 'active' if is_sel else '' }}" 
+                            data-week="{{ w }}" 
+                            id="chiclet-pill-{{ w }}"
+                            title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
+                        <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
+                        <span class="chiclet-pill-label">Sem {{ w }}</span>
+                    </button>
+                {% endfor %}
             </div>
         </div>
 
@@ -1712,6 +1696,9 @@
                                             data-activity="{{ row.activity }}"
                                             data-status="{{ row.status }}"
                                             data-perf="{{ 'LOW' if row.is_below_target else 'OPTIMAL' }}"
+                                            data-plants="{{ row.plants }}"
+                                            data-production="{{ row.total_production }}"
+                                            data-dump="{{ row.dump_stems or 0 }}"
                                             onclick="toggleBlockWeeks('{{ block_uid }}')">
                                             <td class="col-left" style="padding-left: 36px;">
                                                 {% if row.harvest_breakdown %}
@@ -1991,10 +1978,10 @@
         const weekClearAll = document.getElementById('week-clear-all');
         const weekQuickLast4 = document.getElementById('week-quick-last4');
         const weekQuickLast8 = document.getElementById('week-quick-last8');
-        const chicletPillsRow = document.getElementById('chiclet-pills-row');
-        const chicletNavPrev = document.getElementById('chiclet-nav-prev');
-        const chicletNavNext = document.getElementById('chiclet-nav-next');
         const btnChicletAll = document.getElementById('btn-chiclet-all');
+        const btnChicletLast4 = document.getElementById('btn-chiclet-last4');
+        const btnChicletLast8 = document.getElementById('btn-chiclet-last8');
+        const btnChicletNone = document.getElementById('btn-chiclet-none');
         const btnChicletApply = document.getElementById('btn-chiclet-apply');
         const chicletCount = document.getElementById('chiclet-count');
 
@@ -2139,19 +2126,7 @@
             });
         }
 
-        // Horizontal scrolling for Chiclet Bar
-        if (chicletNavPrev && chicletPillsRow) {
-            chicletNavPrev.addEventListener('click', () => {
-                chicletPillsRow.scrollBy({ left: -220, behavior: 'smooth' });
-            });
-        }
-        if (chicletNavNext && chicletPillsRow) {
-            chicletNavNext.addEventListener('click', () => {
-                chicletPillsRow.scrollBy({ left: 220, behavior: 'smooth' });
-            });
-        }
-
-        // Chiclet "🌟 (Todas las Semanas)" button
+        // Chiclet Header Action Buttons (Cuadrícula 5x3)
         if (btnChicletAll) {
             btnChicletAll.addEventListener('click', () => {
                 document.querySelectorAll('.pbi-week-cb').forEach(cb => {
@@ -2161,6 +2136,52 @@
                 updateWeekDropdownButtonText();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
+            });
+        }
+
+        if (btnChicletLast4) {
+            btnChicletLast4.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last4 = allCbs.slice(-4);
+                last4.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateWeekDropdownButtonText();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        if (btnChicletLast8) {
+            btnChicletLast8.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last8 = allCbs.slice(-8);
+                last8.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateWeekDropdownButtonText();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        if (btnChicletNone) {
+            btnChicletNone.addEventListener('click', () => {
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                updateWeekDropdownButtonText();
             });
         }
 
@@ -2431,10 +2452,8 @@
                         if (match) {
                             swVisibleCount++;
                             totalVisibleBlocks++;
-                            const plantsStr = (blockRow.cells[4]?.textContent || '').replace(/[^\d]/g, '');
-                            const prodStr = (blockRow.cells[5]?.textContent || '').replace(/[^\d]/g, '');
-                            const plantsVal = parseInt(plantsStr, 10) || 0;
-                            const prodVal = parseInt(prodStr, 10) || 0;
+                            const plantsVal = parseFloat(blockRow.dataset.plants) || 0;
+                            const prodVal = parseFloat(blockRow.dataset.production) || 0;
                             totalFilteredPlants += plantsVal;
                             totalFilteredProduction += prodVal;
                         }
@@ -2659,7 +2678,7 @@
                     labels: chartStemsPpData.labels,
                     datasets: [
                         {
-                            label: 'Rendimiento Real T/pl Sem. Siembra',
+                            label: 'Rendimiento Real (T/pl)',
                             data: chartStemsPpData.real_stems_pp,
                             borderColor: '#0284c7',
                             backgroundColor: 'rgba(2, 132, 199, 0.06)',
@@ -2673,7 +2692,7 @@
                             pointBorderWidth: 1.5,
                         },
                         {
-                            label: 'Meta Ideal T/pl',
+                            label: 'Meta Ideal (T/pl)',
                             data: chartStemsPpData.target_stems_pp,
                             borderColor: '#dc2626',
                             borderDash: [6, 4],
@@ -2707,11 +2726,51 @@
                             titleColor: '#ffffff',
                             bodyColor: '#f1f5f9',
                             callbacks: {
+                                title: function(items) {
+                                    if (!items.length) return '';
+                                    return `📅 ${items[0].label}`;
+                                },
                                 label: function(context) {
-                                    const val = context.parsed.y;
-                                    const meta = chartStemsPpData.target_stems_pp[context.dataIndex] || 0;
-                                    const statusText = val >= meta ? '🟢 Cumple meta' : '🔴 Bajo meta';
-                                    return `${context.dataset.label}: ${val} T/pl (${statusText})`;
+                                    const i = context.dataIndex;
+                                    const detail = (chartStemsPpData && chartStemsPpData.details) ? chartStemsPpData.details[i] : null;
+                                    const meta = (chartStemsPpData && chartStemsPpData.target_stems_pp) ? chartStemsPpData.target_stems_pp[i] : 0;
+
+                                    if (context.datasetIndex === 0) {
+                                        const lines = [];
+                                        if (detail) {
+                                            const hasSiem = detail.siem_t_pl !== null && detail.siem_t_pl !== undefined;
+                                            const hasPoda = detail.poda_t_pl !== null && detail.poda_t_pl !== undefined;
+
+                                            if (hasSiem && hasPoda) {
+                                                const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
+                                                const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
+                                                const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
+                                                lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
+                                                lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
+                                                lines.push(`🏆 Promedio: ${detail.total_t_pl} t/p ${totIcon}`);
+                                            } else if (hasSiem) {
+                                                const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
+                                                lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
+                                            } else if (hasPoda) {
+                                                const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
+                                                lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
+                                            } else {
+                                                const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
+                                                lines.push(`🏆 Promedio: ${detail.total_t_pl} t/p ${totIcon}`);
+                                            }
+
+                                            if (detail.avg_stems !== undefined && detail.avg_stems > 0) {
+                                                lines.push(`🌸 Prom. Tallos: ${detail.avg_stems.toLocaleString()} / blq`);
+                                            }
+                                        } else {
+                                            const val = context.parsed.y;
+                                            const icon = val >= meta ? '🟢' : '🔴';
+                                            lines.push(`🏆 Promedio: ${val} t/p ${icon}`);
+                                        }
+                                        return lines;
+                                    } else {
+                                        return `🎯 Meta: ${meta} t/p`;
+                                    }
                                 }
                             },
                             titleFont: { family: pbiFontFamily, weight: '800' },
