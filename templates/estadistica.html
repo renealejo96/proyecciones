@@ -14,7 +14,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
+        @font-face {
+            font-family: 'Franklin Gothic Demi Cond';
+            src: local('Franklin Gothic Demi Cond'), local('Franklin Gothic Demi Cond Regular'), local('Franklin Gothic Medium Cond'), local('Franklin Gothic Demi'), local('Franklin Gothic');
+        }
+
         :root {
+            --pbi-font: 'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic', 'Arial Narrow', sans-serif;
+            --pbi-mono: 'JetBrains Mono', 'Consolas', monospace;
             --pbi-bg: #f8fafc;
             --pbi-card-bg: #ffffff;
             --pbi-navy: #0f172a;
@@ -41,10 +48,14 @@
 
         body {
             margin: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: var(--pbi-font);
             color: var(--pbi-navy);
             background: linear-gradient(180deg, #edf2f7 0%, #f1f5f9 100%);
             min-height: 100vh;
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
         }
 
         .dashboard-container {
@@ -68,12 +79,15 @@
             border: 1px solid var(--pbi-slate-300);
             border-radius: 9999px;
             padding: 4px 12px;
-            font-size: 0.76rem;
-            font-weight: 600;
+            font-size: 0.78rem;
+            font-weight: 700;
             color: var(--pbi-slate-700);
             background: #ffffff;
             transition: all 0.15s ease;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .menu-link:hover {
@@ -194,6 +208,177 @@
 
         .btn-slicer-clear:hover { background: var(--pbi-slate-100); }
 
+        /* POWER BI MULTI-SELECT VARIETY SLICER */
+        .slicer-group-multiselect {
+            position: relative;
+            min-width: 190px;
+        }
+
+        .pbi-multiselect {
+            position: relative;
+            width: 100%;
+        }
+
+        .pbi-multiselect-btn {
+            width: 100%;
+            min-width: 190px;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #ffffff;
+            color: var(--pbi-navy);
+            outline: none;
+            cursor: pointer;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            text-align: left;
+            transition: border-color 0.15s ease;
+        }
+
+        .pbi-multiselect-btn:focus, .pbi-multiselect-btn.open {
+            border-color: var(--pbi-accent);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+        }
+
+        .pbi-multiselect-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            z-index: 1000;
+            background: #ffffff;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 6px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1);
+            min-width: 260px;
+            width: max-content;
+            max-width: 340px;
+            padding: 8px;
+        }
+
+        .pbi-ms-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--pbi-slate-200);
+            margin-bottom: 6px;
+        }
+
+        .pbi-ms-search {
+            width: 100%;
+            border: 1px solid var(--pbi-slate-300);
+            border-radius: 4px;
+            padding: 4px 7px;
+            font-size: 0.75rem;
+            outline: none;
+        }
+
+        .pbi-ms-search:focus {
+            border-color: var(--pbi-accent);
+        }
+
+        .pbi-ms-quick-links {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+        }
+
+        .pbi-ms-btn-link {
+            background: none;
+            border: none;
+            padding: 2px 5px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--pbi-accent);
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .pbi-ms-btn-link:hover {
+            background: var(--pbi-slate-100);
+            text-decoration: underline;
+        }
+
+        .pbi-ms-options {
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .pbi-ms-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--pbi-slate-700);
+            transition: background 0.1s ease;
+            user-select: none;
+        }
+
+        .pbi-ms-item:hover {
+            background: var(--pbi-slate-100);
+            color: var(--pbi-navy);
+        }
+
+        .pbi-ms-item input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: var(--pbi-blue);
+            width: 14px;
+            height: 14px;
+            margin: 0;
+        }
+
+        /* SUBTABS BAR POWER BI STYLE */
+        .subtabs-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--pbi-slate-200);
+            padding-bottom: 0px;
+        }
+
+        .subtab-btn {
+            background: #ffffff;
+            border: 1px solid var(--pbi-slate-200);
+            border-bottom: 3px solid transparent;
+            padding: 8px 18px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: var(--pbi-slate-600);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            border-radius: 6px 6px 0 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .subtab-btn:hover {
+            color: var(--pbi-blue);
+            background: #f8fafc;
+        }
+
+        .subtab-btn.active {
+            color: var(--pbi-blue);
+            border-color: var(--pbi-slate-300);
+            border-bottom: 3px solid var(--pbi-accent);
+            background: #ffffff;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+        }
+
         /* KPI CARDS */
         .kpi-grid {
             display: grid;
@@ -220,7 +405,7 @@
         .kpi-card.kpi-purple { border-left-color: var(--pbi-purple); }
 
         .kpi-label {
-            font-size: 0.66rem;
+            font-size: 0.70rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -232,11 +417,12 @@
         }
 
         .kpi-value {
-            font-size: 1.45rem;
+            font-size: 1.55rem;
             font-weight: 900;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--pbi-font);
             color: var(--pbi-navy);
             line-height: 1.1;
+            letter-spacing: -0.01em;
         }
 
         .kpi-sub {
@@ -596,11 +782,21 @@
     <div class="dashboard-container">
         <!-- NAVIGATION MENU -->
         <nav class="main-menu">
+            {% if user_role in ['admin', 'agronomo'] %}
             <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
             <a class="menu-link" href="/reales">📊 Datos Reales</a>
+            {% endif %}
             <a class="menu-link active" href="/estadistica">📈 Estadística</a>
+            {% if user_role in ['admin', 'agronomo'] %}
             <a class="menu-link" href="/tpsr">🌱 Plantaciones (TPSR)</a>
             <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
+            {% endif %}
+            <div class="user-nav-box" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                <span class="user-badge" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700; border: 1px solid #bae6fd;">
+                    👤 {{ current_user or 'Usuario' }} ({{ 'Agrónomo' if user_role == 'agronomo' else ('Visita / Gerencia' if user_role == 'visita' else 'Admin') }})
+                </span>
+                <a href="/logout" class="menu-link" style="color: #dc2626; border-color: #fecaca; background: #fff5f5;" title="Cerrar sesión">🚪 Salir</a>
+            </div>
         </nav>
 
         <!-- DASHBOARD TITLE -->
@@ -633,11 +829,26 @@
                 </select>
             </div>
 
-            <div class="slicer-group">
-                <label for="slicer-variety">🌸 Variedad:</label>
-                <select name="variedad" id="slicer-variety" class="slicer-select">
-                    <option value="">(Todas las Variedades)</option>
-                </select>
+            <div class="slicer-group slicer-group-multiselect">
+                <label>🌸 Variedades (Selección Múltiple):</label>
+                <div class="pbi-multiselect" id="variety-multiselect">
+                    <button type="button" class="pbi-multiselect-btn" id="variety-dropdown-btn">
+                        <span id="variety-dropdown-text">(Todas las Variedades)</span>
+                        <span style="font-size: 0.65rem; color: var(--pbi-slate-500);">▼</span>
+                    </button>
+                    <div class="pbi-multiselect-dropdown" id="variety-dropdown-panel" style="display: none;">
+                        <div class="pbi-ms-actions">
+                            <input type="text" id="variety-search" placeholder="🔍 Buscar variedad..." class="pbi-ms-search" autocomplete="off">
+                            <div class="pbi-ms-quick-links">
+                                <button type="button" id="variety-select-all" class="pbi-ms-btn-link">✓ Todas</button>
+                                <button type="button" id="variety-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
+                            </div>
+                        </div>
+                        <div class="pbi-ms-options" id="variety-options-list">
+                            <!-- Injected dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="slicer-group">
@@ -663,81 +874,97 @@
             <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
         </form>
 
-        <!-- KPI CARDS -->
-        <div class="kpi-grid">
-            <div class="kpi-card kpi-emerald">
-                <div class="kpi-label">
-                    <span>🌸 Total Producción / Tallos</span>
-                    <span class="kpi-badge">Curva + Real</span>
-                </div>
-                <div class="kpi-value" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
-                <div class="kpi-sub">Total cosechado y proyectado</div>
-            </div>
-
-            <div class="kpi-card kpi-accent">
-                <div class="kpi-label">
-                    <span>🌱 Real Tallos / Planta</span>
-                    <span class="kpi-badge">Ponderado</span>
-                </div>
-                <div class="kpi-value" id="kpi-stems-pp">{{ stats.kpis.avg_real_stems_per_plant }}</div>
-                <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }}</strong></div>
-            </div>
-
-            <div class="kpi-card kpi-purple">
-                <div class="kpi-label">
-                    <span>📦 Bloques Monitoreados</span>
-                    <span class="kpi-badge">Bloques</span>
-                </div>
-                <div class="kpi-value" id="kpi-closed">{{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: var(--pbi-slate-500);">({{ stats.kpis.total_closed_blocks }} cerrados)</span></div>
-                <div class="kpi-sub">Total de bloques en evaluación</div>
-            </div>
-
-            <div class="kpi-card kpi-amber">
-                <div class="kpi-label">
-                    <span>⏱️ Ciclo Promedio</span>
-                    <span class="kpi-badge">Semanas</span>
-                </div>
-                <div class="kpi-value" id="kpi-cycle">{{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span></div>
-                <div class="kpi-sub">Semanas origen a punteo</div>
-            </div>
-
-            <div class="kpi-card kpi-cyan">
-                <div class="kpi-label">
-                    <span>📉 Desperdicio Promedio</span>
-                    <span class="kpi-badge">% Merma</span>
-                </div>
-                <div class="kpi-value" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
-                <div class="kpi-sub">Tasa de merma estimada</div>
-            </div>
+        <!-- POWER BI SUBTABS -->
+        <div class="subtabs-bar">
+            <button type="button" class="subtab-btn active" id="btn-subtab-dashboard" onclick="switchSubTab('dashboard')">
+                📊 Panel Visual Power BI (KPIs & Gráficas)
+            </button>
+            <button type="button" class="subtab-btn" id="btn-subtab-desglose" onclick="switchSubTab('desglose')">
+                📋 Desglose de Rendimiento Detallado (Tabla Matriz)
+            </button>
         </div>
 
-        <!-- 2 POWER BI ANALYTICS CHARTS (CURVA RELATIVA + RENDIMIENTO EXPANDIDO) -->
-        <div class="analytics-grid-2">
-            <!-- CHART 1: RELATIVE HARVEST CURVE -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>📈 Curva Real vs Ideal</h3>
-                    <span class="chart-tag">% por Sem Relativa</span>
+        <!-- SUBTAB 1: VISUAL DASHBOARD -->
+        <div id="subtab-content-dashboard">
+            <!-- KPI CARDS -->
+            <div class="kpi-grid">
+                <div class="kpi-card kpi-emerald">
+                    <div class="kpi-label">
+                        <span>🌸 Total Producción / Tallos</span>
+                        <span class="kpi-badge">Curva + Real</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
+                    <div class="kpi-sub">Total cosechado y proyectado</div>
                 </div>
-                <div class="chart-body">
-                    <canvas id="relativeCurveChart"></canvas>
+
+                <div class="kpi-card kpi-accent">
+                    <div class="kpi-label">
+                        <span>🌱 Real Tallos / Planta</span>
+                        <span class="kpi-badge">Ponderado</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-stems-pp">{{ stats.kpis.avg_real_stems_per_plant }}</div>
+                    <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }}</strong></div>
+                </div>
+
+                <div class="kpi-card kpi-purple">
+                    <div class="kpi-label">
+                        <span>📦 Bloques Monitoreados</span>
+                        <span class="kpi-badge">Bloques</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-closed">{{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: var(--pbi-slate-500);">({{ stats.kpis.total_closed_blocks }} cerrados)</span></div>
+                    <div class="kpi-sub">Total de bloques en evaluación</div>
+                </div>
+
+                <div class="kpi-card kpi-amber">
+                    <div class="kpi-label">
+                        <span>⏱️ Ciclo Promedio</span>
+                        <span class="kpi-badge">Semanas</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-cycle">{{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span></div>
+                    <div class="kpi-sub">Semanas origen a punteo</div>
+                </div>
+
+                <div class="kpi-card kpi-cyan">
+                    <div class="kpi-label">
+                        <span>📉 Desperdicio Promedio</span>
+                        <span class="kpi-badge">% Merma</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
+                    <div class="kpi-sub">Tasa de merma estimada</div>
                 </div>
             </div>
 
-            <!-- CHART 2 (PREVIOUSLY 3): STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (EXPANDED HORIZONTALLY) -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
-                    <span class="chart-tag" style="background: #f0fdf4; color: #166534; border-color: #86efac;">Eje X: Semanas de Siembra / Poda</span>
+            <!-- 2 POWER BI ANALYTICS CHARTS (CURVA RELATIVA + RENDIMIENTO EXPANDIDO) -->
+            <div class="analytics-grid-2">
+                <!-- CHART 1: RELATIVE HARVEST CURVE -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>📈 Curva Real vs Ideal</h3>
+                        <span class="chart-tag">% por Sem Relativa</span>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="relativeCurveChart"></canvas>
+                    </div>
                 </div>
-                <div class="chart-body">
-                    <canvas id="stemsPpChart"></canvas>
+
+                <!-- CHART 2 (PREVIOUSLY 3): STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (EXPANDED HORIZONTALLY) -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
+                        <span class="chart-tag" style="background: #f0fdf4; color: #166534; border-color: #86efac;">Eje X: Semanas de Siembra / Poda</span>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="stemsPpChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
+        <!-- END SUBTAB 1 -->
 
-        <!-- PIVOT ACCORDION DATA TABLE WITH SOURCE WEEK HIERARCHY & CSV EXPORT -->
-        <div class="table-card">
+        <!-- SUBTAB 2: PERFORMANCE BREAKDOWN HIERARCHICAL MATRIX -->
+        <div id="subtab-content-desglose" style="display: none;">
+            <!-- PIVOT ACCORDION DATA TABLE WITH SOURCE WEEK HIERARCHY & CSV EXPORT -->
+            <div class="table-card">
             <div class="table-header-flex">
                 <h3>📋 Desglose de Rendimiento: Producto Maestro ➔ Semana Siembra/Poda ➔ Bloques ➔ Semanas Cosecha</h3>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -990,33 +1217,175 @@
                 </table>
             </div>
         </div>
+        </div>
+        <!-- END SUBTAB 2 -->
     </div>
 
     <script>
         const pmVarietiesMap = {{ stats.pm_varieties_map | tojson }};
         const pmBlocksMap = {{ stats.pm_blocks_map | tojson }};
         const availableBlocks = {{ stats.available_blocks | tojson }};
+        const selectedVarieties = {{ stats.selected_varieties | tojson }};
         const selectedVariety = {{ stats.selected_variety | tojson }};
         const selectedBlock = {{ stats.selected_block | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
 
-        // DYNAMIC SLICER VARIETY & BLOCK POPULATION
-        const slicerPm = document.getElementById('slicer-pm');
-        const slicerVariety = document.getElementById('slicer-variety');
-        const slicerBlock = document.getElementById('slicer-block');
+        // SUBTAB SWITCHING WITH LOCALSTORAGE PERSISTENCE
+        function switchSubTab(tabName) {
+            const dashboard = document.getElementById('subtab-content-dashboard');
+            const desglose = document.getElementById('subtab-content-desglose');
+            const btnDashboard = document.getElementById('btn-subtab-dashboard');
+            const btnDesglose = document.getElementById('btn-subtab-desglose');
 
-        function updateSlicerVarietyDropdown(selectedPm, currentVal = '') {
-            if (!slicerVariety) return;
+            if (tabName === 'desglose') {
+                if (dashboard) dashboard.style.display = 'none';
+                if (desglose) desglose.style.display = 'block';
+                if (btnDashboard) btnDashboard.classList.remove('active');
+                if (btnDesglose) btnDesglose.classList.add('active');
+                try { localStorage.setItem('pbi_active_subtab', 'desglose'); } catch(e) {}
+            } else {
+                if (dashboard) dashboard.style.display = 'block';
+                if (desglose) desglose.style.display = 'none';
+                if (btnDashboard) btnDashboard.classList.add('active');
+                if (btnDesglose) btnDesglose.classList.remove('active');
+                try { localStorage.setItem('pbi_active_subtab', 'dashboard'); } catch(e) {}
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let savedSubTab = null;
+            try { savedSubTab = localStorage.getItem('pbi_active_subtab'); } catch(e) {}
+            if (window.location.hash === '#desglose' || savedSubTab === 'desglose') {
+                switchSubTab('desglose');
+            } else {
+                switchSubTab('dashboard');
+            }
+        });
+
+        // POWER BI MULTI-SELECT VARIETY SLICER LOGIC
+        const slicerPm = document.getElementById('slicer-pm');
+        const slicerBlock = document.getElementById('slicer-block');
+        const varietyDropdownBtn = document.getElementById('variety-dropdown-btn');
+        const varietyDropdownPanel = document.getElementById('variety-dropdown-panel');
+        const varietyOptionsList = document.getElementById('variety-options-list');
+        const varietyDropdownText = document.getElementById('variety-dropdown-text');
+        const varietySearchInput = document.getElementById('variety-search');
+        const varietySelectAllBtn = document.getElementById('variety-select-all');
+        const varietyClearAllBtn = document.getElementById('variety-clear-all');
+
+        let currentSelectedVarieties = Array.isArray(selectedVarieties) && selectedVarieties.length > 0
+            ? [...selectedVarieties]
+            : (selectedVariety ? [selectedVariety] : []);
+
+        function updateVarietyDropdownText() {
+            if (!varietyDropdownText) return;
+            const checked = Array.from(document.querySelectorAll('.pbi-variety-cb:checked')).map(cb => cb.value);
+            if (checked.length === 0) {
+                varietyDropdownText.textContent = '(Todas las Variedades)';
+                varietyDropdownText.style.fontWeight = '600';
+            } else if (checked.length === 1) {
+                varietyDropdownText.textContent = checked[0];
+                varietyDropdownText.style.fontWeight = '800';
+            } else if (checked.length <= 2) {
+                varietyDropdownText.textContent = checked.join(', ');
+                varietyDropdownText.style.fontWeight = '800';
+            } else {
+                varietyDropdownText.textContent = `${checked.length} variedades seleccionadas`;
+                varietyDropdownText.style.fontWeight = '800';
+            }
+        }
+
+        function renderVarietyOptions(selectedPm) {
+            if (!varietyOptionsList) return;
             const vars = (selectedPm && selectedPm !== 'ALL' && pmVarietiesMap[selectedPm]) ? pmVarietiesMap[selectedPm] : Object.values(pmVarietiesMap).flat();
             const uniqueVars = Array.from(new Set(vars)).sort();
 
-            let html = '<option value="">(Todas las Variedades)</option>';
+            varietyOptionsList.innerHTML = '';
             uniqueVars.forEach(v => {
-                const isSel = (v === currentVal);
-                html += `<option value="${v}" ${isSel ? 'selected' : ''}>${v}</option>`;
+                const isChecked = currentSelectedVarieties.includes(v);
+                const label = document.createElement('label');
+                label.className = 'pbi-ms-item';
+                label.dataset.varietyName = v.toLowerCase();
+                label.innerHTML = `
+                    <input type="checkbox" name="variedad" value="${v}" class="pbi-variety-cb" ${isChecked ? 'checked' : ''}>
+                    <span>${v}</span>
+                `;
+                varietyOptionsList.appendChild(label);
             });
-            slicerVariety.innerHTML = html;
+
+            varietyOptionsList.querySelectorAll('.pbi-variety-cb').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    currentSelectedVarieties = Array.from(document.querySelectorAll('.pbi-variety-cb:checked')).map(c => c.value);
+                    updateVarietyDropdownText();
+                });
+            });
+
+            updateVarietyDropdownText();
+        }
+
+        if (varietyDropdownBtn && varietyDropdownPanel) {
+            varietyDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = varietyDropdownPanel.style.display !== 'none';
+                varietyDropdownPanel.style.display = isOpen ? 'none' : 'block';
+                varietyDropdownBtn.classList.toggle('open', !isOpen);
+                if (!isOpen && varietySearchInput) {
+                    varietySearchInput.value = '';
+                    filterVarietyItems('');
+                    setTimeout(() => varietySearchInput.focus(), 50);
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!varietyDropdownPanel.contains(e.target) && !varietyDropdownBtn.contains(e.target)) {
+                    varietyDropdownPanel.style.display = 'none';
+                    varietyDropdownBtn.classList.remove('open');
+                }
+            });
+        }
+
+        function filterVarietyItems(query) {
+            const q = query.toLowerCase().trim();
+            if (!varietyOptionsList) return;
+            varietyOptionsList.querySelectorAll('.pbi-ms-item').forEach(item => {
+                const name = item.dataset.varietyName || '';
+                item.style.display = (name.includes(q)) ? 'flex' : 'none';
+            });
+        }
+
+        if (varietySearchInput) {
+            varietySearchInput.addEventListener('input', (e) => {
+                filterVarietyItems(e.target.value);
+            });
+        }
+
+        if (varietySelectAllBtn) {
+            varietySelectAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                varietyOptionsList.querySelectorAll('.pbi-ms-item').forEach(item => {
+                    if (item.style.display !== 'none') {
+                        const cb = item.querySelector('.pbi-variety-cb');
+                        if (cb) cb.checked = true;
+                    }
+                });
+                currentSelectedVarieties = Array.from(document.querySelectorAll('.pbi-variety-cb:checked')).map(c => c.value);
+                updateVarietyDropdownText();
+            });
+        }
+
+        if (varietyClearAllBtn) {
+            varietyClearAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                varietyOptionsList.querySelectorAll('.pbi-ms-item').forEach(item => {
+                    if (item.style.display !== 'none') {
+                        const cb = item.querySelector('.pbi-variety-cb');
+                        if (cb) cb.checked = false;
+                    }
+                });
+                currentSelectedVarieties = [];
+                updateVarietyDropdownText();
+            });
         }
 
         function updateSlicerBlockDropdown(selectedPm, currentVal = '') {
@@ -1035,10 +1404,11 @@
         }
 
         if (slicerPm) {
-            updateSlicerVarietyDropdown(slicerPm.value, selectedVariety);
+            renderVarietyOptions(slicerPm.value);
             updateSlicerBlockDropdown(slicerPm.value, selectedBlock);
             slicerPm.addEventListener('change', () => {
-                updateSlicerVarietyDropdown(slicerPm.value, '');
+                currentSelectedVarieties = [];
+                renderVarietyOptions(slicerPm.value);
                 updateSlicerBlockDropdown(slicerPm.value, '');
             });
         }
@@ -1347,25 +1717,32 @@
             });
         }
 
-        // HIGH-SPEED DIRECT CSV EXPORT
+        // HIGH-SPEED DIRECT CSV EXPORT WITH MULTI-VARIETY SUPPORT
         const btnExportCsv = document.getElementById('btn-export-csv');
         if (btnExportCsv) {
             btnExportCsv.addEventListener('click', () => {
                 const yearVal = document.getElementById('slicer-year')?.value || '';
                 const pmVal = document.getElementById('slicer-pm')?.value || '';
-                const varVal = document.getElementById('slicer-variety')?.value || '';
                 const blkVal = document.getElementById('slicer-block')?.value || '';
                 const acVal = document.getElementById('slicer-ac')?.value || '';
 
                 const params = new URLSearchParams();
                 if (yearVal) params.set('year', yearVal);
                 if (pmVal) params.set('pm', pmVal);
-                if (varVal) params.set('variedad', varVal);
                 if (blkVal) params.set('bloque', blkVal);
                 if (acVal) params.set('ac', acVal);
 
+                const checkedVars = Array.from(document.querySelectorAll('.pbi-variety-cb:checked')).map(cb => cb.value);
+                checkedVars.forEach(v => params.append('variedad', v));
+
                 window.location.href = `/api/estadistica/export-csv?${params.toString()}`;
             });
+        }
+
+        // CHART.JS DEFAULTS - FRANKLIN GOTHIC DEMI COND STYLE
+        const pbiFontFamily = "'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic', 'Arial Narrow', sans-serif";
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.font.family = pbiFontFamily;
         }
 
         // 1. RENDER CHART 1: RELATIVE HARVEST CURVE
@@ -1409,19 +1786,21 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
+                            labels: { font: { family: pbiFontFamily, size: 11, weight: '700' }, usePointStyle: true, boxWidth: 7 }
                         },
                         tooltip: {
-                            callbacks: { label: function(c) { return `${c.dataset.label}: ${c.parsed.y}%`; } }
+                            callbacks: { label: function(c) { return `${c.dataset.label}: ${c.parsed.y}%`; } },
+                            titleFont: { family: pbiFontFamily, weight: '800' },
+                            bodyFont: { family: pbiFontFamily, weight: '600' }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: function(v) { return v + '%'; }, font: { family: 'JetBrains Mono', size: 9 } },
+                            ticks: { callback: function(v) { return v + '%'; }, font: { family: pbiFontFamily, size: 10, weight: '700' } },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
-                        x: { ticks: { font: { family: 'Inter', size: 9, weight: '600' } }, grid: { display: false } }
+                        x: { ticks: { font: { family: pbiFontFamily, size: 10, weight: '700' } }, grid: { display: false } }
                     }
                 }
             });
@@ -1475,7 +1854,7 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: { font: { family: 'Inter', size: 10, weight: '700' }, usePointStyle: true, boxWidth: 7 }
+                            labels: { font: { family: pbiFontFamily, size: 11, weight: '700' }, usePointStyle: true, boxWidth: 7 }
                         },
                         tooltip: {
                             callbacks: {
@@ -1485,18 +1864,20 @@
                                     const statusText = val >= meta ? '🟢 Cumple meta' : '🔴 Bajo meta';
                                     return `${context.dataset.label}: ${val} T/pl (${statusText})`;
                                 }
-                            }
+                            },
+                            titleFont: { family: pbiFontFamily, weight: '800' },
+                            bodyFont: { family: pbiFontFamily, weight: '600' }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: function(v) { return v + ' T/pl'; }, font: { family: 'JetBrains Mono', size: 9 } },
+                            ticks: { callback: function(v) { return v + ' T/pl'; }, font: { family: pbiFontFamily, size: 10, weight: '700' } },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         x: {
                             ticks: {
-                                font: { family: 'JetBrains Mono', size: 9, weight: '700' },
+                                font: { family: pbiFontFamily, size: 10, weight: '700' },
                                 maxRotation: 45,
                                 minRotation: 0,
                                 autoSkip: false,

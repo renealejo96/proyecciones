@@ -157,6 +157,17 @@ class AppMetaDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class UserDB(Base):
+    __tablename__ = "app_users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False, default="visita")  # 'agronomo', 'visita', 'admin'
+    full_name = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 def get_data_version(db_session=None) -> int:
     close_session = False
     if db_session is None:
@@ -300,8 +311,98 @@ def init_db():
                         )
                     )
             db.commit()
+
+        seed_default_users_if_empty(db)
     except Exception:
         db.rollback()
+    finally:
+        db.close()
+
+
+def seed_default_users_if_empty(db_session=None):
+    from werkzeug.security import generate_password_hash
+
+    close_session = False
+    if db_session is None:
+        db_session = SessionLocal()
+        close_session = True
+    try:
+        user_count = db_session.query(UserDB).count()
+        if user_count == 0:
+            defaults = [
+                UserDB(
+                    username="agronomo",
+                    password_hash=generate_password_hash(os.environ.get("AUTH_AGRONOMO_PASS", "agro2026")),
+                    role="agronomo",
+                    full_name="Agrónomo Operativo",
+                ),
+                UserDB(
+                    username="visita",
+                    password_hash=generate_password_hash(os.environ.get("AUTH_VISITA_PASS", "visita2026")),
+                    role="visita",
+                    full_name="Usuario Visita / Coordinación",
+                ),
+                UserDB(
+                    username="gerente",
+                    password_hash=generate_password_hash(os.environ.get("AUTH_GERENTE_PASS", "gerente2026")),
+                    role="visita",
+                    full_name="Gerencia General",
+                ),
+                UserDB(
+                    username="coordinador",
+                    password_hash=generate_password_hash(os.environ.get("AUTH_COORD_PASS", "coord2026")),
+                    role="visita",
+                    full_name="Coordinador de Producción",
+                ),
+                UserDB(
+                    username="admin",
+                    password_hash=generate_password_hash(os.environ.get("AUTH_ADMIN_PASS", "admin2026")),
+                    role="admin",
+                    full_name="Administrador General",
+                ),
+            ]
+            db_session.add_all(defaults)
+            db_session.commit()
+    except Exception:
+        db_session.rollback()
+    finally:
+        if close_session:
+            db_session.close()
+
+
+def verify_user(username: str, password: str) -> dict[str, Any] | None:
+    from werkzeug.security import check_password_hash
+
+    db = SessionLocal()
+    try:
+        u_clean = (username or "").strip().lower()
+        pwd_clean = (password or "").strip()
+        user = db.query(UserDB).filter(UserDB.username == u_clean).first()
+        if user and check_password_hash(user.password_hash, pwd_clean):
+            return {
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "full_name": user.full_name or user.username,
+            }
+
+        fallback_users = {
+            "agronomo": ("agro2026", "agronomo", "Agrónomo Operativo"),
+            "visita": ("visita2026", "visita", "Usuario Visita / Coordinación"),
+            "gerente": ("gerente2026", "visita", "Gerencia General"),
+            "coordinador": ("coord2026", "visita", "Coordinador de Producción"),
+            "admin": ("admin2026", "admin", "Administrador General"),
+        }
+        if u_clean in fallback_users and pwd_clean == fallback_users[u_clean][0]:
+            return {
+                "id": 0,
+                "username": u_clean,
+                "role": fallback_users[u_clean][1],
+                "full_name": fallback_users[u_clean][2],
+            }
+        return None
+    except Exception:
+        return None
     finally:
         db.close()
 

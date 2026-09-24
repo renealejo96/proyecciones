@@ -278,12 +278,23 @@
 </head>
 <body>
     <main class="page">
-        <nav class="main-menu" style="display: flex; gap: 6px; margin-bottom: 12px;">
-            <a class="menu-link" href="/" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌾 Llenado Agrónomo</a>
-            <a class="menu-link" href="/reales" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">📊 Datos Reales</a>
+        <nav class="main-menu" style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+            {% if user_role != 'visita' %}
+                <a class="menu-link" href="/" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌾 Llenado Agrónomo</a>
+                <a class="menu-link" href="/reales" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">📊 Datos Reales</a>
+            {% endif %}
             <a class="menu-link" href="/estadistica" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">📈 Estadística</a>
-            <a class="menu-link" href="/tpsr" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌱 Plantaciones (TPSR)</a>
-            <a class="menu-link active" href="/parametros" style="text-decoration: none; border: 1px solid var(--navy-brand); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: #ffffff; background: var(--navy-brand);">⚙️ Configuración Ciclos</a>
+            {% if user_role != 'visita' %}
+                <a class="menu-link" href="/tpsr" style="text-decoration: none; border: 1px solid var(--slate-300); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: var(--slate-700); background: #ffffff;">🌱 Plantaciones (TPSR)</a>
+                <a class="menu-link active" href="/parametros" style="text-decoration: none; border: 1px solid var(--navy-brand); border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: #ffffff; background: var(--navy-brand);">⚙️ Configuración Ciclos</a>
+            {% endif %}
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.74rem; font-weight: 700; color: #475569; background: #ffffff; padding: 4px 10px; border-radius: 9999px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Visita' if user_role == 'visita' else ('Admin' if user_role == 'admin' else 'Agrónomo') }})
+                </span>
+                <a class="menu-link" href="/logout" style="text-decoration: none; border: 1px solid #fca5a5; border-radius: 9999px; padding: 4px 11px; font-size: 0.76rem; font-weight: 600; color: #dc2626; background: #ffffff;" title="Cerrar Sesión">🚪 Salir</a>
+            </div>
         </nav>
 
         <section class="panel">

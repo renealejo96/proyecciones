@@ -1199,11 +1199,22 @@
 
     <main class="page">
         <nav class="main-menu">
-            <a class="menu-link {{ 'active' if page_mode == 'AGRONOMO' else '' }}" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">🌾 Llenado Agrónomo</a>
-            <a class="menu-link {{ 'active' if page_mode == 'REAL' else '' }}" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">📊 Datos Reales</a>
+            {% if user_role != 'visita' %}
+                <a class="menu-link {{ 'active' if page_mode == 'AGRONOMO' else '' }}" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">🌾 Llenado Agrónomo</a>
+                <a class="menu-link {{ 'active' if page_mode == 'REAL' else '' }}" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">📊 Datos Reales</a>
+            {% endif %}
             <a class="menu-link" href="/estadistica">📈 Estadística</a>
-            <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">🌱 Plantaciones (TPSR)</a>
-            <a class="menu-link" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración Ciclos</a>
+            {% if user_role != 'visita' %}
+                <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">🌱 Plantaciones (TPSR)</a>
+                <a class="menu-link" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración Ciclos</a>
+            {% endif %}
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.74rem; font-weight: 700; color: #475569; background: #ffffff; padding: 4px 10px; border-radius: 9999px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Visita' if user_role == 'visita' else ('Admin' if user_role == 'admin' else 'Agrónomo') }})
+                </span>
+                <a class="menu-link" href="/logout" style="color: #dc2626; border-color: #fca5a5;" title="Cerrar Sesión">🚪 Salir</a>
+            </div>
         </nav>
 
         <section class="hero">
@@ -1410,8 +1421,10 @@
                                     data-bed-location="{{ row.bed_location }}"
                                     data-curve="{{ row.curve_csv }}"
                                     data-block-closed="{{ 'true' if row.block_closed else 'false' }}"
+                                    data-was-closed="{{ 'true' if row.block_closed else 'false' }}"
                                     data-lifetime-total-prod="{{ row.lifetime_total_production }}"
-                                    data-lifetime-real-stems="{{ '%.1f'|format(row.lifetime_real_stems_per_plant) if row.lifetime_real_stems_per_plant else '' }}">
+                                    data-lifetime-real-stems="{{ '%.1f'|format(row.lifetime_real_stems_per_plant) if row.lifetime_real_stems_per_plant else '' }}"
+                                    data-initial-window-prod="{{ row.window_total }}">
                                     <td class="sticky-col sticky-1">
                                         {% if page_mode == 'AGRONOMO' and row.block_closed %}
                                             <span title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales." style="color: #64748b; font-size: 0.9rem; display: inline-block; padding: 2px;">🔒</span>
@@ -1770,7 +1783,9 @@
         }
 
         function recalcRow(row) {
-            if (row.dataset.blockClosed === 'true') {
+            // NEVER overwrite or regenerate model curve if in real harvest mode, or if block is/was closed!
+            if (pageMode === 'REAL' || row.dataset.blockClosed === 'true' || row.dataset.wasClosed === 'true') {
+                updateRowTotalsFromWeekInputs(row);
                 return;
             }
             const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell').textContent) || 0));
@@ -1803,7 +1818,6 @@
             });
 
             let windowTotal = 0;
-            let prodTotalWithDumps = 0;
             row.querySelectorAll('.week-cell').forEach((cell) => {
                 const label = cell.dataset.weekLabel;
                 const input = cell.querySelector('.week-input');
@@ -1812,22 +1826,12 @@
                 }
                 const value = Math.max(0, Math.round(Number.parseFloat(input.value) || 0));
                 input.value = String(value);
-                const dVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || 0));
                 windowTotal += value;
-                prodTotalWithDumps += Math.max(value, dVal);
                 normalizeWeeklyCellClass(cell);
             });
 
             row.querySelector('.cell-window-total').textContent = String(windowTotal);
-            const totalProdCell = row.querySelector('.cell-total-prod');
-            if (totalProdCell) {
-                totalProdCell.textContent = String(prodTotalWithDumps);
-            }
-
-            const realStemsCell = row.querySelector('.cell-real-stems');
-            if (realStemsCell) {
-                realStemsCell.textContent = (plants > 0) ? (prodTotalWithDumps / plants).toFixed(1) : '0.0';
-            }
+            updateRowTotalsFromWeekInputs(row);
 
             return {
                 activity: row.dataset.activity,
@@ -1842,36 +1846,41 @@
 
         function updateRowTotalsFromWeekInputs(row) {
             if (!row) return 0;
-            const isClosed = (row.dataset.blockClosed === 'true');
-            let windowTotal = 0;
-            let prodTotalWithDumps = 0;
+            let windowExportable = 0;
+            let windowDumps = 0;
             row.querySelectorAll('.week-cell').forEach((c) => {
                 const inp = c.querySelector('.week-input');
                 const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
                 const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
-                windowTotal += val;
-                prodTotalWithDumps += Math.max(val, dVal);
+                windowExportable += val;
+                windowDumps += dVal;
             });
 
             const winTotCell = row.querySelector('.cell-window-total');
-            if (winTotCell) winTotCell.textContent = String(windowTotal);
+            if (winTotCell) winTotCell.textContent = String(windowExportable);
 
-            const totalProdCell = row.querySelector('.cell-total-prod');
-            const realStemsCell = row.querySelector('.cell-real-stems');
             const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
 
-            if (isClosed) {
-                const closedProd = row.dataset.lifetimeTotalProd;
-                const closedStemsPp = row.dataset.lifetimeRealStems;
-                if (totalProdCell && closedProd) totalProdCell.textContent = Number(closedProd).toLocaleString();
-                if (realStemsCell && closedStemsPp) realStemsCell.textContent = closedStemsPp;
-            } else {
-                if (totalProdCell) totalProdCell.textContent = String(prodTotalWithDumps);
-                if (realStemsCell) {
-                    realStemsCell.textContent = (plants > 0) ? (prodTotalWithDumps / plants).toFixed(1) : '0.0';
-                }
+            // Establish baseline non-window stems so navigating weeks doesn't shrink stems/plant
+            if (row.dataset.baselineNonWindowProd === undefined) {
+                const initialLifetime = Math.max(0, Math.round(Number.parseFloat(row.dataset.lifetimeTotalProd) || 0));
+                const initialWindow = Math.max(0, Math.round(Number.parseFloat(row.dataset.initialWindowProd) || (windowExportable + windowDumps)));
+                row.dataset.baselineNonWindowProd = String(Math.max(0, initialLifetime - initialWindow));
             }
-            return windowTotal;
+            const nonWindowProd = Math.max(0, Math.round(Number.parseFloat(row.dataset.baselineNonWindowProd) || 0));
+            const currentTotalProd = nonWindowProd + windowExportable + windowDumps;
+            const currentRealStemsPp = (plants > 0) ? (currentTotalProd / plants).toFixed(1) : '0.0';
+
+            row.dataset.lifetimeTotalProd = String(currentTotalProd);
+            row.dataset.lifetimeRealStems = currentRealStemsPp;
+
+            const totalProdCell = row.querySelector('.cell-total-prod');
+            if (totalProdCell) totalProdCell.textContent = currentTotalProd.toLocaleString();
+
+            const realStemsCell = row.querySelector('.cell-real-stems');
+            if (realStemsCell) realStemsCell.textContent = currentRealStemsPp;
+
+            return windowExportable;
         }
 
         function adjustWeekColumnWidths() {
@@ -2298,22 +2307,22 @@
                 }
 
                 let rowWindowTotal = 0;
-                let rowProdTotalWithDumps = 0;
+                let rowWindowDumps = 0;
                 row.querySelectorAll('.week-cell').forEach((cell) => {
                     const label = cell.dataset.weekLabel;
                     const input = cell.querySelector('.week-input');
                     const val = Math.max(0, Math.round(Number.parseFloat(input?.value) || 0));
                     const status = cell.dataset.status;
                     const isDump = (status === 'DUMP' || cell.dataset.isDump === 'true');
-                    const dumpStemsVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || (isDump ? val : 0)));
+                    const dumpStemsVal = Math.max(0, Math.round(Number.parseFloat(cell.dataset.dumpStems) || 0));
 
                     rowWindowTotal += val;
-                    rowProdTotalWithDumps += Math.max(val, dumpStemsVal);
+                    rowWindowDumps += dumpStemsVal;
                     masterWeekTotals[label] += val;
                     varietyTotalsMap[variety].weeks[label] += val;
                     masterGrandTotal += val;
 
-                    if (isDump || dumpStemsVal > 0) {
+                    if (dumpStemsVal > 0) {
                         masterDumpTotal += dumpStemsVal;
                         summaryData[key].dump[activity][label] += dumpStemsVal;
                     }
@@ -2324,30 +2333,7 @@
                 });
 
                 varietyTotalsMap[variety].windowTotal += rowWindowTotal;
-
-                const winTotCell = row.querySelector('.cell-window-total');
-                if (winTotCell) winTotCell.textContent = String(rowWindowTotal);
-
-                const isClosed = (row.dataset.blockClosed === 'true');
-                const totalProdCell = row.querySelector('.cell-total-prod');
-                const realStemsCell = row.querySelector('.cell-real-stems');
-                const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
-
-                if (isClosed) {
-                    const closedProd = row.dataset.lifetimeTotalProd;
-                    const closedStemsPp = row.dataset.lifetimeRealStems;
-                    if (totalProdCell && closedProd) {
-                        totalProdCell.textContent = Number(closedProd).toLocaleString();
-                    }
-                    if (realStemsCell && closedStemsPp) {
-                        realStemsCell.textContent = closedStemsPp;
-                    }
-                } else {
-                    if (totalProdCell) totalProdCell.textContent = String(rowProdTotalWithDumps);
-                    if (realStemsCell) {
-                        realStemsCell.textContent = (plants > 0) ? (rowProdTotalWithDumps / plants).toFixed(1) : '0.0';
-                    }
-                }
+                updateRowTotalsFromWeekInputs(row);
 
                 if (activity === 'SIEMBRA') masterSiembraTotal += rowWindowTotal;
                 else masterPodaTotal += rowWindowTotal;
@@ -2538,7 +2524,7 @@
 
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
-                recalcRow(row);
+                updateRowTotalsFromWeekInputs(row);
                 recalcAll();
                 closeDumpModal();
                 showToast(dumps > 0 ? `🗑️ ${dumps.toLocaleString()} tallos en DUMP registrados (${total.toLocaleString()} total).` : `✅ Cosecha de ${total.toLocaleString()} tallos guardada sin dump.`);
@@ -3069,21 +3055,9 @@
                 try {
                     await saveBlockClosure(row, isChecking);
                     row.dataset.blockClosed = isChecking ? 'true' : 'false';
-                    if (isChecking) {
-                        let rowProdTotal = 0;
-                        row.querySelectorAll('.week-cell').forEach((c) => {
-                            const inp = c.querySelector('.week-input');
-                            const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
-                            const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
-                            rowProdTotal += Math.max(val, dVal);
-                        });
-                        const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
-                        if (!row.dataset.lifetimeTotalProd || row.dataset.lifetimeTotalProd === '0') {
-                            row.dataset.lifetimeTotalProd = String(rowProdTotal);
-                            row.dataset.lifetimeRealStems = (plants > 0) ? (rowProdTotal / plants).toFixed(1) : '0.0';
-                        }
-                    }
+                    row.dataset.wasClosed = 'true';
                     applyRowEditLocks();
+                    updateRowTotalsFromWeekInputs(row);
                     recalcAll();
                     showToast(isChecking ? `🔒 Bloque ${blockName} cerrado con éxito.` : `🔓 Bloque ${blockName} reabierto para edición.`);
                 } catch (error) {

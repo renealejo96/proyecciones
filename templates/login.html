@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar Sesión - Proyecciones Agronómicas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pbi-navy: #0f172a;
+            --pbi-blue: #1e3a8a;
+            --pbi-accent: #0284c7;
+            --pbi-emerald: #059669;
+            --pbi-gold: #f59e0b;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-500: #64748b;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #064e3b 100%);
+            color: #ffffff;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+            padding: 36px 32px;
+            color: var(--slate-800);
+            position: relative;
+            margin: 20px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        .login-logo {
+            font-size: 2.4rem;
+            display: inline-block;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .login-title {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: var(--pbi-blue);
+            letter-spacing: -0.02em;
+        }
+
+        .login-subtitle {
+            margin: 6px 0 0;
+            font-size: 0.8rem;
+            color: var(--slate-500);
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #f87171;
+            color: #b91c1c;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate-700);
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            border: 1.5px solid var(--slate-300);
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--slate-800);
+            transition: all 0.15s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--pbi-accent);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--pbi-blue) 0%, #0369a1 100%);
+            color: #ffffff;
+            font-size: 0.92rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45);
+            filter: brightness(1.05);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .role-cards-title {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--slate-200);
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--slate-500);
+            text-align: center;
+        }
+
+        .role-quick-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .quick-role-btn {
+            background: var(--slate-100);
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            padding: 9px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .quick-role-btn:hover {
+            background: #ffffff;
+            border-color: var(--pbi-accent);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transform: translateY(-1px);
+        }
+
+        .quick-role-title {
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: var(--pbi-navy);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .quick-role-desc {
+            font-size: 0.65rem;
+            color: var(--slate-500);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">🌸🌱📊</div>
+            <h1 class="login-title">Proyecciones Agronómicas</h1>
+            <p class="login-subtitle">Sistema de Control Operativo y Estadístico</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-error">
+                        <span>⚠️</span> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="Ej: agronomo o visita" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <span>🔐</span> Iniciar Sesión
+            </button>
+        </form>
+
+        <div class="role-cards-title">Acceso Rápido por Perfil</div>
+        <div class="role-quick-buttons">
+            <div class="quick-role-btn" onclick="quickFill('agronomo', 'agro2026')">
+                <div class="quick-role-title">🌾 Agrónomo</div>
+                <div class="quick-role-desc">Acceso Operativo Completo</div>
+            </div>
+            <div class="quick-role-btn" onclick="quickFill('visita', 'visita2026')">
+                <div class="quick-role-title">📊 Visita / Gerencia</div>
+                <div class="quick-role-desc">Solo Tablero Estadístico</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function quickFill(user, pass) {
+            document.getElementById('username').value = user;
+            document.getElementById('password').value = pass;
+        }
+    </script>
+</body>
+</html>

@@ -11,7 +11,17 @@ from typing import Any, Dict, List
 import csv
 import io
 import pandas as pd
-from flask import Flask, Response, jsonify, render_template, request
+from flask import (
+    Flask,
+    Response,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy.exc import SQLAlchemyError
 
 from db import (
@@ -23,6 +33,7 @@ from db import (
     RowAdjustmentDB,
     SessionLocal,
     TpsrRecord,
+    UserDB,
     WeekAdjustmentDB,
     bump_data_version,
     format_short_week,
@@ -31,12 +42,15 @@ from db import (
     parse_week_code,
     process_tpsr_excel_upload,
     seed_data_from_excel_if_empty,
+    verify_user,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
 WORKBOOK_PATH = BASE_DIR / "siembras_podas" / "tpsr.xlsx"
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "proyecciones_secret_session_key_2026_prod")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 # Automatically create tables and seed Postgres if empty on startup
 seed_data_from_excel_if_empty(WORKBOOK_PATH)
@@ -647,7 +661,7 @@ def aggregate_for_week(
             ):
                 tot_exp = int(round(grp["exportable_stems"].sum()))
                 tot_dumps = int(grp["dump_stems"].sum()) if "dump_stems" in grp.columns else 0
-                tot_prod = max(tot_exp, tot_dumps)
+                tot_prod = tot_exp + tot_dumps
                 lifetime_metrics[(str(pm_val), str(var_val), str(act_val), int(sw_val), str(blk_val))] = {
                     "total_production": tot_prod,
                     "total_exportable": tot_exp,
@@ -854,14 +868,15 @@ def aggregate_for_week(
                 lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
 
                 window_total_prod = sum(
-                    max(weekly_projection[w["label"]], dump_stems_by_week[w["label"]])
+                    weekly_projection[w["label"]] + dump_stems_by_week[w["label"]]
                     for w in week_columns
                 )
                 window_real_stems = round(window_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
 
                 is_closed = bool(row.block_closed)
-                effective_total_prod = lifetime_total_prod if is_closed else window_total_prod
-                effective_real_stems = lifetime_real_stems if is_closed else window_real_stems
+                # Keep tallos/planta representative of the row's full lifetime harvest + dumps, not just visible segment
+                effective_total_prod = lifetime_total_prod
+                effective_real_stems = lifetime_real_stems
 
                 matrix_rows.append(
                     {
@@ -1024,6 +1039,71 @@ def add_no_cache_headers(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+@app.context_processor
+def inject_auth_context():
+    return {
+        "current_user": session.get("username"),
+        "user_role": session.get("role"),
+        "user_name": session.get("full_name"),
+    }
+
+
+@app.before_request
+def require_login():
+    # Allow public endpoints and static files
+    if request.path.startswith("/static") or request.path in {"/login", "/logout"}:
+        return None
+
+    # Check if user is logged in
+    if not session.get("username"):
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "message": "Sesión requerida."}), 401
+        target_next = request.full_path if request.method == "GET" and request.full_path != "/?" else "/"
+        return redirect(url_for("login_view", next=target_next))
+
+    # Check role restrictions: 'visita' can only access estadistica
+    user_role = session.get("role", "visita")
+    if user_role == "visita":
+        allowed_paths = {"/estadistica", "/api/estadistica", "/api/estadistica/export-csv", "/logout"}
+        if request.path not in allowed_paths:
+            if request.path.startswith("/api/"):
+                return jsonify({"ok": False, "message": "Acceso restringido para perfil de visita."}), 403
+            return redirect(url_for("estadistica_view"))
+
+    return None
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login_view():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        user_info = verify_user(username, password)
+        if user_info:
+            session["username"] = user_info["username"]
+            session["role"] = user_info["role"]
+            session["full_name"] = user_info["full_name"]
+            session.permanent = True
+
+            next_url = request.args.get("next")
+            if user_info["role"] == "visita":
+                return redirect(url_for("estadistica_view"))
+            if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                return redirect(next_url)
+            return redirect(url_for("index"))
+        else:
+            flash("Usuario o contraseña incorrectos. Verifique sus credenciales.", "danger")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout_view():
+    session.clear()
+    return redirect(url_for("login_view"))
+
 
 @app.route("/")
 def index() -> str:
@@ -1395,9 +1475,14 @@ def get_statistics_data(
         else:
             resolved_pm = str(pm_filter).strip()
 
-        variety_filter = (variety_filter or "").strip()
-        if variety_filter.upper() in ("ALL", "TODAS"):
-            variety_filter = ""
+        selected_varieties = []
+        if isinstance(variety_filter, list):
+            selected_varieties = [str(v).strip() for v in variety_filter if v and str(v).strip() and str(v).strip().upper() not in ("ALL", "TODAS")]
+        elif isinstance(variety_filter, str) and variety_filter.strip():
+            parts = [p.strip() for p in variety_filter.split(",") if p.strip()]
+            selected_varieties = [v for v in parts if v.upper() not in ("ALL", "TODAS")]
+
+        selected_varieties_norm = [normalize_text(v) for v in selected_varieties]
 
         activity_filter = (activity_filter or "").strip()
         if activity_filter.upper() in ("ALL", "TODAS"):
@@ -1422,8 +1507,8 @@ def get_statistics_data(
                 closure_query = closure_query.filter(BlockClosureDB.product_master_norm.like("%VERONICA%"))
             else:
                 closure_query = closure_query.filter(BlockClosureDB.product_master_norm == normalize_text(resolved_pm))
-        if variety_filter:
-            closure_query = closure_query.filter(BlockClosureDB.variety_norm == normalize_text(variety_filter))
+        if selected_varieties_norm:
+            closure_query = closure_query.filter(BlockClosureDB.variety_norm.in_(selected_varieties_norm))
         if activity_filter:
             closure_query = closure_query.filter(BlockClosureDB.activity == normalize_text(activity_filter))
         if block_filter:
@@ -1455,9 +1540,8 @@ def get_statistics_data(
                 norm_pm = normalize_text(resolved_pm)
                 tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm == norm_pm)
 
-        if variety_filter:
-            norm_var = normalize_text(variety_filter)
-            tpsr_query = tpsr_query.filter(TpsrRecord.variety_norm == norm_var)
+        if selected_varieties_norm:
+            tpsr_query = tpsr_query.filter(TpsrRecord.variety_norm.in_(selected_varieties_norm))
 
         if activity_filter:
             norm_ac = normalize_text(activity_filter)
@@ -1484,8 +1568,8 @@ def get_statistics_data(
                 week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm.like("%VERONICA%"))
             else:
                 week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(resolved_pm))
-        if variety_filter:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm == normalize_text(variety_filter))
+        if selected_varieties_norm:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm.in_(selected_varieties_norm))
         if activity_filter:
             week_adj_query = week_adj_query.filter(WeekAdjustmentDB.activity == normalize_text(activity_filter))
         if block_filter:
@@ -1579,9 +1663,12 @@ def get_statistics_data(
             harvest_breakdown = []
             block_total_production = 0
             block_real_stems = 0
+            block_dumps = 0
 
             for hw in sorted(all_hw_set):
                 hw_short = format_short_week(hw)
+                val = 0
+                src = "MODELO"
                 if hw in adj_real_map:
                     val = adj_real_map[hw]
                     src = "REAL"
@@ -1595,13 +1682,19 @@ def get_statistics_data(
                     val = curve_hw_map.get(hw, 0)
                     src = "MODELO"
 
-                block_total_production += val
-                hw_pp = round(val / plants, 2) if plants > 0 else 0.0
                 d_stems = adj_dump_map.get(hw, 0)
+                block_dumps += d_stems
+
+                # Cierre real: total tallos producidos = exportables (val) + dumps (d_stems)
+                hw_total = val + d_stems
+                block_total_production += hw_total
+                hw_pp = round(hw_total / plants, 2) if plants > 0 else 0.0
+
                 harvest_breakdown.append({
                     "harvest_week": hw,
                     "harvest_week_short": hw_short,
-                    "stems": val,
+                    "stems": hw_total,
+                    "exportable_stems": val,
                     "dump_stems": d_stems,
                     "stems_pp": hw_pp,
                     "source": src,
@@ -1611,8 +1704,9 @@ def get_statistics_data(
                 item["pct_of_total"] = round((item["stems"] / block_total_production * 100.0), 1) if block_total_production > 0 else 0.0
 
             is_closed = k_norm in closed_blocks_set
-            has_real_data = block_real_stems > 0
+            has_real_data = (block_real_stems > 0) or (block_dumps > 0)
 
+            # Tallos por planta considera el total real producido (incluyendo dumps)
             block_t_pl = round(block_total_production / plants, 1) if plants > 0 else 0.0
             is_below_target = (block_t_pl < effective_stems_pp)
 
@@ -1864,7 +1958,8 @@ def get_statistics_data(
             "pm_blocks_map": pm_blocks_map,
             "selected_year": resolved_year,
             "selected_pm": resolved_pm,
-            "selected_variety": variety_filter,
+            "selected_varieties": selected_varieties,
+            "selected_variety": selected_varieties[0] if len(selected_varieties) == 1 else (", ".join(selected_varieties) if selected_varieties else ""),
             "selected_activity": activity_filter,
             "selected_block": block_filter,
         }
@@ -1874,16 +1969,18 @@ def get_statistics_data(
 
 @app.route("/estadistica")
 def estadistica_view() -> str:
-    year_filter = request.args.get("year")  # None if not present in querystring
-    pm_filter = request.args.get("pm")      # None if not present in querystring
-    variety_filter = request.args.get("variedad", "").strip()
+    year_filter = request.args.get("year")
+    pm_filter = request.args.get("pm")
+    varieties = request.args.getlist("variedad")
+    if not varieties and request.args.get("variedad"):
+        varieties = [v.strip() for v in request.args.get("variedad").split(",") if v.strip()]
     activity_filter = request.args.get("ac", "").strip()
     block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
-        variety_filter=variety_filter,
+        variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
     )
@@ -1899,14 +1996,16 @@ def estadistica_view() -> str:
 def estadistica_api():
     year_filter = request.args.get("year")
     pm_filter = request.args.get("pm")
-    variety_filter = request.args.get("variedad", "").strip()
+    varieties = request.args.getlist("variedad")
+    if not varieties and request.args.get("variedad"):
+        varieties = [v.strip() for v in request.args.get("variedad").split(",") if v.strip()]
     activity_filter = request.args.get("ac", "").strip()
     block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
-        variety_filter=variety_filter,
+        variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
     )
@@ -1917,14 +2016,16 @@ def estadistica_api():
 def estadistica_export_csv():
     year_filter = request.args.get("year")
     pm_filter = request.args.get("pm")
-    variety_filter = request.args.get("variedad", "").strip()
+    varieties = request.args.getlist("variedad")
+    if not varieties and request.args.get("variedad"):
+        varieties = [v.strip() for v in request.args.get("variedad").split(",") if v.strip()]
     activity_filter = request.args.get("ac", "").strip()
     block_filter = request.args.get("bloque", "").strip()
 
     stats_data = get_statistics_data(
         year_filter=year_filter,
         pm_filter=pm_filter,
-        variety_filter=variety_filter,
+        variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
     )
