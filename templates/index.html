@@ -1199,21 +1199,30 @@
 
     <main class="page">
         <nav class="main-menu">
-            {% if user_role != 'visita' %}
+            {% if 'agro' in user_views or user_role == 'admin' %}
                 <a class="menu-link {{ 'active' if page_mode == 'AGRONOMO' else '' }}" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">🌾 Llenado Agrónomo</a>
+            {% endif %}
+            {% if 'reales' in user_views or user_role == 'admin' %}
                 <a class="menu-link {{ 'active' if page_mode == 'REAL' else '' }}" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}">📊 Datos Reales</a>
             {% endif %}
-            <a class="menu-link" href="/estadistica">📈 Estadística</a>
-            {% if user_role != 'visita' %}
+            {% if 'estadistica' in user_views or user_role == 'admin' %}
+                <a class="menu-link" href="/estadistica">📈 Estadística</a>
+            {% endif %}
+            {% if 'tpsr' in user_views or user_role == 'admin' %}
                 <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">🌱 Plantaciones (TPSR)</a>
+            {% endif %}
+            {% if 'parametros' in user_views or user_role == 'admin' %}
                 <a class="menu-link" href="/parametros" target="_blank" rel="noopener">⚙️ Configuración Ciclos</a>
+            {% endif %}
+            {% if user_role == 'admin' %}
+                <a class="menu-link" href="/usuarios" style="color: #9d174d; border-color: #fbcfe8; background: #fdf2f8;">👥 Usuarios</a>
             {% endif %}
 
             <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 0.74rem; font-weight: 700; color: #475569; background: #ffffff; padding: 4px 10px; border-radius: 9999px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Visita' if user_role == 'visita' else ('Admin' if user_role == 'admin' else 'Agrónomo') }})
+                <span style="font-size: 0.74rem; font-weight: 700; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 9999px; border: 1px solid #bae6fd; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Administrador' if user_role == 'admin' else ('Agrónomo' if user_role == 'agronomo' else 'Visita / Gerencia') }})
                 </span>
-                <a class="menu-link" href="/logout" style="color: #dc2626; border-color: #fca5a5;" title="Cerrar Sesión">🚪 Salir</a>
+                <a class="menu-link" href="/logout" style="color: #dc2626; border-color: #fca5a5; background: #fff5f5;" title="Cerrar Sesión">🚪 Salir</a>
             </div>
         </nav>
 

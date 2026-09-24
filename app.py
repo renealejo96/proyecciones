@@ -43,6 +43,12 @@ from db import (
     process_tpsr_excel_upload,
     seed_data_from_excel_if_empty,
     verify_user,
+    create_user,
+    update_user,
+    delete_user,
+    list_users,
+    get_user_by_id,
+    parse_allowed_views,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -1041,12 +1047,36 @@ def add_no_cache_headers(response):
     return response
 
 
+ALL_VIEWS_ORDER = ["agro", "reales", "estadistica", "tpsr", "parametros"]
+
+PAGE_TO_VIEW = {
+    "/": "agro",
+    "/reales": "reales",
+    "/estadistica": "estadistica",
+    "/tpsr": "tpsr",
+    "/parametros": "parametros",
+}
+
+VIEW_TO_URL = {
+    "agro": "/",
+    "reales": "/reales",
+    "estadistica": "/estadistica",
+    "tpsr": "/tpsr",
+    "parametros": "/parametros",
+}
+
+
 @app.context_processor
 def inject_auth_context():
+    role = session.get("role", "visita")
+    views = session.get("allowed_views") or []
+    if role == "admin":
+        views = ALL_VIEWS_ORDER
     return {
         "current_user": session.get("username"),
-        "user_role": session.get("role"),
+        "user_role": role,
         "user_name": session.get("full_name"),
+        "user_views": views,
     }
 
 
@@ -1063,14 +1093,58 @@ def require_login():
         target_next = request.full_path if request.method == "GET" and request.full_path != "/?" else "/"
         return redirect(url_for("login_view", next=target_next))
 
-    # Check role restrictions: 'visita' can only access estadistica
     user_role = session.get("role", "visita")
-    if user_role == "visita":
-        allowed_paths = {"/estadistica", "/api/estadistica", "/api/estadistica/export-csv", "/logout"}
-        if request.path not in allowed_paths:
+    user_views = session.get("allowed_views") or []
+    if user_role == "admin":
+        user_views = ALL_VIEWS_ORDER
+
+    # Admin only routes for User Management
+    if request.path.startswith("/usuarios") or request.path.startswith("/api/usuarios"):
+        if user_role != "admin":
             if request.path.startswith("/api/"):
-                return jsonify({"ok": False, "message": "Acceso restringido para perfil de visita."}), 403
-            return redirect(url_for("estadistica_view"))
+                return jsonify({"ok": False, "message": "Acceso restringido: requiere rol de Administrador."}), 403
+            for v in ALL_VIEWS_ORDER:
+                if v in user_views:
+                    return redirect(VIEW_TO_URL[v])
+            return redirect(url_for("logout_view"))
+        return None
+
+    # Page view restrictions
+    if request.path in PAGE_TO_VIEW:
+        required_view = PAGE_TO_VIEW[request.path]
+        if required_view not in user_views and user_role != "admin":
+            for v in ALL_VIEWS_ORDER:
+                if v in user_views:
+                    return redirect(VIEW_TO_URL[v])
+            flash("No tienes vistas asignadas en este momento. Contacta al administrador.", "warning")
+            return redirect(url_for("logout_view"))
+
+    # API view restrictions
+    if request.path.startswith("/api/"):
+        # TPSR APIs
+        if request.path.startswith("/api/tpsr"):
+            if "tpsr" not in user_views and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a módulo TPSR."}), 403
+        # Parametros / Ciclos APIs
+        elif request.path.startswith("/api/ciclos") or request.path.startswith("/api/ajustes-masivos"):
+            if "parametros" not in user_views and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a módulo de Configuración de Ciclos."}), 403
+        # Estadistica APIs
+        elif request.path.startswith("/api/estadistica"):
+            if "estadistica" not in user_views and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a módulo Estadístico."}), 403
+        # Reales specific APIs
+        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch", "/api/ajustes-fila"}:
+            if "reales" not in user_views and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a módulo de Datos Reales."}), 403
+        # Agro specific APIs
+        elif request.path == "/api/reset-week":
+            if "agro" not in user_views and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a Llenado Agrónomo."}), 403
+        # Shared operational APIs (proyecciones, ajustes-semanales, semanas)
+        elif request.path in {"/api/proyecciones", "/api/ajustes-semanales", "/api/semanas"}:
+            if ("agro" not in user_views and "reales" not in user_views) and user_role != "admin":
+                return jsonify({"ok": False, "message": "Acceso denegado a proyecciones operativas."}), 403
 
     return None
 
@@ -1082,17 +1156,31 @@ def login_view():
         password = request.form.get("password", "").strip()
         user_info = verify_user(username, password)
         if user_info:
+            session["user_id"] = user_info["id"]
             session["username"] = user_info["username"]
             session["role"] = user_info["role"]
             session["full_name"] = user_info["full_name"]
+            session["allowed_views"] = user_info.get("allowed_views", [])
             session.permanent = True
 
             next_url = request.args.get("next")
-            if user_info["role"] == "visita":
-                return redirect(url_for("estadistica_view"))
-            if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+            views = user_info.get("allowed_views", [])
+            if user_info["role"] == "admin":
+                if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                    return redirect(next_url)
+                return redirect(url_for("index"))
+
+            # Non-admin: check if next_url is allowed
+            if next_url and next_url in PAGE_TO_VIEW and PAGE_TO_VIEW[next_url] in views:
                 return redirect(next_url)
-            return redirect(url_for("index"))
+
+            # Redirect to their first allowed view
+            for v in ALL_VIEWS_ORDER:
+                if v in views:
+                    return redirect(VIEW_TO_URL[v])
+
+            flash("El usuario no tiene vistas asignadas. Comuníquese con el administrador.", "warning")
+            return redirect(url_for("login_view"))
         else:
             flash("Usuario o contraseña incorrectos. Verifique sus credenciales.", "danger")
 
@@ -1103,6 +1191,69 @@ def login_view():
 def logout_view():
     session.clear()
     return redirect(url_for("login_view"))
+
+
+# ---------------- USER MANAGEMENT ROUTES (ADMIN ONLY) ---------------- #
+
+@app.route("/usuarios")
+def usuarios_view():
+    if session.get("role") != "admin":
+        flash("Acceso restringido: requiere rol de Administrador.", "danger")
+        return redirect(url_for("index"))
+    users_list = list_users()
+    return render_template("usuarios.html", users=users_list, active_view="usuarios")
+
+
+@app.post("/api/usuarios/crear")
+def crear_usuario_api():
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "message": "Acceso restringido: solo administrador."}), 403
+    payload = request.get_json(silent=True) or {}
+    username = payload.get("username", "")
+    password = payload.get("password", "")
+    full_name = payload.get("full_name", "")
+    role = payload.get("role", "visita")
+    allowed_views = payload.get("allowed_views", [])
+    ok, msg, new_user = create_user(username, password, full_name, role, allowed_views)
+    if not ok:
+        return jsonify({"ok": False, "message": msg}), 400
+    return jsonify({"ok": True, "message": msg, "user": new_user})
+
+
+@app.post("/api/usuarios/actualizar/<int:user_id>")
+def actualizar_usuario_api(user_id: int):
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "message": "Acceso restringido: solo administrador."}), 403
+    payload = request.get_json(silent=True) or {}
+    username = payload.get("username")
+    password = payload.get("password")
+    full_name = payload.get("full_name")
+    role = payload.get("role")
+    allowed_views = payload.get("allowed_views")
+    ok, msg = update_user(user_id, username, password, full_name, role, allowed_views)
+    if not ok:
+        return jsonify({"ok": False, "message": msg}), 400
+
+    # If updating currently logged in user session
+    if session.get("user_id") == user_id:
+        if full_name:
+            session["full_name"] = full_name
+        if role:
+            session["role"] = role
+        if allowed_views is not None:
+            session["allowed_views"] = parse_allowed_views(allowed_views, role or session.get("role"))
+
+    return jsonify({"ok": True, "message": msg})
+
+
+@app.post("/api/usuarios/eliminar/<int:user_id>")
+def eliminar_usuario_api(user_id: int):
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "message": "Acceso restringido: solo administrador."}), 403
+    ok, msg = delete_user(user_id, current_user_id=session.get("user_id"))
+    if not ok:
+        return jsonify({"ok": False, "message": msg}), 400
+    return jsonify({"ok": True, "message": msg})
 
 
 @app.route("/")
@@ -1144,6 +1295,7 @@ def index() -> str:
         weekly_view=weekly_view,
         page_mode="AGRONOMO",
         page_title="Llenado Agronomo",
+        active_view="agro",
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
@@ -1194,6 +1346,7 @@ def reales() -> str:
         weekly_view=weekly_view,
         page_mode="REAL",
         page_title="Datos Reales",
+        active_view="reales",
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
@@ -1232,6 +1385,7 @@ def parametros() -> str:
             workbook_path="PostgreSQL Database",
             cycle_rows=cycle_rows,
             missing_cycles=missing_cycles,
+            active_view="parametros",
         )
     finally:
         db.close()
@@ -1341,6 +1495,7 @@ def tpsr_view():
             available_weeks=available_weeks,
             pm_varieties_map=pm_varieties_map,
             workbook_path="PostgreSQL Database",
+            active_view="tpsr",
         )
     finally:
         db.close()
@@ -1989,6 +2144,7 @@ def estadistica_view() -> str:
         "estadistica.html",
         stats=stats_data,
         workbook_path="PostgreSQL Database",
+        active_view="estadistica",
     )
 
 

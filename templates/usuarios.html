@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de Usuarios y Permisos - Proyecciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Franklin Gothic Demi Cond';
+            src: local('Franklin Gothic Demi Cond'), local('Franklin Gothic Demi Cond Regular'), local('Franklin Gothic Medium Cond'), local('Franklin Gothic Demi'), local('Franklin Gothic');
+        }
+
+        :root {
+            --pbi-font: 'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic', 'Arial Narrow', sans-serif;
+            --pbi-navy: #0f172a;
+            --pbi-blue: #1e3a8a;
+            --pbi-accent: #0284c7;
+            --pbi-emerald: #059669;
+            --pbi-amber: #d97706;
+            --pbi-rose: #dc2626;
+            --pbi-purple: #7c3aed;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-500: #64748b;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--pbi-font);
+            color: var(--pbi-navy);
+            background: linear-gradient(180deg, #edf2f7 0%, #f1f5f9 100%);
+            min-height: 100vh;
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 12px 16px;
+        }
+
+        /* NAVIGATION MENU */
+        .main-menu {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .menu-link {
+            text-decoration: none;
+            border: 1px solid var(--slate-300);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--slate-700);
+            background: #ffffff;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .menu-link:hover {
+            background: var(--slate-100);
+            color: var(--pbi-navy);
+        }
+
+        .menu-link.active {
+            background: var(--pbi-blue);
+            color: #ffffff;
+            border-color: var(--pbi-blue);
+            box-shadow: 0 3px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        /* HEADER PANEL */
+        .panel {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+            margin-bottom: 14px;
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: var(--pbi-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title p {
+            margin: 3px 0 0;
+            font-size: 0.82rem;
+            color: var(--slate-500);
+        }
+
+        .btn-new-user {
+            background: linear-gradient(135deg, var(--pbi-blue) 0%, #0369a1 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-new-user:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);
+            filter: brightness(1.05);
+        }
+
+        /* USERS TABLE */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        table.users-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        table.users-table th {
+            background: var(--pbi-blue);
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        table.users-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--slate-200);
+            vertical-align: middle;
+        }
+
+        table.users-table tr:hover td {
+            background: var(--slate-50);
+        }
+
+        /* ROLE BADGES */
+        .badge-role {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .badge-role-admin { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+        .badge-role-agronomo { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .badge-role-visita { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        /* VIEW PERMISSION CHIPS */
+        .view-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .view-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.70rem;
+            font-weight: 750;
+            border: 1px solid transparent;
+        }
+        .view-chip-agro { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+        .view-chip-reales { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+        .view-chip-estadistica { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+        .view-chip-tpsr { background: #fefce8; color: #854d0e; border-color: #fef08a; }
+        .view-chip-parametros { background: #faf5ff; color: #6b21a8; border-color: #e9d5ff; }
+
+        /* ACTION BUTTONS */
+        .btn-action {
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .btn-action:hover { background: var(--slate-100); }
+        .btn-action-delete { color: #dc2626; border-color: #fca5a5; }
+        .btn-action-delete:hover { background: #fee2e2; }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 540px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            background: var(--pbi-navy);
+            color: #ffffff;
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .modal-close:hover { color: #ffffff; }
+
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            max-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate-700);
+        }
+
+        .form-input, .form-select {
+            padding: 7px 10px;
+            font-size: 0.85rem;
+            border: 1px solid var(--slate-300);
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            border-color: var(--pbi-accent);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+
+        /* PRESET BUTTONS */
+        .preset-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .btn-preset {
+            background: var(--slate-100);
+            border: 1px solid var(--slate-300);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 750;
+            color: var(--slate-700);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .btn-preset:hover {
+            background: #ffffff;
+            border-color: var(--pbi-accent);
+            color: var(--pbi-accent);
+        }
+
+        /* PERMISSIONS CHECKLIST */
+        .permissions-box {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .perm-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .perm-item input[type="checkbox"] {
+            margin-top: 2px;
+            accent-color: var(--pbi-blue);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        .perm-label-title {
+            font-size: 0.80rem;
+            font-weight: 800;
+            color: var(--pbi-navy);
+        }
+
+        .perm-label-desc {
+            font-size: 0.70rem;
+            color: var(--slate-500);
+            margin-top: 1px;
+        }
+
+        .modal-footer {
+            padding: 12px 20px;
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-save {
+            background: var(--pbi-blue);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 16px;
+            font-size: 0.84rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-save:hover { background: #1d4ed8; }
+
+        .btn-cancel {
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            color: var(--slate-700);
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-cancel:hover { background: var(--slate-100); }
+
+        /* TOAST ALERTS */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--pbi-navy);
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: toastIn 0.2s ease;
+        }
+        .toast-success { border-left: 4px solid var(--pbi-emerald); }
+        .toast-error { border-left: 4px solid var(--pbi-rose); }
+
+        @keyframes toastIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- NAVIGATION MENU -->
+        <nav class="main-menu">
+            {% if 'agro' in user_views or user_role == 'admin' %}
+            <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
+            {% endif %}
+            {% if 'reales' in user_views or user_role == 'admin' %}
+            <a class="menu-link" href="/reales">📊 Datos Reales</a>
+            {% endif %}
+            {% if 'estadistica' in user_views or user_role == 'admin' %}
+            <a class="menu-link" href="/estadistica">📈 Estadística</a>
+            {% endif %}
+            {% if 'tpsr' in user_views or user_role == 'admin' %}
+            <a class="menu-link" href="/tpsr">🌱 Plantaciones (TPSR)</a>
+            {% endif %}
+            {% if 'parametros' in user_views or user_role == 'admin' %}
+            <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
+            {% endif %}
+            <a class="menu-link active" href="/usuarios" style="color: #ffffff; background: #9d174d; border-color: #9d174d;">👥 Gestión de Usuarios</a>
+
+            <div class="user-nav-box" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                <span class="user-badge" style="font-size: 0.74rem; font-weight: 700; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 9999px; border: 1px solid #bae6fd; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    👤 {{ user_name or current_user or 'Usuario' }} (Administrador)
+                </span>
+                <a class="menu-link" href="/logout" style="color: #dc2626; border-color: #fca5a5; background: #fff5f5;" title="Cerrar Sesión">🚪 Salir</a>
+            </div>
+        </nav>
+
+        <!-- PANEL HEADER -->
+        <div class="panel">
+            <div class="header-flex">
+                <div class="header-title">
+                    <h1>👥 Gestión de Perfiles y Concesión de Vistas</h1>
+                    <p>Crea nuevos usuarios, edita perfiles y asigna selectivamente las pestañas a las que cada persona tendrá acceso.</p>
+                </div>
+                <button type="button" class="btn-new-user" onclick="openCreateUserModal()">
+                    <span>➕</span> Nuevo Usuario
+                </button>
+            </div>
+        </div>
+
+        <!-- USERS LIST TABLE -->
+        <div class="table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Usuario</th>
+                        <th style="width: 200px;">Nombre Completo</th>
+                        <th style="width: 130px;">Rol</th>
+                        <th>Vistas Permitidas</th>
+                        <th style="width: 140px;">Fecha Registro</th>
+                        <th style="width: 150px; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody">
+                    {% for u in users %}
+                    <tr id="user-row-{{ u.id }}">
+                        <td style="font-weight: 800; color: var(--pbi-blue);">
+                            👤 {{ u.username }}
+                        </td>
+                        <td style="font-weight: 600;">
+                            {{ u.full_name }}
+                        </td>
+                        <td>
+                            {% if u.role == 'admin' %}
+                                <span class="badge-role badge-role-admin">👑 Administrador</span>
+                            {% elif u.role == 'agronomo' %}
+                                <span class="badge-role badge-role-agronomo">🌾 Agrónomo</span>
+                            {% else %}
+                                <span class="badge-role badge-role-visita">📊 Visita / Consulta</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="view-chips">
+                                {% if 'agro' in u.allowed_views or u.role == 'admin' %}
+                                    <span class="view-chip view-chip-agro">🌾 Agrónomo (/)</span>
+                                {% endif %}
+                                {% if 'reales' in u.allowed_views or u.role == 'admin' %}
+                                    <span class="view-chip view-chip-reales">📊 Datos Reales</span>
+                                {% endif %}
+                                {% if 'estadistica' in u.allowed_views or u.role == 'admin' %}
+                                    <span class="view-chip view-chip-estadistica">📈 Estadística</span>
+                                {% endif %}
+                                {% if 'tpsr' in u.allowed_views or u.role == 'admin' %}
+                                    <span class="view-chip view-chip-tpsr">🌱 TPSR</span>
+                                {% endif %}
+                                {% if 'parametros' in u.allowed_views or u.role == 'admin' %}
+                                    <span class="view-chip view-chip-parametros">⚙️ Ciclos</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--slate-500);">
+                            {{ u.created_at }}
+                        </td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn-action" onclick='openEditUserModal({{ u | tojson }})' title="Editar usuario y permisos">
+                                ✏️ Editar
+                            </button>
+                            {% if u.username != 'admin' and u.username != current_user %}
+                            <button type="button" class="btn-action btn-action-delete" onclick="confirmDeleteUser({{ u.id }}, '{{ u.username }}')" title="Eliminar usuario">
+                                🗑️ Eliminar
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CREATE / EDIT USER MODAL -->
+    <div id="user-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title"><span>👤</span> Nuevo Perfil de Usuario</h3>
+                <button type="button" class="modal-close" onclick="closeUserModal()">✕</button>
+            </div>
+            <form id="user-form" onsubmit="handleUserSubmit(event)">
+                <input type="hidden" id="modal-user-id" value="0">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modal-username">Nombre de Usuario (Login)</label>
+                        <input type="text" id="modal-username" class="form-input" placeholder="ej. agronomo1 o gerente2" required autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-fullname">Nombre Completo</label>
+                        <input type="text" id="modal-fullname" class="form-input" placeholder="ej. Ing. Carlos Pérez" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-password">Contraseña</label>
+                        <input type="password" id="modal-password" class="form-input" placeholder="••••••••" autocomplete="new-password">
+                        <span id="password-hint" style="font-size: 0.68rem; color: var(--slate-500); display: none;">Dejar en blanco para conservar la contraseña actual.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-role">Rol Principal</label>
+                        <select id="modal-role" class="form-select" onchange="onRoleChange()">
+                            <option value="agronomo">🌾 Agrónomo</option>
+                            <option value="visita">📊 Visita / Gerencia / Coordinador</option>
+                            <option value="admin">👑 Administrador General</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vistas Permitidas (Permisos Granulares)</label>
+                        <div class="preset-bar">
+                            <span style="font-size: 0.70rem; font-weight: 700; color: var(--slate-500); align-self: center;">Preajustes rápidos:</span>
+                            <button type="button" class="btn-preset" onclick="applyPreset('agro')">🌾 Solo Agrónomo</button>
+                            <button type="button" class="btn-preset" onclick="applyPreset('visita')">📈 Solo Estadística</button>
+                            <button type="button" class="btn-preset" onclick="applyPreset('agro_reales')">🌾+📊 Agrónomo con Reales</button>
+                            <button type="button" class="btn-preset" onclick="applyPreset('admin')">👑 Todas las Vistas</button>
+                        </div>
+
+                        <div class="permissions-box">
+                            <label class="perm-item">
+                                <input type="checkbox" id="chk-view-agro" value="agro" class="view-checkbox">
+                                <div>
+                                    <div class="perm-label-title">🌾 Llenado Agrónomo (Ruta: /)</div>
+                                    <div class="perm-label-desc">Permite ingresar proyecciones y ajustar semanas en la vista del agrónomo.</div>
+                                </div>
+                            </label>
+
+                            <label class="perm-item">
+                                <input type="checkbox" id="chk-view-reales" value="reales" class="view-checkbox">
+                                <div>
+                                    <div class="perm-label-title">📊 Datos Reales (Ruta: /reales)</div>
+                                    <div class="perm-label-desc">Permite ingresar cosechas reales de campo, digitar dumps y cerrar bloques.</div>
+                                </div>
+                            </label>
+
+                            <label class="perm-item">
+                                <input type="checkbox" id="chk-view-estadistica" value="estadistica" class="view-checkbox">
+                                <div>
+                                    <div class="perm-label-title">📈 Tablero Estadístico (Ruta: /estadistica)</div>
+                                    <div class="perm-label-desc">Acceso al panel Power BI con KPIs, gráficas y la matriz jerárquica de rendimiento.</div>
+                                </div>
+                            </label>
+
+                            <label class="perm-item">
+                                <input type="checkbox" id="chk-view-tpsr" value="tpsr" class="view-checkbox">
+                                <div>
+                                    <div class="perm-label-title">🌱 Plantaciones TPSR (Ruta: /tpsr)</div>
+                                    <div class="perm-label-desc">Carga de archivos Excel de siembras/podas y sincronización con PostgreSQL.</div>
+                                </div>
+                            </label>
+
+                            <label class="perm-item">
+                                <input type="checkbox" id="chk-view-parametros" value="parametros" class="view-checkbox">
+                                <div>
+                                    <div class="perm-label-title">⚙️ Configuración de Ciclos (Ruta: /parametros)</div>
+                                    <div class="perm-label-desc">Ajuste de ciclos, porcentajes de merma y curvas de cosecha teóricas.</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeUserModal()">Cancelar</button>
+                    <button type="submit" class="btn-save" id="btn-save-user">Guardar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        const modal = document.getElementById('user-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const userIdInput = document.getElementById('modal-user-id');
+        const usernameInput = document.getElementById('modal-username');
+        const fullnameInput = document.getElementById('modal-fullname');
+        const passwordInput = document.getElementById('modal-password');
+        const passwordHint = document.getElementById('password-hint');
+        const roleSelect = document.getElementById('modal-role');
+
+        const chkAgro = document.getElementById('chk-view-agro');
+        const chkReales = document.getElementById('chk-view-reales');
+        const chkEstadistica = document.getElementById('chk-view-estadistica');
+        const chkTpsr = document.getElementById('chk-view-tpsr');
+        const chkParametros = document.getElementById('chk-view-parametros');
+
+        function setCheckboxes(views) {
+            chkAgro.checked = views.includes('agro');
+            chkReales.checked = views.includes('reales');
+            chkEstadistica.checked = views.includes('estadistica');
+            chkTpsr.checked = views.includes('tpsr');
+            chkParametros.checked = views.includes('parametros');
+        }
+
+        function getCheckedViews() {
+            const list = [];
+            if (chkAgro.checked) list.push('agro');
+            if (chkReales.checked) list.push('reales');
+            if (chkEstadistica.checked) list.push('estadistica');
+            if (chkTpsr.checked) list.push('tpsr');
+            if (chkParametros.checked) list.push('parametros');
+            return list;
+        }
+
+        function applyPreset(preset) {
+            if (preset === 'agro') {
+                setCheckboxes(['agro']);
+                roleSelect.value = 'agronomo';
+            } else if (preset === 'visita') {
+                setCheckboxes(['estadistica']);
+                roleSelect.value = 'visita';
+            } else if (preset === 'agro_reales') {
+                setCheckboxes(['agro', 'reales']);
+                roleSelect.value = 'agronomo';
+            } else if (preset === 'admin') {
+                setCheckboxes(['agro', 'reales', 'estadistica', 'tpsr', 'parametros']);
+                roleSelect.value = 'admin';
+            }
+        }
+
+        function onRoleChange() {
+            const r = roleSelect.value;
+            if (r === 'admin') {
+                setCheckboxes(['agro', 'reales', 'estadistica', 'tpsr', 'parametros']);
+            } else if (r === 'agronomo' && getCheckedViews().length === 0) {
+                setCheckboxes(['agro']);
+            } else if (r === 'visita' && getCheckedViews().length === 0) {
+                setCheckboxes(['estadistica']);
+            }
+        }
+
+        function openCreateUserModal() {
+            userIdInput.value = '0';
+            modalTitle.innerHTML = '<span>➕</span> Nuevo Perfil de Usuario';
+            usernameInput.value = '';
+            usernameInput.readOnly = false;
+            fullnameInput.value = '';
+            passwordInput.value = '';
+            passwordInput.required = true;
+            passwordHint.style.display = 'none';
+            roleSelect.value = 'agronomo';
+            setCheckboxes(['agro']);
+            modal.style.display = 'flex';
+            setTimeout(() => usernameInput.focus(), 50);
+        }
+
+        function openEditUserModal(user) {
+            userIdInput.value = user.id;
+            modalTitle.innerHTML = `<span>✏️</span> Editar Perfil: ${user.username}`;
+            usernameInput.value = user.username;
+            usernameInput.readOnly = (user.username === 'admin');
+            fullnameInput.value = user.full_name || '';
+            passwordInput.value = '';
+            passwordInput.required = false;
+            passwordHint.style.display = 'block';
+            roleSelect.value = user.role || 'visita';
+
+            const views = Array.isArray(user.allowed_views) ? user.allowed_views : (user.allowed_views ? user.allowed_views.split(',') : []);
+            setCheckboxes(views);
+
+            modal.style.display = 'flex';
+            setTimeout(() => fullnameInput.focus(), 50);
+        }
+
+        function closeUserModal() {
+            modal.style.display = 'none';
+        }
+
+        async function handleUserSubmit(e) {
+            e.preventDefault();
+            const userId = parseInt(userIdInput.value, 10);
+            const username = usernameInput.value.trim().toLowerCase();
+            const fullName = fullnameInput.value.trim();
+            const password = passwordInput.value.trim();
+            const role = roleSelect.value;
+            const allowedViews = getCheckedViews();
+
+            if (!username) {
+                showToast('Ingresa un nombre de usuario válido.', 'error');
+                return;
+            }
+            if (userId === 0 && (!password || password.length < 4)) {
+                showToast('La contraseña debe tener al menos 4 caracteres.', 'error');
+                return;
+            }
+            if (allowedViews.length === 0 && role !== 'admin') {
+                showToast('Debes seleccionar al menos una vista permitida para este usuario.', 'error');
+                return;
+            }
+
+            const btnSave = document.getElementById('btn-save-user');
+            btnSave.disabled = true;
+            btnSave.textContent = 'Guardando...';
+
+            try {
+                const endpoint = userId === 0 ? '/api/usuarios/crear' : `/api/usuarios/actualizar/${userId}`;
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username,
+                        full_name: fullName,
+                        password: password || undefined,
+                        role: role,
+                        allowed_views: allowedViews,
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message || 'Usuario guardado exitosamente.');
+                    closeUserModal();
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    showToast(data.message || 'Error al guardar usuario.', 'error');
+                }
+            } catch (err) {
+                showToast('Error de conexión al guardar el usuario.', 'error');
+            } finally {
+                btnSave.disabled = false;
+                btnSave.textContent = 'Guardar Usuario';
+            }
+        }
+
+        async function confirmDeleteUser(userId, username) {
+            if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente al usuario "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/usuarios/eliminar/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message || 'Usuario eliminado.');
+                    const row = document.getElementById(`user-row-${userId}`);
+                    if (row) row.remove();
+                } else {
+                    showToast(data.message || 'Error al eliminar usuario.', 'error');
+                }
+            } catch (err) {
+                showToast('Error de conexión al eliminar usuario.', 'error');
+            }
+        }
+
+        // Close modal on click outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeUserModal();
+            }
+        });
+    </script>
+</body>
+</html>

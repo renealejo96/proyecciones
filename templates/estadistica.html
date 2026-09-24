@@ -782,18 +782,27 @@
     <div class="dashboard-container">
         <!-- NAVIGATION MENU -->
         <nav class="main-menu">
-            {% if user_role in ['admin', 'agronomo'] %}
+            {% if 'agro' in user_views or user_role == 'admin' %}
             <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
+            {% endif %}
+            {% if 'reales' in user_views or user_role == 'admin' %}
             <a class="menu-link" href="/reales">📊 Datos Reales</a>
             {% endif %}
+            {% if 'estadistica' in user_views or user_role == 'admin' %}
             <a class="menu-link active" href="/estadistica">📈 Estadística</a>
-            {% if user_role in ['admin', 'agronomo'] %}
+            {% endif %}
+            {% if 'tpsr' in user_views or user_role == 'admin' %}
             <a class="menu-link" href="/tpsr">🌱 Plantaciones (TPSR)</a>
+            {% endif %}
+            {% if 'parametros' in user_views or user_role == 'admin' %}
             <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
+            {% endif %}
+            {% if user_role == 'admin' %}
+            <a class="menu-link" href="/usuarios" style="color: #9d174d; border-color: #fbcfe8; background: #fdf2f8;">👥 Usuarios</a>
             {% endif %}
             <div class="user-nav-box" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
                 <span class="user-badge" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700; border: 1px solid #bae6fd;">
-                    👤 {{ current_user or 'Usuario' }} ({{ 'Agrónomo' if user_role == 'agronomo' else ('Visita / Gerencia' if user_role == 'visita' else 'Admin') }})
+                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Administrador' if user_role == 'admin' else ('Agrónomo' if user_role == 'agronomo' else 'Visita / Gerencia') }})
                 </span>
                 <a href="/logout" class="menu-link" style="color: #dc2626; border-color: #fecaca; background: #fff5f5;" title="Cerrar sesión">🚪 Salir</a>
             </div>

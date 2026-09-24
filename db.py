@@ -165,6 +165,7 @@ class UserDB(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False, default="visita")  # 'agronomo', 'visita', 'admin'
     full_name = Column(String(100), nullable=True)
+    allowed_views = Column(String(255), nullable=True)  # Comma-separated: "agro,reales,estadistica,tpsr,parametros"
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -253,11 +254,12 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Automatic migration: ensure is_dump and dump_stems columns exist in week_adjustments
+    # Automatic migration: ensure is_dump and dump_stems columns exist in week_adjustments, and allowed_views in app_users
     with engine.connect() as conn:
         try:
             conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;"))
             conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;"))
+            conn.execute(text("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);"))
             conn.commit()
         except Exception:
             try:
@@ -271,6 +273,11 @@ def init_db():
                 pass
             try:
                 conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN dump_stems INTEGER DEFAULT 0;"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE app_users ADD COLUMN allowed_views VARCHAR(255);"))
                 conn.commit()
             except Exception:
                 pass
@@ -319,6 +326,24 @@ def init_db():
         db.close()
 
 
+def parse_allowed_views(allowed_views_raw: Any, role: str = "visita") -> list[str]:
+    all_possible = ["agro", "reales", "estadistica", "tpsr", "parametros"]
+    if role == "admin":
+        return all_possible
+
+    if allowed_views_raw is not None and str(allowed_views_raw).strip() != "":
+        parsed = [v.strip().lower() for v in str(allowed_views_raw).split(",") if v.strip().lower() in all_possible]
+        if parsed:
+            return parsed
+
+    # Default views by role
+    if role == "agronomo":
+        return ["agro"]
+    elif role == "visita":
+        return ["estadistica"]
+    return ["estadistica"]
+
+
 def seed_default_users_if_empty(db_session=None):
     from werkzeug.security import generate_password_hash
 
@@ -335,33 +360,50 @@ def seed_default_users_if_empty(db_session=None):
                     password_hash=generate_password_hash(os.environ.get("AUTH_AGRONOMO_PASS", "agro2026")),
                     role="agronomo",
                     full_name="Agrónomo Operativo",
+                    allowed_views="agro",
                 ),
                 UserDB(
                     username="visita",
                     password_hash=generate_password_hash(os.environ.get("AUTH_VISITA_PASS", "visita2026")),
                     role="visita",
                     full_name="Usuario Visita / Coordinación",
+                    allowed_views="estadistica",
                 ),
                 UserDB(
                     username="gerente",
                     password_hash=generate_password_hash(os.environ.get("AUTH_GERENTE_PASS", "gerente2026")),
                     role="visita",
                     full_name="Gerencia General",
+                    allowed_views="estadistica",
                 ),
                 UserDB(
                     username="coordinador",
                     password_hash=generate_password_hash(os.environ.get("AUTH_COORD_PASS", "coord2026")),
                     role="visita",
                     full_name="Coordinador de Producción",
+                    allowed_views="estadistica",
                 ),
                 UserDB(
                     username="admin",
                     password_hash=generate_password_hash(os.environ.get("AUTH_ADMIN_PASS", "admin2026")),
                     role="admin",
                     full_name="Administrador General",
+                    allowed_views="agro,reales,estadistica,tpsr,parametros",
                 ),
             ]
             db_session.add_all(defaults)
+            db_session.commit()
+        else:
+            # Migration check: Ensure existing records have default allowed_views if null
+            existing_users = db_session.query(UserDB).all()
+            for u in existing_users:
+                if not u.allowed_views:
+                    if u.role == "admin":
+                        u.allowed_views = "agro,reales,estadistica,tpsr,parametros"
+                    elif u.role == "agronomo":
+                        u.allowed_views = "agro"
+                    else:
+                        u.allowed_views = "estadistica"
             db_session.commit()
     except Exception:
         db_session.rollback()
@@ -384,14 +426,15 @@ def verify_user(username: str, password: str) -> dict[str, Any] | None:
                 "username": user.username,
                 "role": user.role,
                 "full_name": user.full_name or user.username,
+                "allowed_views": parse_allowed_views(user.allowed_views, user.role),
             }
 
         fallback_users = {
-            "agronomo": ("agro2026", "agronomo", "Agrónomo Operativo"),
-            "visita": ("visita2026", "visita", "Usuario Visita / Coordinación"),
-            "gerente": ("gerente2026", "visita", "Gerencia General"),
-            "coordinador": ("coord2026", "visita", "Coordinador de Producción"),
-            "admin": ("admin2026", "admin", "Administrador General"),
+            "agronomo": ("agro2026", "agronomo", "Agrónomo Operativo", ["agro"]),
+            "visita": ("visita2026", "visita", "Usuario Visita / Coordinación", ["estadistica"]),
+            "gerente": ("gerente2026", "visita", "Gerencia General", ["estadistica"]),
+            "coordinador": ("coord2026", "visita", "Coordinador de Producción", ["estadistica"]),
+            "admin": ("admin2026", "admin", "Administrador General", ["agro", "reales", "estadistica", "tpsr", "parametros"]),
         }
         if u_clean in fallback_users and pwd_clean == fallback_users[u_clean][0]:
             return {
@@ -399,10 +442,193 @@ def verify_user(username: str, password: str) -> dict[str, Any] | None:
                 "username": u_clean,
                 "role": fallback_users[u_clean][1],
                 "full_name": fallback_users[u_clean][2],
+                "allowed_views": fallback_users[u_clean][3],
             }
         return None
     except Exception:
         return None
+    finally:
+        db.close()
+
+
+def list_users() -> list[dict[str, Any]]:
+    db = SessionLocal()
+    try:
+        users = db.query(UserDB).order_by(UserDB.id.asc()).all()
+        result = []
+        for u in users:
+            views_list = parse_allowed_views(u.allowed_views, u.role)
+            result.append({
+                "id": u.id,
+                "username": u.username,
+                "full_name": u.full_name or u.username,
+                "role": u.role,
+                "allowed_views": views_list,
+                "allowed_views_str": ",".join(views_list),
+                "created_at": u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "",
+            })
+        return result
+    finally:
+        db.close()
+
+
+def get_user_by_id(user_id: int) -> dict[str, Any] | None:
+    db = SessionLocal()
+    try:
+        u = db.query(UserDB).filter_by(id=user_id).first()
+        if not u:
+            return None
+        views_list = parse_allowed_views(u.allowed_views, u.role)
+        return {
+            "id": u.id,
+            "username": u.username,
+            "full_name": u.full_name or u.username,
+            "role": u.role,
+            "allowed_views": views_list,
+            "allowed_views_str": ",".join(views_list),
+            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "",
+        }
+    finally:
+        db.close()
+
+
+def create_user(
+    username: str,
+    password: str,
+    full_name: str = "",
+    role: str = "visita",
+    allowed_views: list[str] | str = None,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    from werkzeug.security import generate_password_hash
+
+    u_clean = (username or "").strip().lower()
+    pwd_clean = (password or "").strip()
+    if not u_clean:
+        return False, "El nombre de usuario es obligatorio.", None
+    if not pwd_clean:
+        return False, "La contraseña es obligatoria.", None
+    if len(pwd_clean) < 4:
+        return False, "La contraseña debe tener al menos 4 caracteres.", None
+
+    role_clean = role.strip().lower() if role else "visita"
+    if role_clean not in {"admin", "agronomo", "visita"}:
+        role_clean = "visita"
+
+    if isinstance(allowed_views, list):
+        views_str = ",".join(v.strip().lower() for v in allowed_views if v.strip())
+    else:
+        views_str = str(allowed_views or "").strip().lower()
+
+    if not views_str:
+        if role_clean == "agronomo":
+            views_str = "agro"
+        elif role_clean == "admin":
+            views_str = "agro,reales,estadistica,tpsr,parametros"
+        else:
+            views_str = "estadistica"
+
+    db = SessionLocal()
+    try:
+        existing = db.query(UserDB).filter(UserDB.username == u_clean).first()
+        if existing:
+            return False, f"El usuario '{u_clean}' ya existe.", None
+
+        new_user = UserDB(
+            username=u_clean,
+            password_hash=generate_password_hash(pwd_clean),
+            full_name=full_name.strip() if full_name else u_clean,
+            role=role_clean,
+            allowed_views=views_str,
+            created_at=datetime.utcnow(),
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return True, "Usuario creado exitosamente.", {
+            "id": new_user.id,
+            "username": new_user.username,
+            "full_name": new_user.full_name,
+            "role": new_user.role,
+            "allowed_views": parse_allowed_views(new_user.allowed_views, new_user.role),
+        }
+    except Exception as exc:
+        db.rollback()
+        return False, f"Error al crear usuario: {str(exc)}", None
+    finally:
+        db.close()
+
+
+def update_user(
+    user_id: int,
+    username: str = None,
+    password: str = None,
+    full_name: str = None,
+    role: str = None,
+    allowed_views: list[str] | str = None,
+) -> tuple[bool, str]:
+    from werkzeug.security import generate_password_hash
+
+    db = SessionLocal()
+    try:
+        user = db.query(UserDB).filter_by(id=user_id).first()
+        if not user:
+            return False, "Usuario no encontrado."
+
+        if username:
+            u_clean = username.strip().lower()
+            if u_clean != user.username:
+                existing = db.query(UserDB).filter(UserDB.username == u_clean, UserDB.id != user_id).first()
+                if existing:
+                    return False, f"El nombre de usuario '{u_clean}' ya está en uso."
+                user.username = u_clean
+
+        if password is not None and str(password).strip() != "":
+            pwd_clean = str(password).strip()
+            if len(pwd_clean) < 4:
+                return False, "La contraseña debe tener al menos 4 caracteres."
+            user.password_hash = generate_password_hash(pwd_clean)
+
+        if full_name is not None:
+            user.full_name = full_name.strip()
+
+        if role:
+            role_clean = role.strip().lower()
+            if role_clean in {"admin", "agronomo", "visita"}:
+                user.role = role_clean
+
+        if allowed_views is not None:
+            if isinstance(allowed_views, list):
+                views_str = ",".join(v.strip().lower() for v in allowed_views if v.strip())
+            else:
+                views_str = str(allowed_views).strip().lower()
+            user.allowed_views = views_str
+
+        db.commit()
+        return True, "Usuario actualizado exitosamente."
+    except Exception as exc:
+        db.rollback()
+        return False, f"Error al actualizar: {str(exc)}"
+    finally:
+        db.close()
+
+
+def delete_user(user_id: int, current_user_id: int = None) -> tuple[bool, str]:
+    db = SessionLocal()
+    try:
+        user = db.query(UserDB).filter_by(id=user_id).first()
+        if not user:
+            return False, "Usuario no encontrado."
+        if current_user_id and user.id == current_user_id:
+            return False, "No puedes eliminar tu propia cuenta en uso."
+        if user.username == "admin":
+            return False, "No se puede eliminar la cuenta principal de administrador."
+
+        db.delete(user)
+        db.commit()
+        return True, "Usuario eliminado correctamente."
+    except Exception as exc:
+        db.rollback()
+        return False, f"Error al eliminar usuario: {str(exc)}"
     finally:
         db.close()
 

@@ -149,57 +149,6 @@
             transform: translateY(0);
         }
 
-        .role-cards-title {
-            margin-top: 24px;
-            padding-top: 18px;
-            border-top: 1px solid var(--slate-200);
-            font-size: 0.72rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--slate-500);
-            text-align: center;
-        }
-
-        .role-quick-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .quick-role-btn {
-            background: var(--slate-100);
-            border: 1px solid var(--slate-200);
-            border-radius: 8px;
-            padding: 9px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .quick-role-btn:hover {
-            background: #ffffff;
-            border-color: var(--pbi-accent);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            transform: translateY(-1px);
-        }
-
-        .quick-role-title {
-            font-size: 0.76rem;
-            font-weight: 800;
-            color: var(--pbi-navy);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-
-        .quick-role-desc {
-            font-size: 0.65rem;
-            color: var(--slate-500);
-            margin-top: 2px;
-        }
     </style>
 </head>
 <body>
@@ -235,25 +184,6 @@
                 <span>🔐</span> Iniciar Sesión
             </button>
         </form>
-
-        <div class="role-cards-title">Acceso Rápido por Perfil</div>
-        <div class="role-quick-buttons">
-            <div class="quick-role-btn" onclick="quickFill('agronomo', 'agro2026')">
-                <div class="quick-role-title">🌾 Agrónomo</div>
-                <div class="quick-role-desc">Acceso Operativo Completo</div>
-            </div>
-            <div class="quick-role-btn" onclick="quickFill('visita', 'visita2026')">
-                <div class="quick-role-title">📊 Visita / Gerencia</div>
-                <div class="quick-role-desc">Solo Tablero Estadístico</div>
-            </div>
-        </div>
     </div>
-
-    <script>
-        function quickFill(user, pass) {
-            document.getElementById('username').value = user;
-            document.getElementById('password').value = pass;
-        }
-    </script>
 </body>
 </html>
