@@ -196,13 +196,13 @@
             border-radius: 14px;
             padding: 10px 14px;
             box-shadow: var(--shadow-card);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             align-items: flex-end;
             position: relative;
-            z-index: 1000;
+            z-index: 9000 !important;
             overflow: visible !important;
         }
 
@@ -277,22 +277,22 @@
             color: var(--text-heading);
         }
 
-        /* MULTI-SELECT VARIETY SLICER WITH GUARANTEED TOP Z-INDEX */
+        /* MULTI-SELECT VARIETY & WEEK SLICERS WITH GUARANTEED TOP Z-INDEX */
         .slicer-group-multiselect {
             position: relative;
-            min-width: 190px;
-            z-index: 1100;
+            min-width: 195px;
+            z-index: 9100 !important;
         }
 
         .pbi-multiselect {
             position: relative;
             width: 100%;
-            z-index: 1101;
+            z-index: 9200 !important;
         }
 
         .pbi-multiselect-btn {
             width: 100%;
-            min-width: 190px;
+            min-width: 195px;
             border: 1px solid var(--border-card);
             border-radius: 6px;
             padding: 5px 9px;
@@ -319,11 +319,11 @@
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
-            z-index: 99999 !important;
+            z-index: 999999 !important;
             background: #ffffff;
-            border: 1px solid var(--kpi-blue);
+            border: 1.5px solid var(--kpi-blue);
             border-radius: 8px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.18), 0 5px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.20), 0 5px 15px rgba(0,0,0,0.10);
             min-width: 260px;
             width: max-content;
             max-width: 340px;
@@ -410,6 +410,256 @@
             width: 14px;
             height: 14px;
             margin: 0;
+        }
+
+        /* ---------------- POWER BI HORIZONTAL CHICLET WEEK SLICER ---------------- */
+        .week-chiclet-card {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 10px 14px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 500;
+        }
+
+        .chiclet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .chiclet-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chiclet-badge-icon {
+            font-size: 1.15rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: #e0f2fe;
+            color: #0284c7;
+            border-radius: 8px;
+            border: 1px solid #bae6fd;
+        }
+
+        .chiclet-title-main {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #0f172a;
+            display: block;
+            letter-spacing: 0.01em;
+        }
+
+        .chiclet-title-sub {
+            font-size: 0.71rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .chiclet-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-chiclet-all {
+            background: #f8fafc;
+            border: 1.5px solid var(--border-card);
+            border-radius: 6px;
+            padding: 4px 11px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-chiclet-all:hover {
+            background: #f1f5f9;
+            border-color: var(--kpi-blue);
+            color: var(--kpi-blue);
+        }
+
+        .btn-chiclet-all.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+        }
+
+        .btn-chiclet-submit {
+            background: #10b981;
+            border: 1.5px solid #059669;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-chiclet-submit:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn-chiclet-clear {
+            background: #fff5f5;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .btn-chiclet-clear:hover {
+            background: #fee2e2;
+        }
+
+        .chiclet-scroll-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+            width: 100%;
+        }
+
+        .chiclet-nav-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-card);
+            border-radius: 6px;
+            width: 28px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-body);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .chiclet-nav-btn:hover {
+            background: #f0f9ff;
+            color: var(--kpi-blue);
+            border-color: var(--kpi-blue);
+        }
+
+        .chiclet-pills-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 3px 2px;
+            scroll-behavior: smooth;
+            width: 100%;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .chiclet-pills-row::-webkit-scrollbar {
+            height: 5px;
+        }
+        .chiclet-pills-row::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chiclet-pills-row::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        .chiclet-pill {
+            background: #ffffff;
+            border: 1.5px solid var(--border-card);
+            border-radius: 7px;
+            padding: 5px 10px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
+        .chiclet-pill:hover {
+            border-color: var(--kpi-blue);
+            background: #f0f9ff;
+            color: var(--kpi-blue);
+            transform: translateY(-1px);
+        }
+
+        .chiclet-pill.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: #ffffff;
+            font-weight: 800;
+            box-shadow: 0 2px 7px rgba(2, 132, 199, 0.35);
+        }
+
+        .chiclet-pill .chiclet-pill-status {
+            font-size: 0.70rem;
+            font-weight: 900;
+            opacity: 0.85;
+        }
+
+        .chiclet-pill.active .chiclet-pill-status {
+            color: #ffffff;
+            opacity: 1;
+        }
+
+        .active-filter-banner {
+            margin-bottom: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #e0f2fe;
+            border: 1px solid #7dd3fc;
+            border-radius: 9999px;
+            padding: 5px 14px;
+            font-size: 0.78rem;
+            color: #0369a1;
+            font-weight: 700;
+            box-shadow: var(--shadow-sm);
+            flex-wrap: wrap;
+        }
+
+        .active-filter-clear {
+            color: #dc2626;
+            text-decoration: none;
+            margin-left: 6px;
+            font-weight: 800;
+        }
+        .active-filter-clear:hover {
+            text-decoration: underline;
         }
 
         /* ---------------- SUBTABS BAR ---------------- */
@@ -1030,25 +1280,43 @@
                 </select>
             </div>
 
-            <!-- WEEK RANGE SELECT SLICERS: POINT AND CLICK WITHOUT TYPING -->
-            <div class="slicer-group">
-                <label for="slicer-week-from">📅 Desde Sem. Siembra:</label>
-                <select name="week_from" id="slicer-week-from" class="slicer-select">
-                    <option value="">(Desde el inicio)</option>
-                    {% for w in stats.available_weeks %}
-                        <option value="{{ w }}" {{ 'selected' if stats.selected_week_from == w else '' }}>Semana {{ w }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="slicer-group">
-                <label for="slicer-week-to">📅 Hasta Sem. Siembra:</label>
-                <select name="week_to" id="slicer-week-to" class="slicer-select">
-                    <option value="">(Hasta la última)</option>
-                    {% for w in stats.available_weeks %}
-                        <option value="{{ w }}" {{ 'selected' if stats.selected_week_to == w else '' }}>Semana {{ w }}</option>
-                    {% endfor %}
-                </select>
+            <!-- POWER BI MULTI-SELECT WEEK SLICER (SIN INICIO NI FIN) -->
+            <div class="slicer-group slicer-group-multiselect" id="slicer-group-week-multiselect">
+                <label>📅 Semanas de Siembra:</label>
+                <div class="pbi-multiselect" id="week-multiselect">
+                    <button type="button" class="pbi-multiselect-btn" id="week-dropdown-btn">
+                        <span id="week-dropdown-text">
+                            {% if not stats.selected_weeks %}
+                                (Todas las Semanas)
+                            {% elif stats.selected_weeks|length == 1 %}
+                                Semana {{ stats.selected_weeks[0] }}
+                            {% else %}
+                                {{ stats.selected_weeks|length }} semanas seleccionadas
+                            {% endif %}
+                        </span>
+                        <span style="font-size: 0.65rem; color: var(--kpi-blue);">▼</span>
+                    </button>
+                    <div class="pbi-multiselect-dropdown" id="week-dropdown-panel" style="display: none;">
+                        <div class="pbi-ms-actions">
+                            <input type="text" id="week-search" placeholder="🔍 Buscar semana..." class="pbi-ms-search" autocomplete="off">
+                            <div class="pbi-ms-quick-links" style="flex-wrap: wrap;">
+                                <button type="button" id="week-select-all" class="pbi-ms-btn-link">✓ Todas</button>
+                                <button type="button" id="week-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
+                                <button type="button" id="week-quick-last4" class="pbi-ms-btn-link" title="Seleccionar las últimas 4 semanas disponibles">⚡ Últimas 4</button>
+                                <button type="button" id="week-quick-last8" class="pbi-ms-btn-link" title="Seleccionar las últimas 8 semanas disponibles">⚡ Últimas 8</button>
+                            </div>
+                        </div>
+                        <div class="pbi-ms-options" id="week-options-list">
+                            {% for w in stats.available_weeks %}
+                                {% set is_w_checked = stats.selected_weeks and (w in stats.selected_weeks) %}
+                                <label class="pbi-ms-item">
+                                    <input type="checkbox" name="semana" value="{{ w }}" class="pbi-week-cb" {{ 'checked' if is_w_checked else '' }}>
+                                    <span>Semana {{ w }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="slicer-group">
@@ -1107,11 +1375,55 @@
             <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
         </form>
 
-        <!-- ACTIVE RANGE CHIP NOTIFICATION IF SELECTED -->
-        {% if stats.selected_week_from or stats.selected_week_to %}
-        <div style="margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 9999px; padding: 4px 14px; font-size: 0.78rem; color: #0369a1; font-weight: 700; box-shadow: var(--shadow-sm);">
-            <span>📅 Rango Activo: Sem. {{ stats.selected_week_from or 'Inicio' }} ➔ {{ stats.selected_week_to or 'Fin' }}</span>
-            <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" style="color: #dc2626; text-decoration: none; margin-left: 4px; font-weight: 800;" title="Quitar filtro de rango de semanas">✕</a>
+        <!-- POWER BI HORIZONTAL CHICLET WEEK SLICER (BARRA INTERACTIVA DE SEMANAS) -->
+        <div class="week-chiclet-card" id="week-chiclet-bar">
+            <div class="chiclet-header">
+                <div class="chiclet-title">
+                    <span class="chiclet-badge-icon">📅</span>
+                    <div>
+                        <span class="chiclet-title-main">Slicer de Semanas de Siembra / Poda</span>
+                        <span class="chiclet-title-sub">Haz clic en una o varias semanas para filtrar. Puedes elegir varias semanas simultáneamente.</span>
+                    </div>
+                </div>
+                <div class="chiclet-actions">
+                    <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas sin filtro">
+                        🌟 (Todas las Semanas)
+                    </button>
+                    <button type="button" id="btn-chiclet-apply" class="btn-chiclet-submit" style="display: none;" title="Aplicar las semanas seleccionadas al tablero">
+                        ✓ Aplicar (<span id="chiclet-count">0</span>)
+                    </button>
+                    {% if stats.selected_weeks %}
+                    <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" class="btn-chiclet-clear" title="Quitar filtro de semanas">
+                        ✕ Quitar filtro ({{ stats.selected_weeks|length }})
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="chiclet-scroll-wrap">
+                <button type="button" class="chiclet-nav-btn prev" id="chiclet-nav-prev" title="Desplazar hacia la izquierda">‹</button>
+                <div class="chiclet-pills-row" id="chiclet-pills-row">
+                    {% for w in stats.available_weeks %}
+                        {% set is_sel = stats.selected_weeks and (w in stats.selected_weeks) %}
+                        <button type="button" 
+                                class="chiclet-pill {{ 'active' if is_sel else '' }}" 
+                                data-week="{{ w }}" 
+                                id="chiclet-pill-{{ w }}"
+                                title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
+                            <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
+                            <span class="chiclet-pill-label">Sem {{ w }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+                <button type="button" class="chiclet-nav-btn next" id="chiclet-nav-next" title="Desplazar hacia la derecha">›</button>
+            </div>
+        </div>
+
+        <!-- ACTIVE FILTER NOTIFICATION IF WEEKS SELECTED -->
+        {% if stats.selected_weeks %}
+        <div class="active-filter-banner">
+            <span>📅 Semanas Activas Seleccionadas ({{ stats.selected_weeks|length }}): <strong>{{ stats.selected_weeks_str }}</strong></span>
+            <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" class="active-filter-clear" title="Restablecer filtro de semanas">✕ Quitar Filtro de Semanas</a>
         </div>
         {% endif %}
 
@@ -1510,6 +1822,9 @@
         const selectedBlock = {{ stats.selected_block | tojson }};
         const chartRelativeData = {{ stats.chart_relative | tojson }};
         const chartStemsPpData = {{ stats.chart_stems_pp | tojson }};
+        const yearWeeksMap = {{ stats.year_weeks_map | tojson if stats.year_weeks_map else '{}' }};
+        const availableWeeks = {{ stats.available_weeks | tojson }};
+        const selectedWeeks = {{ stats.selected_weeks | tojson }};
 
         // SUBTAB SWITCHING WITH LOCALSTORAGE PERSISTENCE
         function switchSubTab(tabName) {
@@ -1622,24 +1937,21 @@
         if (varietyDropdownBtn) {
             varietyDropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (weekDropdownPanel) {
+                    weekDropdownPanel.style.display = 'none';
+                    if (weekDropdownBtn) weekDropdownBtn.classList.remove('open');
+                }
                 const isHidden = varietyDropdownPanel.style.display === 'none';
                 varietyDropdownPanel.style.display = isHidden ? 'block' : 'none';
                 varietyDropdownBtn.classList.toggle('open', isHidden);
-                if (isHidden) varietySearch.focus();
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!varietyDropdownBtn.contains(e.target) && !varietyDropdownPanel.contains(e.target)) {
-                    varietyDropdownPanel.style.display = 'none';
-                    varietyDropdownBtn.classList.remove('open');
-                }
+                if (isHidden && varietySearch) varietySearch.focus();
             });
         }
 
         if (varietySearch) {
             varietySearch.addEventListener('input', () => {
                 const q = varietySearch.value.toLowerCase().trim();
-                document.querySelectorAll('.pbi-ms-item').forEach(item => {
+                document.querySelectorAll('#variety-options-list .pbi-ms-item').forEach(item => {
                     const text = item.textContent.toLowerCase();
                     item.style.display = text.includes(q) ? 'flex' : 'none';
                 });
@@ -1669,6 +1981,224 @@
 
         updateVarietyOptions();
         updateBlockOptions();
+
+        // ---------------- WEEK SLICER & CHICLET BAR (POWER BI INTERACTIVE) ----------------
+        const weekDropdownBtn = document.getElementById('week-dropdown-btn');
+        const weekDropdownPanel = document.getElementById('week-dropdown-panel');
+        const weekDropdownText = document.getElementById('week-dropdown-text');
+        const weekSearch = document.getElementById('week-search');
+        const weekSelectAll = document.getElementById('week-select-all');
+        const weekClearAll = document.getElementById('week-clear-all');
+        const weekQuickLast4 = document.getElementById('week-quick-last4');
+        const weekQuickLast8 = document.getElementById('week-quick-last8');
+        const chicletPillsRow = document.getElementById('chiclet-pills-row');
+        const chicletNavPrev = document.getElementById('chiclet-nav-prev');
+        const chicletNavNext = document.getElementById('chiclet-nav-next');
+        const btnChicletAll = document.getElementById('btn-chiclet-all');
+        const btnChicletApply = document.getElementById('btn-chiclet-apply');
+        const chicletCount = document.getElementById('chiclet-count');
+
+        function syncChicletPill(weekVal, isChecked) {
+            const pill = document.getElementById(`chiclet-pill-${weekVal}`);
+            if (pill) {
+                pill.classList.toggle('active', isChecked);
+                const statusSpan = pill.querySelector('.chiclet-pill-status');
+                if (statusSpan) statusSpan.textContent = isChecked ? '✓' : '+';
+            }
+        }
+
+        function updateWeekDropdownButtonText() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.pbi-week-cb:checked'));
+            const totalBoxes = document.querySelectorAll('.pbi-week-cb').length;
+            
+            if (checkedBoxes.length === 0 || checkedBoxes.length === totalBoxes) {
+                if (weekDropdownText) weekDropdownText.textContent = '(Todas las Semanas)';
+                if (btnChicletAll) btnChicletAll.classList.add('active');
+            } else if (checkedBoxes.length === 1) {
+                if (weekDropdownText) weekDropdownText.textContent = `Semana ${checkedBoxes[0].value}`;
+                if (btnChicletAll) btnChicletAll.classList.remove('active');
+            } else {
+                if (weekDropdownText) weekDropdownText.textContent = `${checkedBoxes.length} semanas seleccionadas`;
+                if (btnChicletAll) btnChicletAll.classList.remove('active');
+            }
+
+            // Detect if selection changed compared to initially loaded URL params
+            const currentCheckedVals = checkedBoxes.map(cb => cb.value).sort();
+            const initialVals = (selectedWeeks || []).slice().sort();
+            const isDifferent = currentCheckedVals.length !== initialVals.length ||
+                                currentCheckedVals.some((v, idx) => v !== initialVals[idx]);
+
+            if (btnChicletApply) {
+                if (isDifferent) {
+                    btnChicletApply.style.display = 'inline-flex';
+                    if (chicletCount) chicletCount.textContent = checkedBoxes.length;
+                } else {
+                    btnChicletApply.style.display = 'none';
+                }
+            }
+        }
+
+        function setupWeekCheckboxListeners() {
+            document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    syncChicletPill(cb.value, cb.checked);
+                    updateWeekDropdownButtonText();
+                });
+            });
+        }
+
+        if (weekDropdownBtn) {
+            weekDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (varietyDropdownPanel) {
+                    varietyDropdownPanel.style.display = 'none';
+                    if (varietyDropdownBtn) varietyDropdownBtn.classList.remove('open');
+                }
+                const isHidden = weekDropdownPanel.style.display === 'none';
+                weekDropdownPanel.style.display = isHidden ? 'block' : 'none';
+                weekDropdownBtn.classList.toggle('open', isHidden);
+                if (isHidden && weekSearch) weekSearch.focus();
+            });
+        }
+
+        // Global click handler to close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (varietyDropdownBtn && varietyDropdownPanel) {
+                if (!varietyDropdownBtn.contains(e.target) && !varietyDropdownPanel.contains(e.target)) {
+                    varietyDropdownPanel.style.display = 'none';
+                    varietyDropdownBtn.classList.remove('open');
+                }
+            }
+            if (weekDropdownBtn && weekDropdownPanel) {
+                if (!weekDropdownBtn.contains(e.target) && !weekDropdownPanel.contains(e.target)) {
+                    weekDropdownPanel.style.display = 'none';
+                    weekDropdownBtn.classList.remove('open');
+                }
+            }
+        });
+
+        if (weekSearch) {
+            weekSearch.addEventListener('input', () => {
+                const q = weekSearch.value.toLowerCase().trim();
+                document.querySelectorAll('#week-options-list .pbi-ms-item').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(q) ? 'flex' : 'none';
+                });
+            });
+        }
+
+        if (weekSelectAll) {
+            weekSelectAll.addEventListener('click', () => {
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateWeekDropdownButtonText();
+            });
+        }
+
+        if (weekClearAll) {
+            weekClearAll.addEventListener('click', () => {
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                updateWeekDropdownButtonText();
+            });
+        }
+
+        if (weekQuickLast4) {
+            weekQuickLast4.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last4 = allCbs.slice(-4);
+                last4.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateWeekDropdownButtonText();
+            });
+        }
+
+        if (weekQuickLast8) {
+            weekQuickLast8.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last8 = allCbs.slice(-8);
+                last8.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateWeekDropdownButtonText();
+            });
+        }
+
+        // Horizontal scrolling for Chiclet Bar
+        if (chicletNavPrev && chicletPillsRow) {
+            chicletNavPrev.addEventListener('click', () => {
+                chicletPillsRow.scrollBy({ left: -220, behavior: 'smooth' });
+            });
+        }
+        if (chicletNavNext && chicletPillsRow) {
+            chicletNavNext.addEventListener('click', () => {
+                chicletPillsRow.scrollBy({ left: 220, behavior: 'smooth' });
+            });
+        }
+
+        // Chiclet "🌟 (Todas las Semanas)" button
+        if (btnChicletAll) {
+            btnChicletAll.addEventListener('click', () => {
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                updateWeekDropdownButtonText();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        // Chiclet "✓ Aplicar" button
+        if (btnChicletApply) {
+            btnChicletApply.addEventListener('click', () => {
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        // Chiclet individual pills click & double-click
+        document.querySelectorAll('.chiclet-pill').forEach(pill => {
+            pill.addEventListener('click', (e) => {
+                const weekVal = pill.dataset.week;
+                const cb = document.querySelector(`.pbi-week-cb[value="${weekVal}"]`);
+                if (cb) {
+                    cb.checked = !cb.checked;
+                    syncChicletPill(weekVal, cb.checked);
+                    updateWeekDropdownButtonText();
+                }
+            });
+
+            // Double click: isolate only this week and submit immediately!
+            pill.addEventListener('dblclick', (e) => {
+                const weekVal = pill.dataset.week;
+                document.querySelectorAll('.pbi-week-cb').forEach(c => {
+                    c.checked = (c.value === weekVal);
+                    syncChicletPill(c.value, c.checked);
+                });
+                updateWeekDropdownButtonText();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        });
+
+        setupWeekCheckboxListeners();
+        updateWeekDropdownButtonText();
 
         // ---------------- HIERARCHICAL MATRIX ACCORDION LOGIC ----------------
         function togglePmGroup(pm) {
@@ -1996,24 +2526,23 @@
             });
         }
 
-        // DIRECT CSV EXPORT WITH SELECT WEEK RANGE SUPPORT
+        // DIRECT CSV EXPORT WITH POWER BI MULTI-WEEK SUPPORT
         const btnExportCsv = document.getElementById('btn-export-csv');
         if (btnExportCsv) {
             btnExportCsv.addEventListener('click', () => {
                 const yearVal = document.getElementById('slicer-year')?.value || '';
-                const weekFromVal = document.getElementById('slicer-week-from')?.value || '';
-                const weekToVal = document.getElementById('slicer-week-to')?.value || '';
                 const pmVal = document.getElementById('slicer-pm')?.value || '';
                 const blkVal = document.getElementById('slicer-block')?.value || '';
                 const acVal = document.getElementById('slicer-ac')?.value || '';
 
                 const params = new URLSearchParams();
                 if (yearVal) params.set('year', yearVal);
-                if (weekFromVal) params.set('week_from', weekFromVal);
-                if (weekToVal) params.set('week_to', weekToVal);
                 if (pmVal) params.set('pm', pmVal);
                 if (blkVal) params.set('bloque', blkVal);
                 if (acVal) params.set('ac', acVal);
+
+                const checkedWeeks = Array.from(document.querySelectorAll('.pbi-week-cb:checked')).map(cb => cb.value);
+                checkedWeeks.forEach(w => params.append('semana', w));
 
                 const checkedVars = Array.from(document.querySelectorAll('.pbi-variety-cb:checked')).map(cb => cb.value);
                 checkedVars.forEach(v => params.append('variedad', v));

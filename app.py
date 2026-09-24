@@ -1563,6 +1563,7 @@ def get_statistics_data(
     variety_filter: str = "",
     activity_filter: str = "",
     block_filter: str = "",
+    weeks_filter: list[str] | str | None = None,
     week_from: str | None = None,
     week_to: str | None = None,
 ) -> dict[str, Any]:
@@ -1589,12 +1590,30 @@ def get_statistics_data(
 
         sws = db.query(TpsrRecord.source_week).distinct().all()
         all_source_weeks_raw = sorted(list(set(s[0] for s in sws if s[0])))
-        available_weeks = [format_short_week(w) for w in all_source_weeks_raw]
         extracted_years = sorted(
             list(set(int(str(s[0])[:4]) for s in sws if s[0] and len(str(s[0])) >= 4)),
             reverse=True,
         )
         available_years = [str(y) for y in extracted_years]
+
+        selected_weeks_set: set[int] = set()
+        if isinstance(weeks_filter, list):
+            for w in weeks_filter:
+                w_str = str(w).strip()
+                if w_str and w_str.upper() not in ("ALL", "TODAS", "(TODAS)", "(TODAS LAS SEMANAS)"):
+                    for sub in w_str.split(","):
+                        sub_str = sub.strip()
+                        if sub_str:
+                            c = parse_week_code(sub_str)
+                            if c: selected_weeks_set.add(c)
+        elif isinstance(weeks_filter, str) and weeks_filter.strip():
+            w_str = weeks_filter.strip()
+            if w_str.upper() not in ("ALL", "TODAS", "(TODAS)", "(TODAS LAS SEMANAS)"):
+                for sub in w_str.split(","):
+                    sub_str = sub.strip()
+                    if sub_str:
+                        c = parse_week_code(sub_str)
+                        if c: selected_weeks_set.add(c)
 
         parsed_sw_from = parse_week_code(week_from) if week_from and str(week_from).strip() else None
         parsed_sw_to = parse_week_code(week_to) if week_to and str(week_to).strip() else None
@@ -1631,6 +1650,19 @@ def get_statistics_data(
         else:
             resolved_year = str(year_filter).strip()
 
+        # Build year to weeks mapping and filter available_weeks for resolved_year
+        year_weeks_map: dict[str, list[str]] = {}
+        for w in all_source_weeks_raw:
+            y_str = str(w)[:4]
+            year_weeks_map.setdefault(y_str, []).append(format_short_week(w))
+        for y_str in year_weeks_map:
+            year_weeks_map[y_str] = sorted(list(set(year_weeks_map[y_str])))
+
+        if resolved_year and resolved_year in year_weeks_map:
+            available_weeks = year_weeks_map[resolved_year]
+        else:
+            available_weeks = [format_short_week(w) for w in all_source_weeks_raw]
+
         # Default product master is first available product (same logic as agronomo view)
         if pm_filter is None:
             resolved_pm = available_pms[0] if available_pms else "HYPERICUM"
@@ -1666,10 +1698,13 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
-        if parsed_sw_from:
-            closure_query = closure_query.filter(BlockClosureDB.source_week >= parsed_sw_from)
-        if parsed_sw_to:
-            closure_query = closure_query.filter(BlockClosureDB.source_week <= parsed_sw_to)
+        if selected_weeks_set:
+            closure_query = closure_query.filter(BlockClosureDB.source_week.in_(selected_weeks_set))
+        else:
+            if parsed_sw_from:
+                closure_query = closure_query.filter(BlockClosureDB.source_week >= parsed_sw_from)
+            if parsed_sw_to:
+                closure_query = closure_query.filter(BlockClosureDB.source_week <= parsed_sw_to)
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
                 closure_query = closure_query.filter(BlockClosureDB.product_master_norm.like("%VERONICA%"))
@@ -1700,10 +1735,13 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
-        if parsed_sw_from:
-            tpsr_query = tpsr_query.filter(TpsrRecord.source_week >= parsed_sw_from)
-        if parsed_sw_to:
-            tpsr_query = tpsr_query.filter(TpsrRecord.source_week <= parsed_sw_to)
+        if selected_weeks_set:
+            tpsr_query = tpsr_query.filter(TpsrRecord.source_week.in_(selected_weeks_set))
+        else:
+            if parsed_sw_from:
+                tpsr_query = tpsr_query.filter(TpsrRecord.source_week >= parsed_sw_from)
+            if parsed_sw_to:
+                tpsr_query = tpsr_query.filter(TpsrRecord.source_week <= parsed_sw_to)
 
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
@@ -1735,10 +1773,13 @@ def get_statistics_data(
                 )
             except ValueError:
                 pass
-        if parsed_sw_from:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week >= parsed_sw_from)
-        if parsed_sw_to:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week <= parsed_sw_to)
+        if selected_weeks_set:
+            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week.in_(selected_weeks_set))
+        else:
+            if parsed_sw_from:
+                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week >= parsed_sw_from)
+            if parsed_sw_to:
+                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week <= parsed_sw_to)
         if resolved_pm:
             if "VERONICA" in resolved_pm.upper():
                 week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm.like("%VERONICA%"))
@@ -2133,7 +2174,10 @@ def get_statistics_data(
             "available_blocks": available_blocks,
             "pm_varieties_map": pm_varieties_map,
             "pm_blocks_map": pm_blocks_map,
+            "year_weeks_map": year_weeks_map,
             "selected_year": resolved_year,
+            "selected_weeks": [format_short_week(w) for w in sorted(selected_weeks_set)],
+            "selected_weeks_str": ", ".join(format_short_week(w) for w in sorted(selected_weeks_set)),
             "selected_week_from": format_short_week(parsed_sw_from) if parsed_sw_from else (week_from or ""),
             "selected_week_to": format_short_week(parsed_sw_to) if parsed_sw_to else (week_to or ""),
             "selected_pm": resolved_pm,
@@ -2149,6 +2193,9 @@ def get_statistics_data(
 @app.route("/estadistica")
 def estadistica_view() -> str:
     year_filter = request.args.get("year")
+    weeks_list = request.args.getlist("semana")
+    if not weeks_list and request.args.get("semana"):
+        weeks_list = [w.strip() for w in request.args.get("semana").split(",") if w.strip()]
     week_from = request.args.get("week_from", "").strip()
     week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
@@ -2164,6 +2211,7 @@ def estadistica_view() -> str:
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        weeks_filter=weeks_list,
         week_from=week_from,
         week_to=week_to,
     )
@@ -2179,6 +2227,9 @@ def estadistica_view() -> str:
 @app.route("/api/estadistica")
 def estadistica_api():
     year_filter = request.args.get("year")
+    weeks_list = request.args.getlist("semana")
+    if not weeks_list and request.args.get("semana"):
+        weeks_list = [w.strip() for w in request.args.get("semana").split(",") if w.strip()]
     week_from = request.args.get("week_from", "").strip()
     week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
@@ -2194,6 +2245,7 @@ def estadistica_api():
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        weeks_filter=weeks_list,
         week_from=week_from,
         week_to=week_to,
     )
@@ -2203,6 +2255,9 @@ def estadistica_api():
 @app.route("/api/estadistica/export-csv")
 def estadistica_export_csv():
     year_filter = request.args.get("year")
+    weeks_list = request.args.getlist("semana")
+    if not weeks_list and request.args.get("semana"):
+        weeks_list = [w.strip() for w in request.args.get("semana").split(",") if w.strip()]
     week_from = request.args.get("week_from", "").strip()
     week_to = request.args.get("week_to", "").strip()
     pm_filter = request.args.get("pm")
@@ -2218,6 +2273,7 @@ def estadistica_export_csv():
         variety_filter=varieties,
         activity_filter=activity_filter,
         block_filter=block_filter,
+        weeks_filter=weeks_list,
         week_from=week_from,
         week_to=week_to,
     )
