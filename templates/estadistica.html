@@ -1510,7 +1510,13 @@
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
                             <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
-                            <span class="chart-tag">Eje X: Semanas de Siembra / Poda</span>
+                            <span class="chart-tag" id="chart-closed-tag">
+                                {% if stats.chart_stems_pp.last_closed_label %}
+                                    🔒 Datos cerrados hasta: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
+                                {% else %}
+                                    Eje X: Semanas de Siembra / Poda
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="chart-body" style="height: 250px;">
                             <canvas id="stemsPpChart"></canvas>
@@ -2643,10 +2649,78 @@
         // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
+            const hasClosedCutoff = (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0);
             const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
                 const target = chartStemsPpData.target_stems_pp[i] || 0;
+                const isClosed = hasClosedCutoff ? (i <= chartStemsPpData.last_closed_index) : true;
+                if (!isClosed) return '#94a3b8'; // Slate gray for blocks still open/in-progress
                 return v >= target ? '#059669' : '#dc2626';
             });
+
+            // Plugin to draw a vertical indicator line where closed blocks end
+            const closedCutoffPlugin = {
+                id: 'closedCutoffLine',
+                afterDatasetsDraw(chart) {
+                    if (!hasClosedCutoff) return;
+                    const idx = chartStemsPpData.last_closed_index;
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || !meta.data[idx]) return;
+
+                    const x = meta.data[idx].x;
+                    const top = chart.chartArea.top;
+                    const bottom = chart.chartArea.bottom;
+                    const ctx = chart.ctx;
+
+                    ctx.save();
+
+                    // 1. Vertical indicator line (dashed amber/gold)
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 4]);
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = '#d97706';
+                    ctx.moveTo(x, top + 22);
+                    ctx.lineTo(x, bottom);
+                    ctx.stroke();
+
+                    // 2. Subtle shadow highlight behind the vertical line
+                    ctx.beginPath();
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = 'rgba(217, 119, 6, 0.15)';
+                    ctx.moveTo(x, top + 22);
+                    ctx.lineTo(x, bottom);
+                    ctx.stroke();
+
+                    // 3. Top badge pill indicator
+                    const lbl = chartStemsPpData.last_closed_label || `Sem ${chartStemsPpData.labels[idx]}`;
+                    const text = `🔒 Cierre: ${lbl}`;
+                    ctx.font = `bold 10px ${pbiFontFamily}`;
+                    const textWidth = ctx.measureText(text).width;
+                    const pillW = textWidth + 14;
+                    const pillH = 19;
+                    let pillX = x - pillW / 2;
+                    pillX = Math.max(chart.chartArea.left + 2, Math.min(chart.chartArea.right - pillW - 2, pillX));
+                    const pillY = top + 1;
+
+                    // Pill background
+                    ctx.fillStyle = '#d97706';
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+                    } else {
+                        ctx.rect(pillX, pillY, pillW, pillH);
+                    }
+                    ctx.fill();
+
+                    // Pill text
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, pillX + pillW / 2, pillY + pillH / 2 + 1);
+
+                    ctx.restore();
+                }
+            };
 
             new Chart(ctxStemsPp, {
                 type: 'line',
@@ -2732,6 +2806,15 @@
                                                 const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
                                                 lines.push(`🌱 Siem: ${detail.total_t_pl} t/p ${totIcon}`);
                                             }
+
+                                            // Show closed status in tooltip
+                                            if (hasClosedCutoff) {
+                                                if (i <= chartStemsPpData.last_closed_index) {
+                                                    lines.push(`🔒 Cierre Real: Bloque(s) Cerrados`);
+                                                } else {
+                                                    lines.push(`⏳ Estado: En Cosecha / Abierto`);
+                                                }
+                                            }
                                         } else {
                                             const val = context.parsed.y;
                                             const icon = val >= meta ? '🟢' : '🔴';
@@ -2769,7 +2852,8 @@
                             grid: { display: false }
                         }
                     }
-                }
+                },
+                plugins: [closedCutoffPlugin]
             });
         }
     </script>

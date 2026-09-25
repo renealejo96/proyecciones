@@ -3670,6 +3670,20 @@
             const params = new URLSearchParams(window.location.search);
             params.set('formato', format);
 
+            // Core toolbar inputs (take precedence over empty search params)
+            const semEl = document.getElementById('semana');
+            if (semEl && semEl.value) params.set('semana', semEl.value);
+
+            const prodEl = document.getElementById('producto');
+            if (prodEl && prodEl.value) params.set('producto', prodEl.value);
+
+            const atrasEl = document.getElementById('horizonte_atras');
+            if (atrasEl && atrasEl.value) params.set('horizonte_atras', atrasEl.value);
+
+            const adelEl = document.getElementById('horizonte_adelante');
+            if (adelEl && adelEl.value) params.set('horizonte_adelante', adelEl.value);
+
+            // Column filters
             const varEl = document.getElementById('h-filter-variety');
             if (varEl && varEl.value) params.set('variedad', varEl.value);
 
@@ -3678,6 +3692,15 @@
 
             const acEl = document.getElementById('h-filter-ac');
             if (acEl && acEl.value) params.set('ac', acEl.value);
+
+            const ubiEl = document.getElementById('h-filter-ubi');
+            if (ubiEl && ubiEl.value) params.set('ubi', ubiEl.value);
+
+            const origEl = document.getElementById('h-filter-week');
+            if (origEl && origEl.value) params.set('origen', origEl.value);
+
+            const harvEl = document.getElementById('h-filter-harvest-week');
+            if (harvEl && harvEl.value) params.set('cosecha', harvEl.value);
 
             const btnNonZero = document.getElementById('btn-toggle-nonzero');
             if (btnNonZero && btnNonZero.classList.contains('active')) {

@@ -964,6 +964,7 @@ def aggregate_for_week(
         "horizon_weeks_forward": horizon_weeks_forward,
         "week_columns": week_columns,
         "varieties": varieties,
+        "matrix_rows": matrix_rows,
         "totals_by_activity": totals_by_activity,
         "totals_by_week": totals_by_week,
         "totals_by_week_by_activity": totals_by_week_by_activity,
@@ -2034,6 +2035,7 @@ def get_statistics_data(
                 if chart3_label not in chart3_weeks_map:
                     chart3_weeks_map[chart3_label] = {
                         "sw_short": sw_short,
+                        "source_week": sw,
                         "total_plants": 0,
                         "total_production": 0,
                         "siem_plants": 0,
@@ -2044,10 +2046,12 @@ def get_statistics_data(
                         "poda_blocks": 0,
                         "ideal_target": sw_ideal_t_pl,
                         "blocks_count": 0,
+                        "closed_blocks": 0,
                     }
                 chart3_weeks_map[chart3_label]["total_plants"] += sw_plants
                 chart3_weeks_map[chart3_label]["total_production"] += sw_prod
                 chart3_weeks_map[chart3_label]["blocks_count"] += len(blocks)
+                chart3_weeks_map[chart3_label]["closed_blocks"] += sw_closed
                 if ac == "SIEMBRA":
                     chart3_weeks_map[chart3_label]["siem_plants"] += sw_plants
                     chart3_weeks_map[chart3_label]["siem_prod"] += sw_prod
@@ -2133,11 +2137,20 @@ def get_statistics_data(
         ]
 
         # Chart 2 (Previously 3): Real Stems / Plant by Source Week vs Target Meta Line (Expanded Horizontally)
-        chart3_sorted_labels = sorted(list(chart3_weeks_map.keys()))[-20:]
+        chart3_sorted_labels = sorted(
+            list(chart3_weeks_map.keys()),
+            key=lambda lbl: chart3_weeks_map[lbl].get("source_week", 0)
+        )
+        if not selected_weeks_set and len(chart3_sorted_labels) > 30:
+            chart3_sorted_labels = chart3_sorted_labels[-30:]
+
         chart_stems_pp_real = []
         chart_stems_pp_target = []
         chart_stems_pp_details = []
-        for lbl in chart3_sorted_labels:
+        last_closed_label = None
+        last_closed_index = -1
+
+        for idx, lbl in enumerate(chart3_sorted_labels):
             info = chart3_weeks_map[lbl]
             pp = round(info["total_production"] / info["total_plants"], 1) if info["total_plants"] > 0 else 0.0
             chart_stems_pp_real.append(pp)
@@ -2146,6 +2159,10 @@ def get_statistics_data(
             siem_pp = round(info["siem_prod"] / info["siem_plants"], 1) if info.get("siem_plants", 0) > 0 else None
             poda_pp = round(info["poda_prod"] / info["poda_plants"], 1) if info.get("poda_plants", 0) > 0 else None
             avg_stems = round(info["total_production"] / info["blocks_count"]) if info.get("blocks_count", 0) > 0 else 0
+            closed_b = info.get("closed_blocks", 0)
+            if closed_b > 0:
+                last_closed_label = lbl
+                last_closed_index = idx
 
             chart_stems_pp_details.append({
                 "total_t_pl": pp,
@@ -2155,6 +2172,8 @@ def get_statistics_data(
                 "total_plants": info["total_plants"],
                 "avg_stems": avg_stems,
                 "blocks_count": info["blocks_count"],
+                "closed_blocks": closed_b,
+                "is_closed": closed_b > 0,
                 "target": avg_ideal_stems_pp,
             })
 
@@ -2194,6 +2213,8 @@ def get_statistics_data(
                 "real_stems_pp": chart_stems_pp_real,
                 "target_stems_pp": chart_stems_pp_target,
                 "details": chart_stems_pp_details,
+                "last_closed_label": last_closed_label,
+                "last_closed_index": last_closed_index,
             },
             "chart_hybrid": {
                 "labels": hybrid_weeks,
@@ -2370,18 +2391,27 @@ def exportar_matriz_api():
     if not session.get("username"):
         return jsonify({"ok": False, "message": "Sesión requerida."}), 401
 
-    requested_week = request.args.get("semana", "")
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=False)
+    prods = available_products(snapshot)
+
+    requested_week = request.args.get("semana", "").strip()
+    selected_week = resolve_selected_week(requested_week, snapshot)
+
     requested_product_master = request.args.get("producto", "").strip()
+    if not requested_product_master and prods:
+        requested_product_master = prods[0]
+
     requested_horizon_back = request.args.get("horizonte_atras", "")
     requested_horizon_forward = request.args.get("horizonte_adelante", "")
     formato = request.args.get("formato", "excel").lower().strip()
+
     filter_var = request.args.get("variedad", "").strip().upper()
     filter_blk = request.args.get("bloque", "").strip().upper()
     filter_ac = request.args.get("ac", "").strip().upper()
+    filter_ubi = request.args.get("ubi", "").strip().upper()
+    filter_origen = request.args.get("origen", "").strip().upper()
+    filter_cosecha = request.args.get("cosecha", "").strip().upper()
     filter_solo_cosechas = request.args.get("solo_cosechas", "0") == "1"
-
-    snapshot: dict[str, Any] = get_snapshot(force_refresh=False)
-    selected_week = resolve_selected_week(requested_week, snapshot)
 
     horizon_weeks_back = max(0, min(20, int(requested_horizon_back or 4)))
     horizon_weeks_forward = max(1, min(20, int(requested_horizon_forward or 8)))
@@ -2391,10 +2421,16 @@ def exportar_matriz_api():
         selected_week,
         horizon_weeks_back,
         horizon_weeks_forward,
-        selected_product_master=requested_product_master,
+        selected_product_master="" if requested_product_master.upper() in {"TODOS", "ALL"} else requested_product_master,
     )
 
+    # Flatten all rows from varieties (siembras + podas)
     matrix_rows = list(weekly_view.get("matrix_rows", []))
+    if not matrix_rows:
+        for v in weekly_view.get("varieties", []):
+            matrix_rows.extend(v.get("siembras", []))
+            matrix_rows.extend(v.get("podas", []))
+
     week_columns = list(weekly_view.get("week_columns", []))
 
     # Apply inline filters if present
@@ -2403,11 +2439,27 @@ def exportar_matriz_api():
     if filter_blk:
         matrix_rows = [r for r in matrix_rows if filter_blk in str(r.get("block", "")).upper()]
     if filter_ac:
-        matrix_rows = [r for r in matrix_rows if r.get("activity") == filter_ac]
+        matrix_rows = [r for r in matrix_rows if r.get("activity") == filter_ac or (filter_ac == 'S' and r.get("activity") == 'SIEMBRA') or (filter_ac == 'P' and r.get("activity") == 'PODA')]
+    if filter_ubi:
+        matrix_rows = [r for r in matrix_rows if filter_ubi in str(r.get("bed_location", "")).upper()]
+    if filter_origen:
+        matrix_rows = [r for r in matrix_rows if filter_origen in str(r.get("source_week_short", "")).upper()]
+    if filter_cosecha:
+        matrix_rows = [r for r in matrix_rows if filter_cosecha in str(r.get("harvest_start_week_short", "")).upper()]
     if filter_solo_cosechas:
         matrix_rows = [r for r in matrix_rows if r.get("window_total", 0) > 0]
 
     filename_base = f"Matriz_Agronomo_Sem{format_short_week(selected_week)}_{requested_product_master or 'TODOS'}"
+
+    # Calculate totals as pure numerical values (never formulas)
+    total_plants = sum(r.get("plants", 0) for r in matrix_rows)
+    total_prog = sum(r.get("program_total", 0) for r in matrix_rows)
+    total_window = sum(r.get("window_total", 0) for r in matrix_rows)
+    total_prod = sum(r.get("total_production", 0) for r in matrix_rows)
+    total_by_col = {
+        w["label"]: sum(r.get("weekly_projection", {}).get(w["label"], 0) for r in matrix_rows)
+        for w in week_columns
+    }
 
     if formato == "csv":
         output = io.StringIO()
@@ -2435,7 +2487,7 @@ def exportar_matriz_api():
             cierre_txt = "CERRADO" if r.get("block_closed") else "ABIERTO"
             row_data = [
                 cierre_txt,
-                r.get("activity", ""),
+                "S" if r.get("activity") == "SIEMBRA" else ("P" if r.get("activity") == "PODA" else r.get("activity", "")),
                 r.get("bed_location", ""),
                 r.get("source_week_short", ""),
                 r.get("block", ""),
@@ -2453,6 +2505,16 @@ def exportar_matriz_api():
                 val = r.get("weekly_projection", {}).get(w["label"], 0)
                 row_data.append(val)
             writer.writerow(row_data)
+
+        # Totals row in CSV
+        totals_row = [
+            "TOTALES", "", "", "", "", "", "", "",
+            total_plants, "", "",
+            total_prog, total_window, total_prod,
+        ]
+        for w in week_columns:
+            totals_row.append(total_by_col.get(w["label"], 0))
+        writer.writerow(totals_row)
 
         csv_bytes = ("\ufeff" + output.getvalue()).encode("utf-8")
         return Response(
@@ -2540,9 +2602,10 @@ def exportar_matriz_api():
             ws.row_dimensions[current_row_idx].height = 18
             is_closed = bool(r.get("block_closed"))
             cierre_txt = "CERRADO" if is_closed else "ABIERTO"
+            ac_label = "S" if r.get("activity") == "SIEMBRA" else ("P" if r.get("activity") == "PODA" else r.get("activity", ""))
             row_vals = [
                 cierre_txt,
-                r.get("activity", ""),
+                ac_label,
                 r.get("bed_location", ""),
                 int(r["source_week_short"]) if str(r.get("source_week_short", "")).isdigit() else r.get("source_week_short", ""),
                 str(r.get("block", "")),
@@ -2580,9 +2643,7 @@ def exportar_matriz_api():
 
             current_row_idx += 1
 
-        # Totals row
-        first_data_row = header_row_idx + 1
-        last_data_row = max(first_data_row, current_row_idx - 1)
+        # Totals row: pure numerical values (no formulas to avoid circular references)
         ws.row_dimensions[current_row_idx].height = 20
 
         for col_idx in range(1, len(headers) + 1):
@@ -2594,14 +2655,25 @@ def exportar_matriz_api():
             if col_idx == 1:
                 cell.value = "TOTALES"
                 cell.alignment = align_left
-            elif col_idx in [9, 12, 13, 14]:
-                c_let = get_column_letter(col_idx)
-                cell.value = f"=SUM({c_let}{first_data_row}:{c_let}{last_data_row})"
+            elif col_idx == 9:
+                cell.value = total_plants
+                cell.alignment = align_right
+                cell.number_format = "#,##0"
+            elif col_idx == 12:
+                cell.value = total_prog
+                cell.alignment = align_right
+                cell.number_format = "#,##0"
+            elif col_idx == 13:
+                cell.value = total_window
+                cell.alignment = align_right
+                cell.number_format = "#,##0"
+            elif col_idx == 14:
+                cell.value = total_prod
                 cell.alignment = align_right
                 cell.number_format = "#,##0"
             elif col_idx > len(fixed_headers):
-                c_let = get_column_letter(col_idx)
-                cell.value = f"=SUM({c_let}{first_data_row}:{c_let}{last_data_row})"
+                w_lbl = week_columns[col_idx - len(fixed_headers) - 1]["label"]
+                cell.value = total_by_col.get(w_lbl, 0)
                 cell.alignment = align_right
                 cell.number_format = "#,##0"
 
