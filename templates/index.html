@@ -1271,6 +1271,8 @@
                     <div class="dropdown-wrapper">
                         <button type="button" class="dropdown-btn" id="ops-menu-btn">⚡ Opciones ▼</button>
                         <div class="dropdown-menu" id="ops-dropdown-menu">
+                            <button type="button" class="dropdown-item" id="menu-export-excel">📥 Exportar Matriz a Excel (.xlsx)</button>
+                            <button type="button" class="dropdown-item" id="menu-export-csv">📄 Exportar Matriz a CSV</button>
                             <button type="button" class="dropdown-item" id="menu-save-all">💾 Guardar Todo en Excel</button>
                             <button type="button" class="dropdown-item" id="menu-toggle-params">👁️ Mostrar / Ocultar Parámetros</button>
                             <button type="button" class="dropdown-item" id="menu-audit-history">📜 Historial y Restaurar Estimaciones</button>
@@ -1316,6 +1318,8 @@
             <div class="variety-header">
                 <h2>📋 Matriz Única Principal de Proyecciones</h2>
                 <div class="chips">
+                    <button type="button" id="btn-export-excel" class="toggle-params-btn" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 700;" title="Descargar matriz en Excel (.xlsx) con columnas de semanas de corte">📥 Exportar Excel</button>
+                    <button type="button" id="btn-export-csv" class="toggle-params-btn" style="background: #ffffff; border-color: #cbd5e1; color: #334155; font-weight: 600;" title="Descargar en formato CSV">📄 CSV</button>
                     <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Mostrar u ocultar columnas de parámetros (Ciclos, T/pl, Desperdicio, Totales)">👁️ Ocultar Parámetros</button>
                     <button type="button" id="btn-toggle-nonzero" class="toggle-params-btn" style="background: #ffffff; color: var(--header-bg); border-color: var(--slate-300);" title="Ocultar todas las filas que tengan 0 en la ventana y mostrar solo filas con cosecha o estimado">⚡ Solo Cosechas (>0)</button>
                     <button type="button" id="reset-filters-btn" class="toggle-params-btn" style="color: var(--slate-600);" title="Limpiar los filtros rápidos de columna y filtros de semanas">🔄 Limpiar Filtros</button>
@@ -3660,6 +3664,40 @@
                 }
             });
         }
+
+        // Export matrix to Excel or CSV respecting current filters
+        function triggerMatrixExport(format) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('formato', format);
+
+            const varEl = document.getElementById('h-filter-variety');
+            if (varEl && varEl.value) params.set('variedad', varEl.value);
+
+            const blkEl = document.getElementById('h-filter-block');
+            if (blkEl && blkEl.value) params.set('bloque', blkEl.value);
+
+            const acEl = document.getElementById('h-filter-ac');
+            if (acEl && acEl.value) params.set('ac', acEl.value);
+
+            const btnNonZero = document.getElementById('btn-toggle-nonzero');
+            if (btnNonZero && btnNonZero.classList.contains('active')) {
+                params.set('solo_cosechas', '1');
+            }
+
+            window.location.href = `/api/matriz/exportar?${params.toString()}`;
+        }
+
+        const btnExportExcel = document.getElementById('btn-export-excel');
+        if (btnExportExcel) btnExportExcel.addEventListener('click', () => triggerMatrixExport('excel'));
+
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        if (btnExportCsv) btnExportCsv.addEventListener('click', () => triggerMatrixExport('csv'));
+
+        const menuExportExcel = document.getElementById('menu-export-excel');
+        if (menuExportExcel) menuExportExcel.addEventListener('click', () => triggerMatrixExport('excel'));
+
+        const menuExportCsv = document.getElementById('menu-export-csv');
+        if (menuExportCsv) menuExportCsv.addEventListener('click', () => triggerMatrixExport('csv'));
     </script>
 
     <!-- EXCEL STATUS BAR (SUMA, PROMEDIO, RECUENTO AL SELECCIONAR CELDAS) -->

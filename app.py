@@ -19,6 +19,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
@@ -1141,10 +1142,10 @@ def require_login():
         elif request.path == "/api/reset-week":
             if "agro" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a Llenado Agrónomo."}), 403
-        # Shared operational APIs (proyecciones, ajustes-semanales, semanas)
-        elif request.path in {"/api/proyecciones", "/api/ajustes-semanales", "/api/semanas"}:
+        # Shared operational APIs (proyecciones, ajustes-semanales, semanas, exportar matriz)
+        elif request.path in {"/api/proyecciones", "/api/ajustes-semanales", "/api/semanas", "/api/matriz/exportar"}:
             if ("agro" not in user_views and "reales" not in user_views) and user_role != "admin":
-                return jsonify({"ok": False, "message": "Acceso denegado a proyecciones operativas."}), 403
+                return jsonify({"ok": False, "message": "Acceso denegado a matriz y exportación."}), 403
 
     return None
 
@@ -2362,6 +2363,269 @@ def estadistica_export_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@app.route("/api/matriz/exportar")
+def exportar_matriz_api():
+    if not session.get("username"):
+        return jsonify({"ok": False, "message": "Sesión requerida."}), 401
+
+    requested_week = request.args.get("semana", "")
+    requested_product_master = request.args.get("producto", "").strip()
+    requested_horizon_back = request.args.get("horizonte_atras", "")
+    requested_horizon_forward = request.args.get("horizonte_adelante", "")
+    formato = request.args.get("formato", "excel").lower().strip()
+    filter_var = request.args.get("variedad", "").strip().upper()
+    filter_blk = request.args.get("bloque", "").strip().upper()
+    filter_ac = request.args.get("ac", "").strip().upper()
+    filter_solo_cosechas = request.args.get("solo_cosechas", "0") == "1"
+
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=False)
+    selected_week = resolve_selected_week(requested_week, snapshot)
+
+    horizon_weeks_back = max(0, min(20, int(requested_horizon_back or 4)))
+    horizon_weeks_forward = max(1, min(20, int(requested_horizon_forward or 8)))
+
+    weekly_view = aggregate_for_week(
+        snapshot,
+        selected_week,
+        horizon_weeks_back,
+        horizon_weeks_forward,
+        selected_product_master=requested_product_master,
+    )
+
+    matrix_rows = list(weekly_view.get("matrix_rows", []))
+    week_columns = list(weekly_view.get("week_columns", []))
+
+    # Apply inline filters if present
+    if filter_var:
+        matrix_rows = [r for r in matrix_rows if filter_var in (r.get("variety_display") or r.get("variety", "")).upper()]
+    if filter_blk:
+        matrix_rows = [r for r in matrix_rows if filter_blk in str(r.get("block", "")).upper()]
+    if filter_ac:
+        matrix_rows = [r for r in matrix_rows if r.get("activity") == filter_ac]
+    if filter_solo_cosechas:
+        matrix_rows = [r for r in matrix_rows if r.get("window_total", 0) > 0]
+
+    filename_base = f"Matriz_Agronomo_Sem{format_short_week(selected_week)}_{requested_product_master or 'TODOS'}"
+
+    if formato == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=";")
+        fixed_headers = [
+            "CIERRE",
+            "AC",
+            "UBI",
+            "SEM. ORIGEN",
+            "BLOQUE",
+            "PRODUCTO",
+            "VARIEDAD",
+            "SEM. COSECHA",
+            "PLANTAS",
+            "CICLO",
+            "T/PL",
+            "TOT PROG",
+            "TOT VENTANA",
+            "TOT PRODUCCION",
+        ]
+        headers = fixed_headers + [f"SEM {w['label']}" for w in week_columns]
+        writer.writerow(headers)
+
+        for r in matrix_rows:
+            cierre_txt = "CERRADO" if r.get("block_closed") else "ABIERTO"
+            row_data = [
+                cierre_txt,
+                r.get("activity", ""),
+                r.get("bed_location", ""),
+                r.get("source_week_short", ""),
+                r.get("block", ""),
+                r.get("product_master", ""),
+                r.get("variety_display") or r.get("variety", ""),
+                r.get("harvest_start_week_short", ""),
+                r.get("plants", 0),
+                r.get("cycle_weeks", ""),
+                r.get("stems_per_plant", 0),
+                r.get("program_total", 0),
+                r.get("window_total", 0),
+                r.get("total_production", 0),
+            ]
+            for w in week_columns:
+                val = r.get("weekly_projection", {}).get(w["label"], 0)
+                row_data.append(val)
+            writer.writerow(row_data)
+
+        csv_bytes = ("\ufeff" + output.getvalue()).encode("utf-8")
+        return Response(
+            csv_bytes,
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename_base}.csv"},
+        )
+    else:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Matriz Sem {format_short_week(selected_week)}"
+        ws.views.sheetView[0].showGridLines = True
+
+        navy_header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        cyan_week_fill = PatternFill(start_color="0369A1", end_color="0369A1", fill_type="solid")
+        amber_cutoff_fill = PatternFill(start_color="D97706", end_color="D97706", fill_type="solid")
+        totals_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+        closed_row_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+
+        white_bold = Font(name="Calibri", size=9, bold=True, color="FFFFFF")
+        black_regular = Font(name="Calibri", size=9, bold=False, color="000000")
+        totals_font = Font(name="Calibri", size=9, bold=True, color="92400E")
+
+        thin_side = Side(border_style="thin", color="CBD5E1")
+        cell_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+        double_bottom = Border(left=thin_side, right=thin_side, top=thin_side, bottom=Side(border_style="double", color="92400E"))
+
+        align_center = Alignment(horizontal="center", vertical="center")
+        align_left = Alignment(horizontal="left", vertical="center")
+        align_right = Alignment(horizontal="right", vertical="center")
+
+        # Title & Meta Info
+        ws.merge_cells("A1:G1")
+        ws["A1"] = f"🌿 MATRIZ DE PROYECCIÓN Y COSECHA AGRÓNOMO — SEMANA {format_short_week(selected_week)}"
+        ws["A1"].font = Font(name="Calibri", size=12, bold=True, color="0369A1")
+        ws["A1"].alignment = Alignment(horizontal="left", vertical="center")
+
+        ws.merge_cells("A2:N2")
+        ws["A2"] = f"Producto: {requested_product_master or 'TODOS'} | Ventana: -{horizon_weeks_back} a +{horizon_weeks_forward} semanas | Bloques: {len(matrix_rows)} | Exportado: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        ws["A2"].font = Font(name="Calibri", size=8, italic=True, color="64748B")
+
+        fixed_headers = [
+            "CIERRE",
+            "AC",
+            "UBI",
+            "SEM. ORIGEN",
+            "BLOQUE",
+            "PRODUCTO",
+            "VARIEDAD",
+            "SEM. COSECHA",
+            "PLANTAS",
+            "CICLO",
+            "T/PL",
+            "TOT PROG",
+            "TOT VENTANA",
+            "TOT PRODUCCIÓN",
+        ]
+        headers = fixed_headers + [f"SEM {w['label']}" for w in week_columns]
+        header_row_idx = 4
+        ws.row_dimensions[header_row_idx].height = 24
+
+        for col_idx, h_text in enumerate(headers, start=1):
+            cell = ws.cell(row=header_row_idx, column=col_idx, value=h_text)
+            cell.border = cell_border
+            cell.alignment = align_center
+            if col_idx <= len(fixed_headers):
+                cell.fill = navy_header_fill
+                cell.font = white_bold
+            else:
+                w_lbl = week_columns[col_idx - len(fixed_headers) - 1]["label"]
+                if w_lbl == format_short_week(selected_week):
+                    cell.fill = amber_cutoff_fill
+                else:
+                    cell.fill = cyan_week_fill
+                cell.font = white_bold
+
+        ws.freeze_panes = "H5"
+
+        current_row_idx = header_row_idx + 1
+        for r in matrix_rows:
+            ws.row_dimensions[current_row_idx].height = 18
+            is_closed = bool(r.get("block_closed"))
+            cierre_txt = "CERRADO" if is_closed else "ABIERTO"
+            row_vals = [
+                cierre_txt,
+                r.get("activity", ""),
+                r.get("bed_location", ""),
+                int(r["source_week_short"]) if str(r.get("source_week_short", "")).isdigit() else r.get("source_week_short", ""),
+                str(r.get("block", "")),
+                r.get("product_master", ""),
+                r.get("variety_display") or r.get("variety", ""),
+                int(r["harvest_start_week_short"]) if str(r.get("harvest_start_week_short", "")).isdigit() else r.get("harvest_start_week_short", ""),
+                int(r.get("plants", 0)),
+                int(r["cycle_weeks"]) if r.get("cycle_weeks") is not None else "",
+                float(r.get("stems_per_plant", 0.0)),
+                int(r.get("program_total", 0)),
+                int(r.get("window_total", 0)),
+                int(r.get("total_production", 0)),
+            ]
+            for w in week_columns:
+                val = r.get("weekly_projection", {}).get(w["label"], 0)
+                row_vals.append(int(val) if val else 0)
+
+            for col_idx, val in enumerate(row_vals, start=1):
+                cell = ws.cell(row=current_row_idx, column=col_idx, value=val)
+                cell.border = cell_border
+                cell.font = black_regular
+                if is_closed:
+                    cell.fill = closed_row_fill
+
+                if col_idx in [1, 2, 4, 8]:
+                    cell.alignment = align_center
+                elif col_idx in [3, 5, 6, 7]:
+                    cell.alignment = align_left
+                elif col_idx == 11:
+                    cell.alignment = align_right
+                    cell.number_format = "0.0"
+                elif col_idx in [9, 10, 12, 13, 14] or col_idx > len(fixed_headers):
+                    cell.alignment = align_right
+                    cell.number_format = "#,##0"
+
+            current_row_idx += 1
+
+        # Totals row
+        first_data_row = header_row_idx + 1
+        last_data_row = max(first_data_row, current_row_idx - 1)
+        ws.row_dimensions[current_row_idx].height = 20
+
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(row=current_row_idx, column=col_idx)
+            cell.border = double_bottom
+            cell.fill = totals_fill
+            cell.font = totals_font
+
+            if col_idx == 1:
+                cell.value = "TOTALES"
+                cell.alignment = align_left
+            elif col_idx in [9, 12, 13, 14]:
+                c_let = get_column_letter(col_idx)
+                cell.value = f"=SUM({c_let}{first_data_row}:{c_let}{last_data_row})"
+                cell.alignment = align_right
+                cell.number_format = "#,##0"
+            elif col_idx > len(fixed_headers):
+                c_let = get_column_letter(col_idx)
+                cell.value = f"=SUM({c_let}{first_data_row}:{c_let}{last_data_row})"
+                cell.alignment = align_right
+                cell.number_format = "#,##0"
+
+        # Adjust column widths
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                if cell.row in [1, 2]:
+                    continue
+                v_str = str(cell.value or "")
+                if len(v_str) > max_len:
+                    max_len = len(v_str)
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 8)
+
+        bio = io.BytesIO()
+        wb.save(bio)
+        bio.seek(0)
+        return send_file(
+            bio,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=f"{filename_base}.xlsx",
+        )
 
 
 @app.post("/api/tpsr-cargar")

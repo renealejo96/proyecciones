@@ -413,78 +413,93 @@
         }
 
         /* ---------------- POWER BI HORIZONTAL CHICLET WEEK SLICER ---------------- */
+        /* ---------------- POWER BI COMPACT CHICLET WEEK SLICER (ALTO DE 1 TARJETA) ---------------- */
         .week-chiclet-card {
             background: #ffffff;
-            border: 1px solid var(--border-subtle);
-            border-radius: 14px;
-            padding: 10px 14px;
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 8px 10px;
             box-shadow: var(--shadow-card);
-            margin-bottom: 14px;
-            position: relative;
-            z-index: 500;
+            margin-bottom: 0;
+            box-sizing: border-box;
+            height: 122px; /* Altura idéntica a una tarjeta KPI */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .chiclet-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
+            gap: 6px;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
             border-bottom: 1px solid var(--border-subtle);
         }
 
         .chiclet-title {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .chiclet-badge-icon {
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             background: #e0f2fe;
             color: #0284c7;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid #bae6fd;
         }
 
         .chiclet-title-main {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             font-weight: 800;
             color: #0f172a;
-            display: block;
             letter-spacing: 0.01em;
+            white-space: nowrap;
         }
 
         .chiclet-title-sub {
-            font-size: 0.71rem;
-            font-weight: 600;
-            color: var(--text-muted);
+            display: none;
         }
 
         .chiclet-actions {
             display: flex;
             align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
+            gap: 4px;
+            flex-wrap: nowrap;
         }
 
         .btn-chiclet-all {
             background: #f8fafc;
-            border: 1.5px solid var(--border-card);
-            border-radius: 6px;
-            padding: 4px 11px;
-            font-size: 0.74rem;
+            border: 1px solid var(--border-card);
+            border-radius: 5px;
+            padding: 2px 7px;
+            font-size: 0.68rem;
             font-weight: 800;
             color: var(--text-body);
             cursor: pointer;
             transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-chiclet-all:hover {
+            background: #f1f5f9;
+            border-color: var(--kpi-blue);
+            color: var(--kpi-blue);
+        }
+
+        .btn-chiclet-all.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 1px 4px rgba(2, 132, 199, 0.3);
         }
 
         .btn-chiclet-all:hover {
@@ -540,16 +555,16 @@
         .chiclet-grid-container {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 6px;
-            max-height: 126px; /* Shows exactly 3 rows of week pills */
+            gap: 4px;
+            max-height: 76px; /* Shows 2-3 rows cleanly inside 122px card */
             overflow-y: auto;
-            padding: 4px 3px;
+            padding: 2px 2px;
             scrollbar-width: thin;
             scrollbar-color: #0284c7 #f1f5f9;
         }
 
         .chiclet-grid-container::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
         .chiclet-grid-container::-webkit-scrollbar-track {
             background: #f1f5f9;
@@ -571,17 +586,17 @@
 
         .chiclet-pill {
             background: #ffffff;
-            border: 1.5px solid var(--border-card);
-            border-radius: 7px;
-            padding: 6px 8px;
-            font-size: 0.76rem;
+            border: 1.2px solid var(--border-card);
+            border-radius: 5px;
+            padding: 3px 4px;
+            font-size: 0.69rem;
             font-weight: 700;
             color: var(--text-heading);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
+            gap: 2px;
             white-space: nowrap;
             transition: all 0.15s ease;
             user-select: none;
@@ -1259,45 +1274,6 @@
                 </select>
             </div>
 
-            <!-- POWER BI MULTI-SELECT WEEK SLICER (SIN INICIO NI FIN) -->
-            <div class="slicer-group slicer-group-multiselect" id="slicer-group-week-multiselect">
-                <label>📅 Semanas de Siembra:</label>
-                <div class="pbi-multiselect" id="week-multiselect">
-                    <button type="button" class="pbi-multiselect-btn" id="week-dropdown-btn">
-                        <span id="week-dropdown-text">
-                            {% if not stats.selected_weeks %}
-                                (Todas las Semanas)
-                            {% elif stats.selected_weeks|length == 1 %}
-                                Semana {{ stats.selected_weeks[0] }}
-                            {% else %}
-                                {{ stats.selected_weeks|length }} semanas seleccionadas
-                            {% endif %}
-                        </span>
-                        <span style="font-size: 0.65rem; color: var(--kpi-blue);">▼</span>
-                    </button>
-                    <div class="pbi-multiselect-dropdown" id="week-dropdown-panel" style="display: none;">
-                        <div class="pbi-ms-actions">
-                            <input type="text" id="week-search" placeholder="🔍 Buscar semana..." class="pbi-ms-search" autocomplete="off">
-                            <div class="pbi-ms-quick-links" style="flex-wrap: wrap;">
-                                <button type="button" id="week-select-all" class="pbi-ms-btn-link">✓ Todas</button>
-                                <button type="button" id="week-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
-                                <button type="button" id="week-quick-last4" class="pbi-ms-btn-link" title="Seleccionar las últimas 4 semanas disponibles">⚡ Últimas 4</button>
-                                <button type="button" id="week-quick-last8" class="pbi-ms-btn-link" title="Seleccionar las últimas 8 semanas disponibles">⚡ Últimas 8</button>
-                            </div>
-                        </div>
-                        <div class="pbi-ms-options" id="week-options-list">
-                            {% for w in stats.available_weeks %}
-                                {% set is_w_checked = stats.selected_weeks and (w in stats.selected_weeks) %}
-                                <label class="pbi-ms-item">
-                                    <input type="checkbox" name="semana" value="{{ w }}" class="pbi-week-cb" {{ 'checked' if is_w_checked else '' }}>
-                                    <span>Semana {{ w }}</span>
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="slicer-group">
                 <label for="slicer-pm">🌿 Producto Maestro:</label>
                 <select name="pm" id="slicer-pm" class="slicer-select">
@@ -1350,58 +1326,17 @@
                 </select>
             </div>
 
+            <!-- HIDDEN INPUTS FOR WEEKS FILTER (SYNCED WITH COMPACT CHICLET SLICER) -->
+            <div id="chiclet-hidden-inputs" style="display: none;">
+                {% for w in stats.available_weeks %}
+                    {% set is_w_checked = stats.selected_weeks and (w in stats.selected_weeks) %}
+                    <input type="checkbox" name="semana" value="{{ w }}" class="pbi-week-cb" {{ 'checked' if is_w_checked else '' }}>
+                {% endfor %}
+            </div>
+
             <button type="submit" class="btn-slicer-submit">🔍 Aplicar Filtros</button>
             <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
         </form>
-
-        <!-- POWER BI CHICLET WEEK SLICER (CUADRÍCULA 5 COLUMNAS X 3 FILAS) -->
-        <div class="week-chiclet-card" id="week-chiclet-bar">
-            <div class="chiclet-header">
-                <div class="chiclet-title">
-                    <span class="chiclet-badge-icon">📅</span>
-                    <div>
-                        <span class="chiclet-title-main">Slicer de Semanas de Siembra / Poda (Cuadrícula 5x3)</span>
-                        <span class="chiclet-title-sub">5 columnas con desplazamiento vertical (haz clic para alternar semanas o usa la lista desplegable de arriba).</span>
-                    </div>
-                </div>
-                <div class="chiclet-actions">
-                    <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas sin filtro">
-                        🌟 (Todas)
-                    </button>
-                    <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Seleccionar las últimas 4 semanas disponibles">
-                        ⚡ Últimas 4
-                    </button>
-                    <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Seleccionar las últimas 8 semanas disponibles">
-                        ⚡ Últimas 8
-                    </button>
-                    <button type="button" id="btn-chiclet-none" class="btn-chiclet-all" title="Deseleccionar todas las semanas">
-                        ✕ Ninguna
-                    </button>
-                    <button type="button" id="btn-chiclet-apply" class="btn-chiclet-submit" style="display: none;" title="Aplicar las semanas seleccionadas al tablero">
-                        ✓ Aplicar (<span id="chiclet-count">0</span>)
-                    </button>
-                    {% if stats.selected_weeks %}
-                    <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" class="btn-chiclet-clear" title="Quitar filtro de semanas">
-                        ✕ Quitar filtro ({{ stats.selected_weeks|length }})
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="chiclet-grid-container" id="chiclet-grid-container">
-                {% for w in stats.available_weeks %}
-                    {% set is_sel = stats.selected_weeks and (w in stats.selected_weeks) %}
-                    <button type="button" 
-                            class="chiclet-pill {{ 'active' if is_sel else '' }}" 
-                            data-week="{{ w }}" 
-                            id="chiclet-pill-{{ w }}"
-                            title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
-                        <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
-                        <span class="chiclet-pill-label">Sem {{ w }}</span>
-                    </button>
-                {% endfor %}
-            </div>
-        </div>
 
         <!-- ACTIVE FILTER NOTIFICATION IF WEEKS SELECTED -->
         {% if stats.selected_weeks %}
@@ -1523,14 +1458,63 @@
                     </div>
                 </div>
 
-                <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
-                        <span class="chart-tag">Eje X: Semanas de Siembra / Poda</span>
+                <!-- RIGHT COLUMN: COMPACT WEEK SLICER (ANCHO 2 TARJETAS, ALTO 1 TARJETA) + CHART 2 -->
+                <div class="chart-col-right" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- POWER BI COMPACT CHICLET WEEK SLICER (ENCIMA DEL GRÁFICO DE LÍNEAS) -->
+                    <div class="week-chiclet-card" id="week-chiclet-bar">
+                        <div class="chiclet-header">
+                            <div class="chiclet-title">
+                                <span class="chiclet-badge-icon">📅</span>
+                                <span class="chiclet-title-main">Slicer Semanas Siembra / Poda</span>
+                            </div>
+                            <div class="chiclet-actions">
+                                <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas">
+                                    🌟 Todas
+                                </button>
+                                <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Últimas 4 semanas">
+                                    ⚡ Últ. 4
+                                </button>
+                                <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Últimas 8 semanas">
+                                    ⚡ Últ. 8
+                                </button>
+                                <button type="button" id="btn-chiclet-none" class="btn-chiclet-all" title="Deseleccionar todas">
+                                    ✕
+                                </button>
+                                <button type="button" id="btn-chiclet-apply" class="btn-chiclet-submit" style="display: none;" title="Aplicar semanas seleccionadas al tablero">
+                                    ✓ (<span id="chiclet-count">0</span>)
+                                </button>
+                                {% if stats.selected_weeks %}
+                                <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" class="btn-chiclet-clear" style="padding: 2px 6px; font-size: 0.68rem;" title="Quitar filtro de semanas">
+                                    ✕ Quitar
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="chiclet-grid-container" id="chiclet-grid-container">
+                            {% for w in stats.available_weeks %}
+                                {% set is_sel = stats.selected_weeks and (w in stats.selected_weeks) %}
+                                <button type="button" 
+                                        class="chiclet-pill {{ 'active' if is_sel else '' }}" 
+                                        data-week="{{ w }}" 
+                                        id="chiclet-pill-{{ w }}"
+                                        title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
+                                    <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
+                                    <span class="chiclet-pill-label">Sem {{ w }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <div class="chart-body">
-                        <canvas id="stemsPpChart"></canvas>
+
+                    <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
+                    <div class="chart-card" style="flex: 1; margin-bottom: 0;">
+                        <div class="chart-header">
+                            <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
+                            <span class="chart-tag">Eje X: Semanas de Siembra / Poda</span>
+                        </div>
+                        <div class="chart-body" style="height: 250px;">
+                            <canvas id="stemsPpChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1557,27 +1541,40 @@
                     <!-- Filled dynamically by JavaScript -->
                 </div>
 
-                <!-- INLINE FILTERS TOOLBAR -->
+                <!-- INLINE FILTERS TOOLBAR (UNIFICADO) -->
                 <div class="table-filters-toolbar">
+                    <!-- POWER BI MULTI-SELECT WEEK SLICER FOR TABLE -->
+                    <div class="t-filter-item" style="position: relative;">
+                        <span>📅 Semanas Siembra / Poda:</span>
+                        <div class="pbi-multiselect" id="tbl-week-multiselect" style="min-width: 175px;">
+                            <button type="button" class="pbi-multiselect-btn" id="tbl-week-dropdown-btn" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff;">
+                                <span id="tbl-week-dropdown-text">(Todas las Semanas)</span>
+                                <span style="font-size: 0.65rem; color: var(--kpi-blue);">▼</span>
+                            </button>
+                            <div class="pbi-multiselect-dropdown" id="tbl-week-dropdown-panel" style="display: none; width: 250px; z-index: 9999;">
+                                <div class="pbi-ms-actions">
+                                    <input type="text" id="tbl-week-search" placeholder="🔍 Buscar semana..." class="pbi-ms-search" autocomplete="off">
+                                    <div class="pbi-ms-quick-links" style="flex-wrap: wrap;">
+                                        <button type="button" id="tbl-week-select-all" class="pbi-ms-btn-link">✓ Todas</button>
+                                        <button type="button" id="tbl-week-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
+                                        <button type="button" id="tbl-week-quick-last4" class="pbi-ms-btn-link">⚡ Últimas 4</button>
+                                        <button type="button" id="tbl-week-quick-last8" class="pbi-ms-btn-link">⚡ Últimas 8</button>
+                                    </div>
+                                </div>
+                                <div class="pbi-ms-options" id="tbl-week-options-list" style="max-height: 180px;">
+                                    {% for w in stats.available_weeks %}
+                                        <label class="pbi-ms-item">
+                                            <input type="checkbox" value="{{ w }}" class="tbl-week-cb" checked>
+                                            <span>Semana {{ w }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="t-filter-item">
                         <span>🔍 Bloque:</span>
                         <input type="text" id="t-filter-block" class="t-filter-ctrl" placeholder="ej. 13A o 100" style="width: 85px;">
-                    </div>
-                    <div class="t-filter-item">
-                        <span>📅 Sem. Orig:</span>
-                        <input type="text" id="t-filter-week" class="t-filter-ctrl" placeholder="ej. 2619 o 2619-2627" style="width: 125px;" title="Escribe una semana (ej. 2619) o un rango (ej. 2619-2627)">
-                    </div>
-                    <div class="t-filter-item">
-                        <span>🌸 Variedad:</span>
-                        <input type="text" id="t-filter-variety" class="t-filter-ctrl" placeholder="Buscar variedad..." style="width: 120px;">
-                    </div>
-                    <div class="t-filter-item">
-                        <span>⚡ Actividad:</span>
-                        <select id="t-filter-ac" class="t-filter-ctrl">
-                            <option value="">(Todas)</option>
-                            <option value="SIEMBRA">Siembra</option>
-                            <option value="PODA">Poda</option>
-                        </select>
                     </div>
                     <div class="t-filter-item">
                         <span>🏷️ Estado:</span>
@@ -1969,15 +1966,7 @@
         updateVarietyOptions();
         updateBlockOptions();
 
-        // ---------------- WEEK SLICER & CHICLET BAR (POWER BI INTERACTIVE) ----------------
-        const weekDropdownBtn = document.getElementById('week-dropdown-btn');
-        const weekDropdownPanel = document.getElementById('week-dropdown-panel');
-        const weekDropdownText = document.getElementById('week-dropdown-text');
-        const weekSearch = document.getElementById('week-search');
-        const weekSelectAll = document.getElementById('week-select-all');
-        const weekClearAll = document.getElementById('week-clear-all');
-        const weekQuickLast4 = document.getElementById('week-quick-last4');
-        const weekQuickLast8 = document.getElementById('week-quick-last8');
+        // ---------------- COMPACT CHICLET WEEK SLICER (PANEL VISUAL) ----------------
         const btnChicletAll = document.getElementById('btn-chiclet-all');
         const btnChicletLast4 = document.getElementById('btn-chiclet-last4');
         const btnChicletLast8 = document.getElementById('btn-chiclet-last8');
@@ -1994,19 +1983,12 @@
             }
         }
 
-        function updateWeekDropdownButtonText() {
+        function updateChicletState() {
             const checkedBoxes = Array.from(document.querySelectorAll('.pbi-week-cb:checked'));
             const totalBoxes = document.querySelectorAll('.pbi-week-cb').length;
             
-            if (checkedBoxes.length === 0 || checkedBoxes.length === totalBoxes) {
-                if (weekDropdownText) weekDropdownText.textContent = '(Todas las Semanas)';
-                if (btnChicletAll) btnChicletAll.classList.add('active');
-            } else if (checkedBoxes.length === 1) {
-                if (weekDropdownText) weekDropdownText.textContent = `Semana ${checkedBoxes[0].value}`;
-                if (btnChicletAll) btnChicletAll.classList.remove('active');
-            } else {
-                if (weekDropdownText) weekDropdownText.textContent = `${checkedBoxes.length} semanas seleccionadas`;
-                if (btnChicletAll) btnChicletAll.classList.remove('active');
+            if (btnChicletAll) {
+                btnChicletAll.classList.toggle('active', checkedBoxes.length === 0 || checkedBoxes.length === totalBoxes);
             }
 
             // Detect if selection changed compared to initially loaded URL params
@@ -2029,111 +2011,19 @@
             document.querySelectorAll('.pbi-week-cb').forEach(cb => {
                 cb.addEventListener('change', () => {
                     syncChicletPill(cb.value, cb.checked);
-                    updateWeekDropdownButtonText();
+                    updateChicletState();
                 });
             });
         }
 
-        if (weekDropdownBtn) {
-            weekDropdownBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (varietyDropdownPanel) {
-                    varietyDropdownPanel.style.display = 'none';
-                    if (varietyDropdownBtn) varietyDropdownBtn.classList.remove('open');
-                }
-                const isHidden = weekDropdownPanel.style.display === 'none';
-                weekDropdownPanel.style.display = isHidden ? 'block' : 'none';
-                weekDropdownBtn.classList.toggle('open', isHidden);
-                if (isHidden && weekSearch) weekSearch.focus();
-            });
-        }
-
-        // Global click handler to close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (varietyDropdownBtn && varietyDropdownPanel) {
-                if (!varietyDropdownBtn.contains(e.target) && !varietyDropdownPanel.contains(e.target)) {
-                    varietyDropdownPanel.style.display = 'none';
-                    varietyDropdownBtn.classList.remove('open');
-                }
-            }
-            if (weekDropdownBtn && weekDropdownPanel) {
-                if (!weekDropdownBtn.contains(e.target) && !weekDropdownPanel.contains(e.target)) {
-                    weekDropdownPanel.style.display = 'none';
-                    weekDropdownBtn.classList.remove('open');
-                }
-            }
-        });
-
-        if (weekSearch) {
-            weekSearch.addEventListener('input', () => {
-                const q = weekSearch.value.toLowerCase().trim();
-                document.querySelectorAll('#week-options-list .pbi-ms-item').forEach(item => {
-                    const text = item.textContent.toLowerCase();
-                    item.style.display = text.includes(q) ? 'flex' : 'none';
-                });
-            });
-        }
-
-        if (weekSelectAll) {
-            weekSelectAll.addEventListener('click', () => {
-                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
-                    cb.checked = true;
-                    syncChicletPill(cb.value, true);
-                });
-                updateWeekDropdownButtonText();
-            });
-        }
-
-        if (weekClearAll) {
-            weekClearAll.addEventListener('click', () => {
-                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
-                    cb.checked = false;
-                    syncChicletPill(cb.value, false);
-                });
-                updateWeekDropdownButtonText();
-            });
-        }
-
-        if (weekQuickLast4) {
-            weekQuickLast4.addEventListener('click', () => {
-                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
-                allCbs.forEach(cb => {
-                    cb.checked = false;
-                    syncChicletPill(cb.value, false);
-                });
-                const last4 = allCbs.slice(-4);
-                last4.forEach(cb => {
-                    cb.checked = true;
-                    syncChicletPill(cb.value, true);
-                });
-                updateWeekDropdownButtonText();
-            });
-        }
-
-        if (weekQuickLast8) {
-            weekQuickLast8.addEventListener('click', () => {
-                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
-                allCbs.forEach(cb => {
-                    cb.checked = false;
-                    syncChicletPill(cb.value, false);
-                });
-                const last8 = allCbs.slice(-8);
-                last8.forEach(cb => {
-                    cb.checked = true;
-                    syncChicletPill(cb.value, true);
-                });
-                updateWeekDropdownButtonText();
-            });
-        }
-
-        // Chiclet Header Action Buttons (Cuadrícula 5x3)
+        // Chiclet Header Action Buttons (Panel Visual)
         if (btnChicletAll) {
             btnChicletAll.addEventListener('click', () => {
                 document.querySelectorAll('.pbi-week-cb').forEach(cb => {
                     cb.checked = false;
                     syncChicletPill(cb.value, false);
                 });
-                updateWeekDropdownButtonText();
+                updateChicletState();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
             });
@@ -2151,7 +2041,7 @@
                     cb.checked = true;
                     syncChicletPill(cb.value, true);
                 });
-                updateWeekDropdownButtonText();
+                updateChicletState();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
             });
@@ -2169,7 +2059,7 @@
                     cb.checked = true;
                     syncChicletPill(cb.value, true);
                 });
-                updateWeekDropdownButtonText();
+                updateChicletState();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
             });
@@ -2181,7 +2071,7 @@
                     cb.checked = false;
                     syncChicletPill(cb.value, false);
                 });
-                updateWeekDropdownButtonText();
+                updateChicletState();
             });
         }
 
@@ -2201,7 +2091,7 @@
                 if (cb) {
                     cb.checked = !cb.checked;
                     syncChicletPill(weekVal, cb.checked);
-                    updateWeekDropdownButtonText();
+                    updateChicletState();
                 }
             });
 
@@ -2212,14 +2102,126 @@
                     c.checked = (c.value === weekVal);
                     syncChicletPill(c.value, c.checked);
                 });
-                updateWeekDropdownButtonText();
+                updateChicletState();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
             });
         });
 
         setupWeekCheckboxListeners();
-        updateWeekDropdownButtonText();
+        updateChicletState();
+
+        // ---------------- TABLE WEEK MULTI-SELECT DROPDOWN (DESGLOSE TAB) ----------------
+        const tblWeekDropdownBtn = document.getElementById('tbl-week-dropdown-btn');
+        const tblWeekDropdownPanel = document.getElementById('tbl-week-dropdown-panel');
+        const tblWeekDropdownText = document.getElementById('tbl-week-dropdown-text');
+        const tblWeekSearch = document.getElementById('tbl-week-search');
+        const tblWeekSelectAll = document.getElementById('tbl-week-select-all');
+        const tblWeekClearAll = document.getElementById('tbl-week-clear-all');
+        const tblWeekQuickLast4 = document.getElementById('tbl-week-quick-last4');
+        const tblWeekQuickLast8 = document.getElementById('tbl-week-quick-last8');
+
+        function updateTblWeekDropdownText() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.tbl-week-cb:checked'));
+            const totalBoxes = document.querySelectorAll('.tbl-week-cb').length;
+            if (!tblWeekDropdownText) return;
+            if (checkedBoxes.length === 0) {
+                tblWeekDropdownText.textContent = '(Ninguna semana)';
+            } else if (checkedBoxes.length === totalBoxes) {
+                tblWeekDropdownText.textContent = '(Todas las Semanas)';
+            } else if (checkedBoxes.length === 1) {
+                tblWeekDropdownText.textContent = `Semana ${checkedBoxes[0].value}`;
+            } else {
+                tblWeekDropdownText.textContent = `${checkedBoxes.length} semanas`;
+            }
+        }
+
+        if (tblWeekDropdownBtn) {
+            tblWeekDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (varietyDropdownPanel) {
+                    varietyDropdownPanel.style.display = 'none';
+                    if (varietyDropdownBtn) varietyDropdownBtn.classList.remove('open');
+                }
+                const isHidden = tblWeekDropdownPanel.style.display === 'none';
+                tblWeekDropdownPanel.style.display = isHidden ? 'block' : 'none';
+                tblWeekDropdownBtn.classList.toggle('open', isHidden);
+                if (isHidden && tblWeekSearch) tblWeekSearch.focus();
+            });
+        }
+
+        // Global click handler to close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (varietyDropdownBtn && varietyDropdownPanel) {
+                if (!varietyDropdownBtn.contains(e.target) && !varietyDropdownPanel.contains(e.target)) {
+                    varietyDropdownPanel.style.display = 'none';
+                    varietyDropdownBtn.classList.remove('open');
+                }
+            }
+            if (tblWeekDropdownBtn && tblWeekDropdownPanel) {
+                if (!tblWeekDropdownBtn.contains(e.target) && !tblWeekDropdownPanel.contains(e.target)) {
+                    tblWeekDropdownPanel.style.display = 'none';
+                    tblWeekDropdownBtn.classList.remove('open');
+                }
+            }
+        });
+
+        if (tblWeekSearch) {
+            tblWeekSearch.addEventListener('input', () => {
+                const q = tblWeekSearch.value.toLowerCase().trim();
+                document.querySelectorAll('#tbl-week-options-list .pbi-ms-item').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(q) ? 'flex' : 'none';
+                });
+            });
+        }
+
+        if (tblWeekSelectAll) {
+            tblWeekSelectAll.addEventListener('click', () => {
+                document.querySelectorAll('.tbl-week-cb').forEach(cb => cb.checked = true);
+                updateTblWeekDropdownText();
+                queueFilterApplication();
+            });
+        }
+
+        if (tblWeekClearAll) {
+            tblWeekClearAll.addEventListener('click', () => {
+                document.querySelectorAll('.tbl-week-cb').forEach(cb => cb.checked = false);
+                updateTblWeekDropdownText();
+                queueFilterApplication();
+            });
+        }
+
+        if (tblWeekQuickLast4) {
+            tblWeekQuickLast4.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.tbl-week-cb'));
+                allCbs.forEach(cb => cb.checked = false);
+                const last4 = allCbs.slice(-4);
+                last4.forEach(cb => cb.checked = true);
+                updateTblWeekDropdownText();
+                queueFilterApplication();
+            });
+        }
+
+        if (tblWeekQuickLast8) {
+            tblWeekQuickLast8.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.tbl-week-cb'));
+                allCbs.forEach(cb => cb.checked = false);
+                const last8 = allCbs.slice(-8);
+                last8.forEach(cb => cb.checked = true);
+                updateTblWeekDropdownText();
+                queueFilterApplication();
+            });
+        }
+
+        document.querySelectorAll('.tbl-week-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                updateTblWeekDropdownText();
+                queueFilterApplication();
+            });
+        });
+
+        updateTblWeekDropdownText();
 
         // ---------------- HIERARCHICAL MATRIX ACCORDION LOGIC ----------------
         function togglePmGroup(pm) {
@@ -2360,11 +2362,8 @@
             });
         }
 
-        // ---------------- TABLE INLINE FILTERS (SUPPORTS 2619-2627 RANGE) ----------------
+        // ---------------- TABLE INLINE FILTERS (DESGLOSE TAB) ----------------
         const filterBlock = document.getElementById('t-filter-block');
-        const filterWeek = document.getElementById('t-filter-week');
-        const filterVar = document.getElementById('t-filter-variety');
-        const filterAc = document.getElementById('t-filter-ac');
         const filterStatus = document.getElementById('t-filter-status');
         const filterPerf = document.getElementById('t-filter-perf');
         const filterReset = document.getElementById('t-filter-reset');
@@ -2377,30 +2376,17 @@
 
         function applyTableFilters() {
             const blkQ = (filterBlock ? filterBlock.value : '').toLowerCase().trim();
-            const weekQ = (filterWeek ? filterWeek.value : '').toLowerCase().trim();
-            const varQ = (filterVar ? filterVar.value : '').toLowerCase().trim();
-            const acQ = (filterAc ? filterAc.value : '').trim();
             const statusQ = (filterStatus ? filterStatus.value : '').trim();
             const perfQ = (filterPerf ? filterPerf.value : '').trim();
 
-            // Detect week range in inline filter (e.g. "2619-2627" or "2619 a 2627")
-            let weekFromVal = null;
-            let weekToVal = null;
-            if (weekQ.includes('-')) {
-                const parts = weekQ.split('-').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p));
-                if (parts.length === 2) {
-                    weekFromVal = Math.min(parts[0], parts[1]);
-                    weekToVal = Math.max(parts[0], parts[1]);
-                }
-            } else if (weekQ.includes(' a ')) {
-                const parts = weekQ.split(' a ').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p));
-                if (parts.length === 2) {
-                    weekFromVal = Math.min(parts[0], parts[1]);
-                    weekToVal = Math.max(parts[0], parts[1]);
-                }
-            }
+            // Selected weeks from table multi-select dropdown
+            const checkedTblWeekCbs = Array.from(document.querySelectorAll('.tbl-week-cb:checked'));
+            const totalTblWeekCbs = document.querySelectorAll('.tbl-week-cb').length;
+            const isFilteringWeeks = checkedTblWeekCbs.length > 0 && checkedTblWeekCbs.length < totalTblWeekCbs;
+            const selectedWeeksSet = new Set(checkedTblWeekCbs.map(cb => cb.value.toString().trim()));
+            const isZeroWeeksSelected = checkedTblWeekCbs.length === 0 && totalTblWeekCbs > 0;
 
-            const isFiltering = !!(blkQ || weekQ || varQ || acQ || statusQ || perfQ);
+            const isFiltering = !!(blkQ || statusQ || perfQ || isFilteringWeeks || isZeroWeeksSelected);
             const shouldHideGroupTotals = isFiltering || isFlatView;
 
             let totalVisibleBlocks = 0;
@@ -2421,23 +2407,18 @@
 
                     blkRows.forEach(blockRow => {
                         const rowBlk = (blockRow.dataset.block || '').toLowerCase();
-                        const rowWeek = (blockRow.dataset.week || '').toLowerCase();
-                        const rowWeekInt = parseInt(rowWeek.replace(/[^\d]/g, ''), 10) || 0;
-                        const rowVar = (blockRow.dataset.variety || '' + ' ' + (blockRow.dataset.varietyDisplay || '')).toLowerCase();
-                        const rowAc = blockRow.dataset.activity || '';
+                        const rowWeek = (blockRow.dataset.week || '').trim();
                         const rowStatus = blockRow.dataset.status || '';
                         const rowPerf = blockRow.dataset.perf || '';
                         const blockUid = blockRow.dataset.blockUid;
 
                         let match = true;
-                        if (blkQ && !rowBlk.includes(blkQ)) match = false;
-                        if (weekFromVal !== null && weekToVal !== null) {
-                            if (rowWeekInt < weekFromVal || rowWeekInt > weekToVal) match = false;
-                        } else if (weekQ && !rowWeek.includes(weekQ)) {
+                        if (isZeroWeeksSelected) {
+                            match = false;
+                        } else if (isFilteringWeeks && !selectedWeeksSet.has(rowWeek)) {
                             match = false;
                         }
-                        if (varQ && !rowVar.includes(varQ)) match = false;
-                        if (acQ && rowAc !== acQ) match = false;
+                        if (blkQ && !rowBlk.includes(blkQ)) match = false;
                         if (statusQ && rowStatus !== statusQ) match = false;
                         if (perfQ && rowPerf !== perfQ) match = false;
 
@@ -2452,10 +2433,11 @@
                         if (match) {
                             swVisibleCount++;
                             totalVisibleBlocks++;
-                            const plantsVal = parseFloat(blockRow.dataset.plants) || 0;
-                            const prodVal = parseFloat(blockRow.dataset.production) || 0;
-                            totalFilteredPlants += plantsVal;
-                            totalFilteredProduction += prodVal;
+                            // Explicit numeric parsing preventing string concatenation
+                            const plantsVal = Number(String(blockRow.dataset.plants || '0').replace(/[^\d.]/g, '')) || 0;
+                            const prodVal = Number(String(blockRow.dataset.production || '0').replace(/[^\d.]/g, '')) || 0;
+                            totalFilteredPlants = (totalFilteredPlants || 0) + plantsVal;
+                            totalFilteredProduction = (totalFilteredProduction || 0) + prodVal;
                         }
 
                         const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
@@ -2488,11 +2470,9 @@
                 if (isFiltering || isFlatView) {
                     tableSummaryEl.style.display = 'flex';
                     const activeFilterLabels = [];
+                    if (isZeroWeeksSelected) activeFilterLabels.push('0 semanas seleccionadas');
+                    else if (isFilteringWeeks) activeFilterLabels.push(`Semanas: ${checkedTblWeekCbs.length} seleccionadas`);
                     if (blkQ) activeFilterLabels.push(`Bloque: "${blkQ}"`);
-                    if (weekFromVal !== null && weekToVal !== null) activeFilterLabels.push(`Semanas: ${weekFromVal} a ${weekToVal}`);
-                    else if (weekQ) activeFilterLabels.push(`Semana: "${weekQ}"`);
-                    if (varQ) activeFilterLabels.push(`Variedad: "${varQ}"`);
-                    if (acQ) activeFilterLabels.push(`Actividad: "${acQ}"`);
                     if (statusQ) activeFilterLabels.push(`Estado: "${statusQ}"`);
                     if (perfQ) activeFilterLabels.push(`Rendimiento: "${perfQ === 'OPTIMAL' ? 'Cumple Meta' : 'Bajo Meta'}"`);
 
@@ -2500,8 +2480,8 @@
                     tableSummaryEl.innerHTML = `
                         <div>
                             <span>🔎 Coincidencias Filtradas: <strong>${totalVisibleBlocks} bloques</strong> (${activeFilterLabels.join(', ') || 'Vista Plana'})</span>
-                            &nbsp;|&nbsp; <span>🌱 Plantas: <strong>${totalFilteredPlants.toLocaleString()}</strong></span>
-                            &nbsp;|&nbsp; <span>🌸 Producción: <strong>${totalFilteredProduction.toLocaleString()} tallos</strong></span>
+                            &nbsp;|&nbsp; <span>🌱 Plantas: <strong>${Math.round(totalFilteredPlants).toLocaleString()}</strong></span>
+                            &nbsp;|&nbsp; <span>🌸 Producción: <strong>${Math.round(totalFilteredProduction).toLocaleString()} tallos</strong></span>
                             &nbsp;|&nbsp; <span>🏆 T/pl Ponderado: <strong>${avgTPl}</strong></span>
                         </div>
                         <button type="button" onclick="document.getElementById('t-filter-reset').click()" style="background: transparent; border: 1px solid #0284c7; border-radius: 4px; color: #0284c7; font-size: 0.72rem; padding: 2px 8px; cursor: pointer;">Limpiar</button>
@@ -2526,21 +2506,17 @@
             }
         }
 
-        [filterBlock, filterWeek, filterVar].forEach(ctrl => {
-            if (ctrl) ctrl.addEventListener('input', queueFilterApplication);
-        });
-        [filterAc, filterStatus, filterPerf].forEach(ctrl => {
-            if (ctrl) ctrl.addEventListener('change', applyTableFilters);
-        });
+        if (filterBlock) filterBlock.addEventListener('input', queueFilterApplication);
+        if (filterStatus) filterStatus.addEventListener('change', applyTableFilters);
+        if (filterPerf) filterPerf.addEventListener('change', applyTableFilters);
 
         if (filterReset) {
             filterReset.addEventListener('click', () => {
                 if (filterBlock) filterBlock.value = '';
-                if (filterWeek) filterWeek.value = '';
-                if (filterVar) filterVar.value = '';
-                if (filterAc) filterAc.value = '';
                 if (filterStatus) filterStatus.value = '';
                 if (filterPerf) filterPerf.value = '';
+                document.querySelectorAll('.tbl-week-cb').forEach(cb => cb.checked = true);
+                updateTblWeekDropdownText();
                 applyTableFilters();
             });
         }
@@ -2744,10 +2720,8 @@
                                             if (hasSiem && hasPoda) {
                                                 const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
                                                 const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
-                                                const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
                                                 lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
                                                 lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
-                                                lines.push(`🏆 Promedio: ${detail.total_t_pl} t/p ${totIcon}`);
                                             } else if (hasSiem) {
                                                 const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
                                                 lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
@@ -2756,16 +2730,12 @@
                                                 lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
                                             } else {
                                                 const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`🏆 Promedio: ${detail.total_t_pl} t/p ${totIcon}`);
-                                            }
-
-                                            if (detail.avg_stems !== undefined && detail.avg_stems > 0) {
-                                                lines.push(`🌸 Prom. Tallos: ${detail.avg_stems.toLocaleString()} / blq`);
+                                                lines.push(`🌱 Siem: ${detail.total_t_pl} t/p ${totIcon}`);
                                             }
                                         } else {
                                             const val = context.parsed.y;
                                             const icon = val >= meta ? '🟢' : '🔴';
-                                            lines.push(`🏆 Promedio: ${val} t/p ${icon}`);
+                                            lines.push(`🌱 Siem: ${val} t/p ${icon}`);
                                         }
                                         return lines;
                                     } else {
