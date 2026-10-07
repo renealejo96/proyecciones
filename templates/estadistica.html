@@ -1743,48 +1743,6 @@
                                             </td>
                                         </tr>
 
-                                        <!-- LEVEL 4: HARVEST WEEKS BREAKDOWN ROWS (DESGLOSE SEMANA A SEMANA DE COSECHA) -->
-                                        {% for hw in row.harvest_breakdown %}
-                                            <tr class="group-harvest-row harvest-of-{{ block_uid }} blk-child-of-{{ sw_uid }} sw-grandchild-of-{{ grp.product_master }}"
-                                                style="display: none;"
-                                                data-pm="{{ row.product_master }}"
-                                                data-block="{{ row.block }}"
-                                                data-variety="{{ row.variety }}"
-                                                data-week="{{ row.source_week_short }}">
-                                                <td class="col-left" style="padding-left: 56px; color: #7e22ce; font-weight: 700;">
-                                                    ↳ 📅 Sem. Cosecha {{ hw.harvest_week_short }}
-                                                    {% if hw.dump_stems and hw.dump_stems > 0 %}
-                                                        <span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">
-                                                            🗑️ {{ '{:,}'.format(hw.dump_stems) }} Dumps
-                                                        </span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
-                                                    Aporte: <strong>{{ hw.pct_of_total }}%</strong> del lote
-                                                    {% if hw.dump_stems and hw.dump_stems > 0 %}
-                                                        &nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">🌸 {{ '{:,}'.format(hw.stems - hw.dump_stems) }} Exportables</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td style="text-align: center; color: var(--text-subtle);">{{ row.source_week_short }}</td>
-                                                <td style="text-align: center; color: var(--text-subtle);">-</td>
-                                                <td style="color: var(--text-subtle);">-</td>
-                                                <td style="color: #7e22ce; font-weight: 700;">{{ '{:,}'.format(hw.stems) }}</td>
-                                                <td style="color: #7e22ce; font-weight: 700; font-family: var(--font-mono);">{{ hw.stems_pp }}</td>
-                                                <td style="color: var(--text-subtle);">-</td>
-                                                <td style="color: var(--text-subtle);">-</td>
-                                                <td style="color: var(--text-subtle);">-</td>
-                                                <td style="text-align: center; font-weight: 600; color: #7e22ce;">Sem {{ hw.harvest_week_short }}</td>
-                                                <td>
-                                                    {% if hw.source == 'REAL' %}
-                                                        <span class="badge-status-closed" style="font-size: 0.58rem;">✅ Real Cosechado</span>
-                                                    {% elif hw.source == 'AGRONOMO' %}
-                                                        <span class="badge-status-harvest" style="font-size: 0.58rem;">📝 Estimado Agrónomo</span>
-                                                    {% else %}
-                                                        <span class="badge-status-pending" style="font-size: 0.58rem;">🔮 Curva Modelo</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
                                     {% endfor %}
                                 {% endfor %}
                             {% else %}
@@ -1797,6 +1755,7 @@
                         </tbody>
                     </table>
                 </div>
+                <script id="harvest-data-json" type="application/json">{{ (stats.harvest_breakdown_map or {}) | tojson }}</script>
             </div>
         </div>
         <!-- END SUBTAB 2 -->
@@ -2264,8 +2223,70 @@
             icon.textContent = isCurrentlyHidden ? '−' : '+';
         }
 
+        const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
+
+        function ensureHarvestRowsRendered(blockUid) {
+            let harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
+            if (harvestRows.length > 0) return harvestRows;
+
+            const blockRow = document.querySelector(`[data-block-uid="${blockUid}"]`);
+            if (!blockRow) return [];
+
+            const items = HARVEST_BREAKDOWN_MAP[blockUid] || [];
+            if (!items.length) return [];
+
+            const pm = blockRow.dataset.pm || '';
+            const swUid = blockRow.dataset.swUid || '';
+            const swShort = blockRow.dataset.week || '';
+            const blk = blockRow.dataset.block || '';
+            const variety = blockRow.dataset.variety || '';
+
+            let html = '';
+            items.forEach(hw => {
+                const dumpBadge = (hw.dump && hw.dump > 0)
+                    ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">🗑️ ${Number(hw.dump).toLocaleString()} Dumps</span>`
+                    : '';
+                const expBadge = (hw.dump && hw.dump > 0)
+                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">🌸 ${Number(hw.stems - hw.dump).toLocaleString()} Exportables</span>`
+                    : '';
+                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">🔮 Curva Modelo</span>`;
+                if (hw.src === 'REAL') {
+                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">✅ Real Cosechado</span>`;
+                } else if (hw.src === 'AGRONOMO') {
+                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">📝 Estimado Agrónomo</span>`;
+                }
+
+                html += `<tr class="group-harvest-row harvest-of-${blockUid} blk-child-of-${swUid} sw-grandchild-of-${pm}"
+                             style="display: none;"
+                             data-pm="${pm}"
+                             data-block="${blk}"
+                             data-variety="${variety}"
+                             data-week="${swShort}">
+                    <td class="col-left" style="padding-left: 56px; color: #7e22ce; font-weight: 700;">
+                        ↳ 📅 Sem. Cosecha ${hw.hw} ${dumpBadge}
+                    </td>
+                    <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
+                        Aporte: <strong>${hw.pct}%</strong> del lote ${expBadge}
+                    </td>
+                    <td style="text-align: center; color: var(--text-subtle);">${swShort}</td>
+                    <td style="text-align: center; color: var(--text-subtle);">-</td>
+                    <td style="color: var(--text-subtle);">-</td>
+                    <td style="color: #7e22ce; font-weight: 700;">${Number(hw.stems).toLocaleString()}</td>
+                    <td style="color: #7e22ce; font-weight: 700; font-family: var(--font-mono);">${hw.pp}</td>
+                    <td style="color: var(--text-subtle);">-</td>
+                    <td style="color: var(--text-subtle);">-</td>
+                    <td style="color: var(--text-subtle);">-</td>
+                    <td style="text-align: center; font-weight: 600; color: #7e22ce;">Sem ${hw.hw}</td>
+                    <td>${srcBadge}</td>
+                </tr>`;
+            });
+
+            blockRow.insertAdjacentHTML('afterend', html);
+            return document.querySelectorAll(`.harvest-of-${blockUid}`);
+        }
+
         function toggleBlockWeeks(blockUid) {
-            const harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
+            const harvestRows = ensureHarvestRowsRendered(blockUid);
             const icon = document.getElementById(`icon-blk-${blockUid}`);
             if (!harvestRows.length || !icon) return;
 
@@ -2339,8 +2360,14 @@
                 }
                 document.querySelectorAll('.group-master-row').forEach(r => r.style.display = '');
                 document.querySelectorAll('.group-sw-row').forEach(r => r.style.display = '');
-                document.querySelectorAll('.group-block-row').forEach(r => r.style.display = '');
-                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = '');
+                document.querySelectorAll('.group-block-row').forEach(r => {
+                    r.style.display = '';
+                    const blockUid = r.dataset.blockUid;
+                    if (blockUid) {
+                        const hRows = ensureHarvestRowsRendered(blockUid);
+                        hRows.forEach(hr => hr.style.display = '');
+                    }
+                });
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '−');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '−');

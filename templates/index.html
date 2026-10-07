@@ -1180,6 +1180,38 @@
         .warnings { background: #fffbe6; border-color: #ffe58f; }
         .warnings h3 { margin: 0 0 4px; color: #d48806; font-size: 0.86rem; }
 
+        /* FLOATING CONFIRM PILL FOR MOBILE TOUCH INPUTS */
+        .mobile-confirm-pill {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.95rem;
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .mobile-confirm-pill:active {
+            transform: scale(0.95);
+            background: #065f46;
+        }
+        .mobile-confirm-icon {
+            font-size: 1.2rem;
+            line-height: 1;
+            font-weight: 900;
+        }
+
         @media (max-width: 900px) {
             .page { padding: 4px; }
             .hero { padding: 6px 8px; }
@@ -1796,8 +1828,8 @@
         }
 
         function recalcRow(row) {
-            // NEVER overwrite or regenerate model curve if in real harvest mode, or if block is/was closed!
-            if (pageMode === 'REAL' || row.dataset.blockClosed === 'true' || row.dataset.wasClosed === 'true') {
+            // Do not regenerate model curve if block is or was closed
+            if (row.dataset.blockClosed === 'true' || row.dataset.wasClosed === 'true') {
                 updateRowTotalsFromWeekInputs(row);
                 return;
             }
@@ -2862,41 +2894,60 @@
             return null;
         }
 
+        // Mobile Confirm Bar Control
+        let activeFocusedInput = null;
+
+        function showMobileConfirmBar(input) {
+            activeFocusedInput = input;
+            const bar = document.getElementById('mobile-confirm-btn');
+            if (!bar) return;
+            bar.style.display = 'flex';
+        }
+
+        function hideMobileConfirmBar() {
+            setTimeout(() => {
+                if (!document.activeElement || !document.activeElement.classList || (!document.activeElement.classList.contains('edit-input') && !document.activeElement.classList.contains('week-input'))) {
+                    const bar = document.getElementById('mobile-confirm-btn');
+                    if (bar) bar.style.display = 'none';
+                    activeFocusedInput = null;
+                }
+            }, 300);
+        }
+
+        const mobileConfirmBtn = document.getElementById('mobile-confirm-btn');
+        if (mobileConfirmBtn) {
+            mobileConfirmBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            mobileConfirmBtn.addEventListener('touchstart', (e) => e.preventDefault());
+            mobileConfirmBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (activeFocusedInput) {
+                    activeFocusedInput.blur();
+                }
+            });
+        }
+
         // Enhanced Auto-Select on Focus & Keyboard Navigation
         document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
             input.addEventListener('focus', () => {
-                input.select();
                 try {
-                    input.setSelectionRange(0, 9999);
+                    input.select();
                 } catch (e) {}
+                showMobileConfirmBar(input);
             });
 
             input.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    input.blur();
+
                     const cell = input.closest('td');
                     const row = input.closest('.projection-row');
-
-                    if (input.classList.contains('week-input') && cell && row && !input.disabled) {
-                        input._isDirty = false;
-                        updateRowTotalsFromWeekInputs(row);
-                        adjustWeekColumnWidths();
-                        await saveWeekCell(row, cell);
-                        recalcAll();
-                    } else if (input.classList.contains('edit-input') && row) {
-                        input._isDirty = false;
-                        recalcRow(row);
-                        adjustWeekColumnWidths();
-                        await saveRowAdjustment(row);
-                        recalcAll(false);
-                    }
 
                     // Move focus down to next visible projection row reliably
                     const targetTr = getNextVisibleProjectionRow(row, 'down');
                     const targetInput = findTargetInputInRow(targetTr, cell, input);
                     if (targetInput) {
                         targetInput.focus();
-                        targetInput.select();
                     }
                 } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     e.preventDefault();
@@ -2907,7 +2958,6 @@
                     const targetInput = findTargetInputInRow(targetTr, cell, input);
                     if (targetInput) {
                         targetInput.focus();
-                        targetInput.select();
                     }
                 }
             });
@@ -2917,12 +2967,7 @@
         document.querySelectorAll('.projection-row .edit-input').forEach((input) => {
             input.addEventListener('input', () => {
                 input._isDirty = true;
-                const row = input.closest('.projection-row');
-                if (row) {
-                    recalcRow(row);
-                    adjustWeekColumnWidths();
-                    debouncedRecalc();
-                }
+                // Never run table reflows or resizing during typing to keep mobile virtual keyboard stable!
             });
             input.addEventListener('change', async () => {
                 input._isDirty = false;
@@ -2935,6 +2980,7 @@
                 }
             });
             input.addEventListener('blur', async () => {
+                hideMobileConfirmBar();
                 if (!input._isDirty) return;
                 input._isDirty = false;
                 const row = input.closest('.projection-row');
@@ -2961,15 +3007,6 @@
                     cell.dataset.status = 'MODELO';
                 }
                 normalizeWeeklyCellClass(cell);
-
-                // Immediate real-time calculation of Real T/pl and row totals
-                updateRowTotalsFromWeekInputs(row);
-
-                // Auto-expand column if digits increased
-                adjustWeekColumnWidths();
-
-                // Debounced update of table totals and summaries
-                debouncedRecalc();
             });
 
             input.addEventListener('change', async () => {
@@ -2985,6 +3022,7 @@
             });
 
             input.addEventListener('blur', async () => {
+                hideMobileConfirmBar();
                 if (!input._isDirty) return;
                 input._isDirty = false;
                 const cell = input.closest('.week-cell');
@@ -3747,6 +3785,12 @@
             <span class="stat-val" id="excel-stat-max" style="color: #cbd5e1; font-size: 0.82rem;">0</span>
         </div>
         <button type="button" class="excel-bar-close" id="excel-bar-close" title="Cerrar selección (Esc)">✕</button>
+    </div>
+
+    <!-- FLOATING CONFIRM BUTTON FOR MOBILE/TOUCH INPUTS -->
+    <div id="mobile-confirm-btn" class="mobile-confirm-pill" style="display: none;" title="Confirmar cambio y guardar">
+        <span class="mobile-confirm-icon">✓</span>
+        <span class="mobile-confirm-text">Listo / Guardar</span>
     </div>
 </body>
 </html>

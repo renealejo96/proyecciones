@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import csv
+import gzip
 import io
 import pandas as pd
 from flask import (
@@ -144,12 +145,14 @@ def normalize_optional_text(value: Any, fallback: str = "*") -> str:
 
 # In-memory snapshot cache synchronized across Gunicorn workers via PostgreSQL data_version
 _WORKER_CACHE: dict[str, Any] = {"version": -1, "snapshot": None}
+_STATS_CACHE: dict[tuple, Any] = {}
 
 
 def invalidate_snapshot_cache() -> None:
     bump_data_version()
     _WORKER_CACHE["snapshot"] = None
     _WORKER_CACHE["version"] = -1
+    _STATS_CACHE.clear()
 
 
 def build_projection_snapshot_from_db() -> dict[str, Any]:
@@ -1136,19 +1139,37 @@ def require_login():
             if "estadistica" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo Estadístico."}), 403
         # Reales specific APIs
-        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch", "/api/ajustes-fila"}:
+        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch"}:
             if "reales" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo de Datos Reales."}), 403
         # Agro specific APIs
         elif request.path == "/api/reset-week":
             if "agro" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a Llenado Agrónomo."}), 403
-        # Shared operational APIs (proyecciones, ajustes-semanales, semanas, exportar matriz)
-        elif request.path in {"/api/proyecciones", "/api/ajustes-semanales", "/api/semanas", "/api/matriz/exportar"}:
+        # Shared operational APIs (proyecciones, ajustes-fila, ajustes-semanales, semanas, exportar matriz)
+        elif request.path in {"/api/proyecciones", "/api/ajustes-fila", "/api/ajustes-semanales", "/api/semanas", "/api/matriz/exportar"}:
             if ("agro" not in user_views and "reales" not in user_views) and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a matriz y exportación."}), 403
 
     return None
+
+
+@app.after_request
+def compress_response(response: Response) -> Response:
+    accept_encoding = request.headers.get("Accept-Encoding", "")
+    if (
+        "gzip" in accept_encoding.lower()
+        and response.status_code < 300
+        and len(response.get_data()) > 1024
+        and "Content-Encoding" not in response.headers
+        and any(t in (response.mimetype or "") for t in ("text/", "application/json", "application/javascript"))
+    ):
+        compressed = gzip.compress(response.get_data(), compresslevel=6)
+        response.set_data(compressed)
+        response.headers["Content-Encoding"] = "gzip"
+        response.headers["Content-Length"] = str(len(compressed))
+        response.headers["Vary"] = "Accept-Encoding"
+    return response
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1569,6 +1590,26 @@ def get_statistics_data(
     week_from: str | None = None,
     week_to: str | None = None,
 ) -> dict[str, Any]:
+    current_version = get_data_version()
+    if _WORKER_CACHE.get("version") != current_version:
+        _STATS_CACHE.clear()
+
+    var_key = tuple(sorted(str(v) for v in (variety_filter if isinstance(variety_filter, list) else [variety_filter])))
+    wk_key = tuple(sorted(str(w) for w in (weeks_filter if isinstance(weeks_filter, list) else [weeks_filter])))
+    cache_key = (
+        current_version,
+        str(year_filter or ""),
+        str(pm_filter or ""),
+        var_key,
+        str(activity_filter or ""),
+        str(block_filter or ""),
+        wk_key,
+        str(week_from or ""),
+        str(week_to or ""),
+    )
+    if cache_key in _STATS_CACHE:
+        return _STATS_CACHE[cache_key]
+
     db = SessionLocal()
     try:
         # 1. Base mappings for cascading selectors
@@ -2182,7 +2223,24 @@ def get_statistics_data(
         chart_hybrid_real = [chronological_real_stems.get(w, 0) for w in hybrid_weeks]
         chart_hybrid_projected = [chronological_agronomo_stems.get(w, 0) for w in hybrid_weeks]
 
-        return {
+        harvest_breakdown_map: dict[str, list[dict[str, Any]]] = {}
+        for b in flat_block_rows:
+            uid = f"{b['product_master']}-{b['source_week']}-{b['activity']}-{b['block']}"
+            if b.get("harvest_breakdown"):
+                harvest_breakdown_map[uid] = [
+                    {
+                        "hw": h["harvest_week_short"],
+                        "sw": b["source_week_short"],
+                        "stems": h["stems"],
+                        "pp": h["stems_pp"],
+                        "dump": h.get("dump_stems", 0),
+                        "pct": h.get("pct_of_total", 0),
+                        "src": h.get("source", "MODELO"),
+                    }
+                    for h in b["harvest_breakdown"]
+                ]
+
+        res = {
             "kpis": {
                 "total_real_stems": total_production_sum,
                 "total_plants": total_plants_sum,
@@ -2196,6 +2254,7 @@ def get_statistics_data(
             },
             "table_rows": flat_block_rows,
             "grouped_products": grouped_products,
+            "harvest_breakdown_map": harvest_breakdown_map,
             "chart_relative": {
                 "labels": curve_labels,
                 "real_curve": chart_real_curve,
@@ -2239,6 +2298,8 @@ def get_statistics_data(
             "selected_activity": activity_filter,
             "selected_block": block_filter,
         }
+        _STATS_CACHE[cache_key] = res
+        return res
     finally:
         db.close()
 
