@@ -1156,20 +1156,35 @@ def require_login():
 
 @app.after_request
 def compress_response(response: Response) -> Response:
-    accept_encoding = request.headers.get("Accept-Encoding", "")
-    if (
-        "gzip" in accept_encoding.lower()
-        and response.status_code < 300
-        and len(response.get_data()) > 1024
-        and "Content-Encoding" not in response.headers
-        and any(t in (response.mimetype or "") for t in ("text/", "application/json", "application/javascript"))
-    ):
-        compressed = gzip.compress(response.get_data(), compresslevel=6)
+    try:
+        # Never attempt compression on direct_passthrough, streamed, or non-2xx responses
+        if getattr(response, "direct_passthrough", False) or response.is_streamed or response.status_code >= 300:
+            return response
+
+        accept_encoding = request.headers.get("Accept-Encoding", "")
+        if "gzip" not in accept_encoding.lower():
+            return response
+
+        if "Content-Encoding" in response.headers:
+            return response
+
+        mimetype = response.mimetype or ""
+        if not (mimetype.startswith("text/") or mimetype in ("application/json", "application/javascript")):
+            return response
+
+        data = response.get_data()
+        if not data or len(data) <= 1024:
+            return response
+
+        compressed = gzip.compress(data, compresslevel=6)
         response.set_data(compressed)
         response.headers["Content-Encoding"] = "gzip"
         response.headers["Content-Length"] = str(len(compressed))
         response.headers["Vary"] = "Accept-Encoding"
-    return response
+        return response
+    except Exception:
+        # Gracefully return uncompressed response on any issue
+        return response
 
 
 @app.route("/login", methods=["GET", "POST"])
