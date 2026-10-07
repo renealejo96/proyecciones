@@ -108,7 +108,7 @@
             flex-wrap: wrap;
             align-items: center;
             background: #ffffff;
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 9999px;
             border: 1px solid var(--border-subtle);
             box-shadow: var(--shadow-sm);
@@ -118,47 +118,90 @@
             text-decoration: none;
             border: 1px solid var(--border-card);
             border-radius: 9999px;
-            padding: 5px 13px;
-            font-size: 0.78rem;
-            font-weight: 700;
+            padding: 5px 12px;
+            font-size: 0.76rem;
+            font-weight: 600;
             color: var(--text-body);
             background: #ffffff;
-            transition: all 0.15s ease;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
         .menu-link:hover {
             background: #f1f5f9;
             color: var(--text-heading);
-            border-color: var(--kpi-blue);
-            transform: translateY(-1px);
+            border-color: var(--border-subtle);
+        }
+
+        .menu-link:active {
+            transform: scale(0.98);
         }
 
         .menu-link.active {
-            background: #0284c7;
+            background: #0f172a;
             color: #ffffff;
-            border-color: #0284c7;
-            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+            border-color: #0f172a;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
         }
 
-        .user-nav-box {
+        .nav-svg {
+            flex-shrink: 0;
+            opacity: 0.85;
+        }
+        .menu-link.active .nav-svg {
+            opacity: 1;
+        }
+
+        .menu-link-admin {
+            color: #9d174d !important;
+            border-color: #fbcfe8 !important;
+            background: #fdf2f8 !important;
+        }
+        .menu-link-admin:hover {
+            background: #fce7f3 !important;
+        }
+
+        .user-nav-group {
             margin-left: auto;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
-        .user-badge {
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 4px 12px;
+        .user-badge-pill {
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 4px 10px;
             border-radius: 9999px;
-            font-size: 0.76rem;
+            border: 1px solid #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .user-role-tag {
+            font-size: 0.65rem;
             font-weight: 700;
-            border: 1px solid #bae6fd;
-            box-shadow: var(--shadow-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            background: #ffffff;
+            padding: 1px 6px;
+            border-radius: 9999px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .menu-link-logout {
+            color: #dc2626 !important;
+            border-color: #ffe4e6 !important;
+            background: #fff1f2 !important;
+        }
+        .menu-link-logout:hover {
+            background: #ffe4e6 !important;
+            border-color: #fecdd3 !important;
         }
 
         /* ---------------- DASHBOARD HEADER TITLE ---------------- */
@@ -1228,36 +1271,59 @@
         <!-- NAVIGATION MENU -->
         <nav class="main-menu">
             {% if 'agro' in user_views or user_role == 'admin' %}
-            <a class="menu-link" href="/">🌾 Llenado Agrónomo</a>
+            <a class="menu-link" href="/">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                <span>Llenado Agrónomo</span>
+            </a>
             {% endif %}
             {% if 'reales' in user_views or user_role == 'admin' %}
-            <a class="menu-link" href="/reales">📊 Datos Reales</a>
+            <a class="menu-link" href="/reales">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>Datos Reales</span>
+            </a>
             {% endif %}
             {% if 'estadistica' in user_views or user_role == 'admin' %}
-            <a class="menu-link active" href="/estadistica">📈 Estadística</a>
+            <a class="menu-link active" href="/estadistica">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                <span>Estadística</span>
+            </a>
             {% endif %}
             {% if 'tpsr' in user_views or user_role == 'admin' %}
-            <a class="menu-link" href="/tpsr">🌱 Plantaciones (TPSR)</a>
+            <a class="menu-link" href="/tpsr" target="_blank" rel="noopener">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><path d="M12 22v-9"/><path d="M12 13a5 5 0 0 0 5-5c0-3-2-5-5-5s-5 2-5 5a5 5 0 0 0 5 5Z"/><path d="M7 17a5 5 0 0 1-5-5c0-2 1-4 3-4 3 0 4 2 4 4"/><path d="M17 17a5 5 0 0 0 5-5c0-2-1-4-3-4-3 0-4 2-4 4"/></svg>
+                <span>Plantaciones (TPSR)</span>
+            </a>
             {% endif %}
             {% if 'parametros' in user_views or user_role == 'admin' %}
-            <a class="menu-link" href="/parametros">⚙️ Configuración Ciclos</a>
+            <a class="menu-link" href="/parametros" target="_blank" rel="noopener">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Configuración Ciclos</span>
+            </a>
             {% endif %}
             {% if user_role == 'admin' %}
-            <a class="menu-link" href="/usuarios" style="color: #9d174d; border-color: #fbcfe8; background: #fdf2f8;">👥 Usuarios</a>
+            <a class="menu-link menu-link-admin" href="/usuarios">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Usuarios</span>
+            </a>
             {% endif %}
 
-            <div class="user-nav-box">
-                <span class="user-badge">
-                    👤 {{ user_name or current_user or 'Usuario' }} ({{ 'Administrador' if user_role == 'admin' else ('Agrónomo' if user_role == 'agronomo' else 'Visita / Gerencia') }})
+            <div class="user-nav-group">
+                <span class="user-badge-pill">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span>{{ user_name or current_user or 'Usuario' }}</span>
+                    <span class="user-role-tag">{{ 'Administrador' if user_role == 'admin' else ('Agrónomo' if user_role == 'agronomo' else 'Gerencia') }}</span>
                 </span>
-                <a href="/logout" class="menu-link" style="color: #dc2626; border-color: #fca5a5; background: #fff5f5;" title="Cerrar sesión">🚪 Salir</a>
+                <a class="menu-link menu-link-logout" href="/logout" title="Cerrar Sesión">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Salir</span>
+                </a>
             </div>
         </nav>
 
         <!-- DASHBOARD TITLE -->
         <div class="header-bar">
             <div class="dashboard-title">
-                <h1>📊 Tablero Estadístico & Rendimiento Agrícola</h1>
+                <h1>Tablero Estadístico & Rendimiento Agrícola</h1>
                 <p>Monitoreo de producción, curvas relativas, tallos por planta y desglose jerárquico por semana de siembra y bloques.</p>
             </div>
         </div>
@@ -1265,7 +1331,7 @@
         <!-- GLOBAL FILTERS (POWER BI SLICERS) WITH SELECTOR DROPDOWNS FOR WEEKS -->
         <form class="slicers-card" id="slicers-form" method="GET" action="/estadistica">
             <div class="slicer-group">
-                <label for="slicer-year">📅 Año:</label>
+                <label for="slicer-year">Año:</label>
                 <select name="year" id="slicer-year" class="slicer-select">
                     <option value="ALL" {{ 'selected' if not stats.selected_year else '' }}>(Todos los Años)</option>
                     {% for y in stats.available_years %}
@@ -1275,7 +1341,7 @@
             </div>
 
             <div class="slicer-group">
-                <label for="slicer-pm">🌿 Producto Maestro:</label>
+                <label for="slicer-pm">Producto Maestro:</label>
                 <select name="pm" id="slicer-pm" class="slicer-select">
                     <option value="ALL" {{ 'selected' if not stats.selected_pm else '' }}>(Todos los Productos)</option>
                     {% for pm in stats.available_pms %}
@@ -1286,7 +1352,7 @@
 
             <!-- VARIETIES MULTI-SELECT DROPDOWN -->
             <div class="slicer-group slicer-group-multiselect">
-                <label>🌸 Variedades (Selección Múltiple):</label>
+                <label>Variedades (Selección Múltiple):</label>
                 <div class="pbi-multiselect" id="variety-multiselect">
                     <button type="button" class="pbi-multiselect-btn" id="variety-dropdown-btn">
                         <span id="variety-dropdown-text">(Todas las Variedades)</span>
@@ -1294,7 +1360,7 @@
                     </button>
                     <div class="pbi-multiselect-dropdown" id="variety-dropdown-panel" style="display: none;">
                         <div class="pbi-ms-actions">
-                            <input type="text" id="variety-search" placeholder="🔍 Buscar variedad..." class="pbi-ms-search" autocomplete="off">
+                            <input type="text" id="variety-search" placeholder="Buscar variedad..." class="pbi-ms-search" autocomplete="off">
                             <div class="pbi-ms-quick-links">
                                 <button type="button" id="variety-select-all" class="pbi-ms-btn-link">✓ Todas</button>
                                 <button type="button" id="variety-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
@@ -1308,7 +1374,7 @@
             </div>
 
             <div class="slicer-group">
-                <label for="slicer-block">📦 Bloque:</label>
+                <label for="slicer-block">Bloque:</label>
                 <select name="bloque" id="slicer-block" class="slicer-select">
                     <option value="">(Todos los Bloques)</option>
                     {% for b in stats.available_blocks %}
@@ -1318,7 +1384,7 @@
             </div>
 
             <div class="slicer-group">
-                <label for="slicer-ac">⚡ Actividad:</label>
+                <label for="slicer-ac">Actividad:</label>
                 <select name="ac" id="slicer-ac" class="slicer-select">
                     <option value="">(Siembra y Poda)</option>
                     <option value="SIEMBRA" {{ 'selected' if stats.selected_activity == 'SIEMBRA' else '' }}>Siembra</option>
@@ -1334,14 +1400,14 @@
                 {% endfor %}
             </div>
 
-            <button type="submit" class="btn-slicer-submit">🔍 Aplicar Filtros</button>
-            <a href="/estadistica" class="btn-slicer-clear">🔄 Restablecer</a>
+            <button type="submit" class="btn-slicer-submit">Aplicar Filtros</button>
+            <a href="/estadistica" class="btn-slicer-clear">Restablecer</a>
         </form>
 
         <!-- ACTIVE FILTER NOTIFICATION IF WEEKS SELECTED -->
         {% if stats.selected_weeks %}
         <div class="active-filter-banner">
-            <span>📅 Semanas Activas Seleccionadas ({{ stats.selected_weeks|length }}): <strong>{{ stats.selected_weeks_str }}</strong></span>
+            <span>Semanas Activas Seleccionadas ({{ stats.selected_weeks|length }}): <strong>{{ stats.selected_weeks_str }}</strong></span>
             <a href="/estadistica?pm={{ stats.selected_pm }}&year={{ stats.selected_year }}" class="active-filter-clear" title="Restablecer filtro de semanas">✕ Quitar Filtro de Semanas</a>
         </div>
         {% endif %}
@@ -1349,10 +1415,10 @@
         <!-- POWER BI SUBTABS -->
         <div class="subtabs-bar">
             <button type="button" class="subtab-btn active" id="btn-subtab-dashboard" onclick="switchSubTab('dashboard')">
-                📊 Panel Visual de Control (KPIs & Gráficas)
+                Panel Visual de Control (KPIs & Gráficas)
             </button>
             <button type="button" class="subtab-btn" id="btn-subtab-desglose" onclick="switchSubTab('desglose')">
-                📋 Desglose de Rendimiento Detallado (Tabla Matriz)
+                Desglose de Rendimiento Detallado (Tabla Matriz)
             </button>
         </div>
 
@@ -1363,20 +1429,24 @@
                 <!-- 1. VERDE BRILLANTE - PRODUCCION TOTAL -->
                 <div class="kpi-card kpi-card-emerald">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-emerald">🌾</div>
+                        <div class="kpi-icon-badge kpi-icon-emerald">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Producción Total / Tallos</span>
                             <span class="kpi-badge kpi-badge-emerald">Curva + Real</span>
                         </div>
                     </div>
                     <div class="kpi-value kpi-val-emerald" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
-                    <div class="kpi-sub">🌱 {{ '{:,}'.format(stats.kpis.total_plants) }} plantas monitoreadas</div>
+                    <div class="kpi-sub">{{ '{:,}'.format(stats.kpis.total_plants) }} plantas monitoreadas</div>
                 </div>
 
                 <!-- 2. DORADO - RENDIMIENTO DE PLANTA -->
                 <div class="kpi-card kpi-card-gold">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-gold">🏆</div>
+                        <div class="kpi-icon-badge kpi-icon-gold">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Rendimiento Tallos / Planta</span>
                             <span class="kpi-badge kpi-badge-gold">Ponderado</span>
@@ -1385,13 +1455,15 @@
                     <div class="kpi-value kpi-val-gold" id="kpi-stems-pp">
                         {{ stats.kpis.avg_real_stems_per_plant }} <span style="font-size: 0.85rem; font-weight: 700;">T/pl</span>
                     </div>
-                    <div class="kpi-sub">🎯 Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
+                    <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
                 </div>
 
                 <!-- 3. AZUL - BLOQUES -->
                 <div class="kpi-card kpi-card-blue">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-blue">📦</div>
+                        <div class="kpi-icon-badge kpi-icon-blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Bloques Monitoreados</span>
                             <span class="kpi-badge kpi-badge-blue">Total Lotes</span>
@@ -1400,13 +1472,15 @@
                     <div class="kpi-value kpi-val-blue" id="kpi-closed">
                         {{ stats.kpis.total_lots }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">bloques</span>
                     </div>
-                    <div class="kpi-sub">✅ <strong>{{ stats.kpis.total_closed_blocks }}</strong> cerrados | ⏳ <strong>{{ stats.kpis.total_lots - stats.kpis.total_closed_blocks }}</strong> en cosecha</div>
+                    <div class="kpi-sub"><strong>{{ stats.kpis.total_closed_blocks }}</strong> cerrados | <strong>{{ stats.kpis.total_lots - stats.kpis.total_closed_blocks }}</strong> en cosecha</div>
                 </div>
 
                 <!-- 4. GRIS OSCURO / METALICO - CICLO PROMEDIO -->
                 <div class="kpi-card kpi-card-metallic">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-metallic">⏱️</div>
+                        <div class="kpi-icon-badge kpi-icon-metallic">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Ciclo Promedio de Cosecha</span>
                             <span class="kpi-badge kpi-badge-metallic">Duración</span>
@@ -1415,13 +1489,15 @@
                     <div class="kpi-value kpi-val-metallic" id="kpi-cycle">
                         {{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span>
                     </div>
-                    <div class="kpi-sub">🔄 Tiempo promedio desde origen a corte</div>
+                    <div class="kpi-sub">Tiempo promedio desde origen a corte</div>
                 </div>
 
                 <!-- 5. AZUL BRILLANTE - DESPERDICIO PROMEDIO (SIN ESFERA) -->
                 <div class="kpi-card kpi-card-cyan">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-cyan">📉</div>
+                        <div class="kpi-icon-badge kpi-icon-cyan">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Desperdicio Promedio</span>
                             <span class="kpi-badge kpi-badge-cyan">% Merma</span>
@@ -1434,7 +1510,9 @@
                 <!-- 6. TALLOS DUMP DESCARTADOS -->
                 <div class="kpi-card kpi-card-rose">
                     <div class="kpi-header-row">
-                        <div class="kpi-icon-badge kpi-icon-rose">🗑️</div>
+                        <div class="kpi-icon-badge kpi-icon-rose">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </div>
                         <div class="kpi-meta">
                             <span class="kpi-label">Tallos DUMP (Descarte)</span>
                             <span class="kpi-badge kpi-badge-rose">Descartados</span>
@@ -1450,7 +1528,7 @@
                 <!-- CHART 1: RELATIVE HARVEST CURVE -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>📈 Curva Relativa: Real vs Ideal</h3>
+                        <h3>Curva Relativa: Real vs Ideal</h3>
                         <span class="chart-tag">% Cosechado por Sem Relativa</span>
                     </div>
                     <div class="chart-body">
@@ -1464,18 +1542,17 @@
                     <div class="week-chiclet-card" id="week-chiclet-bar">
                         <div class="chiclet-header">
                             <div class="chiclet-title">
-                                <span class="chiclet-badge-icon">📅</span>
-                                <span class="chiclet-title-main">Slicer Semanas Siembra / Poda</span>
+                                <span class="chiclet-title-main">Semanas Siembra / Poda</span>
                             </div>
                             <div class="chiclet-actions">
                                 <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas">
-                                    🌟 Todas
+                                    Todas
                                 </button>
                                 <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Últimas 4 semanas">
-                                    ⚡ Últ. 4
+                                    Últ. 4
                                 </button>
                                 <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Últimas 8 semanas">
-                                    ⚡ Últ. 8
+                                    Últ. 8
                                 </button>
                                 <button type="button" id="btn-chiclet-none" class="btn-chiclet-all" title="Deseleccionar todas">
                                     ✕
@@ -1509,10 +1586,10 @@
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
-                            <h3>🎯 Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
+                            <h3>Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
                             <span class="chart-tag" id="chart-closed-tag">
                                 {% if stats.chart_stems_pp.last_closed_label %}
-                                    🔒 Datos cerrados hasta: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
+                                    Datos cerrados hasta: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
                                 {% else %}
                                     Eje X: Semanas de Siembra / Poda
                                 {% endif %}
@@ -1531,14 +1608,14 @@
         <div id="subtab-content-desglose" style="display: none;">
             <div class="table-card">
                 <div class="table-header-flex">
-                    <h3>📋 Desglose de Rendimiento: Producto Maestro ➔ Semana Siembra/Poda ➔ Bloques ➔ Semanas Cosecha</h3>
+                    <h3>Desglose de Rendimiento Detallado por Bloques y Semanas</h3>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button type="button" class="btn-table-action" id="btn-toggle-view" title="Alternar entre vista jerárquica y vista plana directa de bloques">👁️ Vista Solo Bloques</button>
-                        <button type="button" class="btn-table-action" id="btn-expand-sw">📅 Desplegar Siembras</button>
-                        <button type="button" class="btn-table-action" id="btn-expand-blocks">📦 Desplegar Bloques</button>
-                        <button type="button" class="btn-table-action" id="btn-expand-weeks">📑 Desglosar Todo</button>
-                        <button type="button" class="btn-table-action" id="btn-collapse-all">➖ Colapsar Todo</button>
-                        <button type="button" class="btn-table-action btn-export-csv" id="btn-export-csv">📥 Exportar CSV</button>
+                        <button type="button" class="btn-table-action" id="btn-toggle-view" title="Alternar entre vista jerárquica y vista plana directa de bloques">Vista Solo Bloques</button>
+                        <button type="button" class="btn-table-action" id="btn-expand-sw">Desplegar Siembras</button>
+                        <button type="button" class="btn-table-action" id="btn-expand-blocks">Desplegar Bloques</button>
+                        <button type="button" class="btn-table-action" id="btn-expand-weeks">Desglosar Todo</button>
+                        <button type="button" class="btn-table-action" id="btn-collapse-all">Colapsar Todo</button>
+                        <button type="button" class="btn-table-action btn-export-csv" id="btn-export-csv">Exportar CSV</button>
                     </div>
                 </div>
 
@@ -1551,7 +1628,7 @@
                 <div class="table-filters-toolbar">
                     <!-- POWER BI MULTI-SELECT WEEK SLICER FOR TABLE -->
                     <div class="t-filter-item" style="position: relative;">
-                        <span>📅 Semanas Siembra / Poda:</span>
+                        <span>Semanas Siembra / Poda:</span>
                         <div class="pbi-multiselect" id="tbl-week-multiselect" style="min-width: 175px;">
                             <button type="button" class="pbi-multiselect-btn" id="tbl-week-dropdown-btn" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff;">
                                 <span id="tbl-week-dropdown-text">(Todas las Semanas)</span>
@@ -1559,12 +1636,12 @@
                             </button>
                             <div class="pbi-multiselect-dropdown" id="tbl-week-dropdown-panel" style="display: none; width: 250px; z-index: 9999;">
                                 <div class="pbi-ms-actions">
-                                    <input type="text" id="tbl-week-search" placeholder="🔍 Buscar semana..." class="pbi-ms-search" autocomplete="off">
+                                    <input type="text" id="tbl-week-search" placeholder="Buscar semana..." class="pbi-ms-search" autocomplete="off">
                                     <div class="pbi-ms-quick-links" style="flex-wrap: wrap;">
                                         <button type="button" id="tbl-week-select-all" class="pbi-ms-btn-link">✓ Todas</button>
                                         <button type="button" id="tbl-week-clear-all" class="pbi-ms-btn-link">✕ Ninguna</button>
-                                        <button type="button" id="tbl-week-quick-last4" class="pbi-ms-btn-link">⚡ Últimas 4</button>
-                                        <button type="button" id="tbl-week-quick-last8" class="pbi-ms-btn-link">⚡ Últimas 8</button>
+                                        <button type="button" id="tbl-week-quick-last4" class="pbi-ms-btn-link">Últimas 4</button>
+                                        <button type="button" id="tbl-week-quick-last8" class="pbi-ms-btn-link">Últimas 8</button>
                                     </div>
                                 </div>
                                 <div class="pbi-ms-options" id="tbl-week-options-list" style="max-height: 180px;">
@@ -1579,26 +1656,26 @@
                         </div>
                     </div>
                     <div class="t-filter-item">
-                        <span>🔍 Bloque:</span>
+                        <span>Bloque:</span>
                         <input type="text" id="t-filter-block" class="t-filter-ctrl" placeholder="ej. 13A o 100" style="width: 85px;">
                     </div>
                     <div class="t-filter-item">
-                        <span>🏷️ Estado:</span>
+                        <span>Estado:</span>
                         <select id="t-filter-status" class="t-filter-ctrl">
                             <option value="">(Todos)</option>
-                            <option value="CERRADO">✅ Solo Cerrados</option>
-                            <option value="EN COSECHA">⏳ En Cosecha</option>
+                            <option value="CERRADO">Solo Cerrados</option>
+                            <option value="EN COSECHA">En Cosecha</option>
                         </select>
                     </div>
                     <div class="t-filter-item">
-                        <span>📊 Rendimiento:</span>
+                        <span>Rendimiento:</span>
                         <select id="t-filter-perf" class="t-filter-ctrl">
                             <option value="">(Todos)</option>
-                            <option value="LOW">🔴 Bajo Meta (&lt; Ideal)</option>
-                            <option value="OPTIMAL">🟢 Cumple Meta (&gt;= Ideal)</option>
+                            <option value="LOW">Bajo Meta (&lt; Ideal)</option>
+                            <option value="OPTIMAL">Cumple Meta (&gt;= Ideal)</option>
                         </select>
                     </div>
-                    <button type="button" class="btn-table-action" id="t-filter-reset">🔄 Limpiar Filtros</button>
+                    <button type="button" class="btn-table-action" id="t-filter-reset">Limpiar Filtros</button>
                 </div>
 
                 <div class="matrix-table-wrap">
@@ -1642,7 +1719,7 @@
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
                                     <td>
                                         {% if grp.closed_blocks_count == grp.total_blocks and grp.total_blocks > 0 %}
-                                            <span class="badge-status-closed">✅ Cerrado</span>
+                                            <span class="badge-status-closed">Cerrado</span>
                                         {% else %}
                                             <span class="badge-status-harvest">{{ grp.closed_blocks_count }}/{{ grp.total_blocks }} Cerrados</span>
                                         {% endif %}
@@ -1661,7 +1738,7 @@
                                         onclick="toggleSwGroup('{{ sw_uid }}')">
                                         <td class="col-left" style="padding-left: 18px;">
                                             <span class="toggle-icon-sw" id="icon-sw-{{ sw_uid }}">+</span>
-                                            <strong>📅 Sem. {{ sw_group.source_week_short }} ({{ sw_group.activity }})</strong>
+                                            <strong>Sem. {{ sw_group.source_week_short }} ({{ sw_group.activity }})</strong>
                                         </td>
                                         <td class="col-left" style="color: var(--kpi-blue); font-weight: 600;">
                                             {{ sw_group.blocks_count }} bloque(s) sembrados
@@ -1677,7 +1754,7 @@
                                         <td style="text-align: center; color: var(--text-subtle);">-</td>
                                         <td>
                                             {% if sw_group.closed_blocks_count == sw_group.blocks_count and sw_group.blocks_count > 0 %}
-                                                <span class="badge-status-closed">✅ Cerrado</span>
+                                                <span class="badge-status-closed">Cerrado</span>
                                             {% else %}
                                                 <span class="badge-status-harvest">{{ sw_group.closed_blocks_count }}/{{ sw_group.blocks_count }} Cerrados</span>
                                             {% endif %}
@@ -1719,13 +1796,13 @@
                                                 <strong>{{ '{:,}'.format(row.total_production) }}</strong>
                                                 {% if row.dump_stems and row.dump_stems > 0 %}
                                                     <div style="font-size: 0.62rem; color: #dc2626; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
-                                                        🗑️ {{ '{:,}'.format(row.dump_stems) }} dump
+                                                        {{ '{:,}'.format(row.dump_stems) }} dump
                                                     </div>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 <span class="metric-real-pp {{ 'metric-optimal' if not row.is_below_target else 'metric-low' }}" title="{{ 'Superó o igualó la meta' if not row.is_below_target else 'Bajo la meta ideal' }}">
-                                                    {{ row.real_stems_per_plant }} {{ '🟢' if not row.is_below_target else '🔴' }}
+                                                    {{ row.real_stems_per_plant }}
                                                 </span>
                                             </td>
                                             <td style="color: var(--kpi-gold-text);">{{ row.ideal_stems_per_plant }}</td>
@@ -1734,11 +1811,11 @@
                                             <td style="font-size: 0.68rem; color: var(--text-muted);">{{ row.harvest_weeks_str }}</td>
                                             <td>
                                                 {% if row.is_closed %}
-                                                    <span class="badge-status-closed">✅ CERRADO</span>
+                                                    <span class="badge-status-closed">CERRADO</span>
                                                 {% elif row.has_real_data %}
-                                                    <span class="badge-status-harvest">⏳ EN COSECHA</span>
+                                                    <span class="badge-status-harvest">EN COSECHA</span>
                                                 {% else %}
-                                                    <span class="badge-status-pending">⏳ PENDIENTE</span>
+                                                    <span class="badge-status-pending">PENDIENTE</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -2244,16 +2321,16 @@
             let html = '';
             items.forEach(hw => {
                 const dumpBadge = (hw.dump && hw.dump > 0)
-                    ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">🗑️ ${Number(hw.dump).toLocaleString()} Dumps</span>`
+                    ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">${Number(hw.dump).toLocaleString()} Descarte</span>`
                     : '';
                 const expBadge = (hw.dump && hw.dump > 0)
-                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">🌸 ${Number(hw.stems - hw.dump).toLocaleString()} Exportables</span>`
+                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">${Number(hw.stems - hw.dump).toLocaleString()} Exportables</span>`
                     : '';
-                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">🔮 Curva Modelo</span>`;
+                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">Curva Modelo</span>`;
                 if (hw.src === 'REAL') {
-                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">✅ Real Cosechado</span>`;
+                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">Real Cosechado</span>`;
                 } else if (hw.src === 'AGRONOMO') {
-                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">📝 Estimado Agrónomo</span>`;
+                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">Estimado Agrónomo</span>`;
                 }
 
                 html += `<tr class="group-harvest-row harvest-of-${blockUid} blk-child-of-${swUid} sw-grandchild-of-${pm}"
@@ -2263,7 +2340,7 @@
                              data-variety="${variety}"
                              data-week="${swShort}">
                     <td class="col-left" style="padding-left: 56px; color: #7e22ce; font-weight: 700;">
-                        ↳ 📅 Sem. Cosecha ${hw.hw} ${dumpBadge}
+                        ↳ Sem. Cosecha ${hw.hw} ${dumpBadge}
                     </td>
                     <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
                         Aporte: <strong>${hw.pct}%</strong> del lote ${expBadge}
@@ -2302,7 +2379,7 @@
         if (btnToggleView) {
             btnToggleView.addEventListener('click', () => {
                 isFlatView = !isFlatView;
-                btnToggleView.textContent = isFlatView ? '📁 Vista Jerárquica' : '👁️ Vista Solo Bloques';
+                btnToggleView.textContent = isFlatView ? 'Vista Jerárquica' : 'Vista Solo Bloques';
                 btnToggleView.style.background = isFlatView ? '#e0f2fe' : '';
                 btnToggleView.style.color = isFlatView ? '#0369a1' : '';
                 applyTableFilters();
@@ -2314,7 +2391,7 @@
             btnExpandSw.addEventListener('click', () => {
                 isFlatView = false;
                 if (btnToggleView) {
-                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.textContent = 'Vista Solo Bloques';
                     btnToggleView.style.background = '';
                     btnToggleView.style.color = '';
                 }
@@ -2334,7 +2411,7 @@
             btnExpandBlocks.addEventListener('click', () => {
                 isFlatView = false;
                 if (btnToggleView) {
-                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.textContent = 'Vista Solo Bloques';
                     btnToggleView.style.background = '';
                     btnToggleView.style.color = '';
                 }
@@ -2354,7 +2431,7 @@
             btnExpandWeeks.addEventListener('click', () => {
                 isFlatView = false;
                 if (btnToggleView) {
-                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.textContent = 'Vista Solo Bloques';
                     btnToggleView.style.background = '';
                     btnToggleView.style.color = '';
                 }
@@ -2380,7 +2457,7 @@
             btnCollapseAll.addEventListener('click', () => {
                 isFlatView = false;
                 if (btnToggleView) {
-                    btnToggleView.textContent = '👁️ Vista Solo Bloques';
+                    btnToggleView.textContent = 'Vista Solo Bloques';
                     btnToggleView.style.background = '';
                     btnToggleView.style.color = '';
                 }
@@ -2512,10 +2589,10 @@
                     const avgTPl = totalFilteredPlants > 0 ? (totalFilteredProduction / totalFilteredPlants).toFixed(1) : '0.0';
                     tableSummaryEl.innerHTML = `
                         <div>
-                            <span>🔎 Coincidencias Filtradas: <strong>${totalVisibleBlocks} bloques</strong> (${activeFilterLabels.join(', ') || 'Vista Plana'})</span>
-                            &nbsp;|&nbsp; <span>🌱 Plantas: <strong>${Math.round(totalFilteredPlants).toLocaleString()}</strong></span>
-                            &nbsp;|&nbsp; <span>🌸 Producción: <strong>${Math.round(totalFilteredProduction).toLocaleString()} tallos</strong></span>
-                            &nbsp;|&nbsp; <span>🏆 T/pl Ponderado: <strong>${avgTPl}</strong></span>
+                            <span>Coincidencias Filtradas: <strong>${totalVisibleBlocks} bloques</strong> (${activeFilterLabels.join(', ') || 'Vista Plana'})</span>
+                            &nbsp;|&nbsp; <span>Plantas: <strong>${Math.round(totalFilteredPlants).toLocaleString()}</strong></span>
+                            &nbsp;|&nbsp; <span>Producción: <strong>${Math.round(totalFilteredProduction).toLocaleString()} tallos</strong></span>
+                            &nbsp;|&nbsp; <span>T/pl Ponderado: <strong>${avgTPl}</strong></span>
                         </div>
                         <button type="button" onclick="document.getElementById('t-filter-reset').click()" style="background: transparent; border: 1px solid #0284c7; border-radius: 4px; color: #0284c7; font-size: 0.72rem; padding: 2px 8px; cursor: pointer;">Limpiar</button>
                     `;
@@ -2720,7 +2797,7 @@
 
                     // 3. Top badge pill indicator
                     const lbl = chartStemsPpData.last_closed_label || `Sem ${chartStemsPpData.labels[idx]}`;
-                    const text = `🔒 Cierre: ${lbl}`;
+                    const text = `Cierre: ${lbl}`;
                     ctx.font = `bold 10px ${pbiFontFamily}`;
                     const textWidth = ctx.measureText(text).width;
                     const pillW = textWidth + 14;
@@ -2805,7 +2882,7 @@
                             callbacks: {
                                 title: function(items) {
                                     if (!items.length) return '';
-                                    return `📅 ${items[0].label}`;
+                                    return items[0].label;
                                 },
                                 label: function(context) {
                                     const i = context.dataIndex;
@@ -2821,35 +2898,35 @@
                                             if (hasSiem && hasPoda) {
                                                 const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
                                                 const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
-                                                lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
+                                                lines.push(`Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
+                                                lines.push(`Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
                                             } else if (hasSiem) {
                                                 const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`🌱 Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
+                                                lines.push(`Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
                                             } else if (hasPoda) {
                                                 const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`✂️ Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
+                                                lines.push(`Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
                                             } else {
                                                 const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`🌱 Siem: ${detail.total_t_pl} t/p ${totIcon}`);
+                                                lines.push(`Siem: ${detail.total_t_pl} t/p ${totIcon}`);
                                             }
 
                                             // Show closed status in tooltip
                                             if (hasClosedCutoff) {
                                                 if (i <= chartStemsPpData.last_closed_index) {
-                                                    lines.push(`🔒 Cierre Real: Bloque(s) Cerrados`);
+                                                    lines.push(`Cierre Real: Bloque(s) Cerrados`);
                                                 } else {
-                                                    lines.push(`⏳ Estado: En Cosecha / Abierto`);
+                                                    lines.push(`Estado: En Cosecha / Abierto`);
                                                 }
                                             }
                                         } else {
                                             const val = context.parsed.y;
                                             const icon = val >= meta ? '🟢' : '🔴';
-                                            lines.push(`🌱 Siem: ${val} t/p ${icon}`);
+                                            lines.push(`Siem: ${val} t/p ${icon}`);
                                         }
                                         return lines;
                                     } else {
-                                        return `🎯 Meta: ${meta} t/p`;
+                                        return `Meta: ${meta} t/p`;
                                     }
                                 }
                             },
