@@ -735,6 +735,7 @@ def aggregate_for_week(
                 .agg(
                     {
                         "exportable_stems": "sum",
+                        "dump_stems": "sum",
                         "weekly_status": "first",
                         "is_dump": "first",
                         "model_exportable_stems": "sum",
@@ -954,7 +955,7 @@ def aggregate_for_week(
                         "is_dump": is_dump_by_week,
                         "dump_stems": dump_stems_by_week,
                         "week_code_by_label": week_code_by_label,
-                        "window_total": int(sum(weekly_projection.values())),
+                        "window_total": int(window_total_prod),
                         "total_production": effective_total_prod,
                         "block_closed": is_closed,
                         "real_stems_per_plant": effective_real_stems,
@@ -2571,7 +2572,11 @@ def exportar_matriz_api():
     total_window = sum(r.get("window_total", 0) for r in matrix_rows)
     total_prod = sum(r.get("total_production", 0) for r in matrix_rows)
     total_by_col = {
-        w["label"]: sum(r.get("weekly_projection", {}).get(w["label"], 0) for r in matrix_rows)
+        w["label"]: sum(
+            (r.get("weekly_projection", {}).get(w["label"], 0) or 0)
+            + (r.get("dump_stems", {}).get(w["label"], 0) or 0)
+            for r in matrix_rows
+        )
         for w in week_columns
     }
 
@@ -2616,8 +2621,9 @@ def exportar_matriz_api():
                 r.get("total_production", 0),
             ]
             for w in week_columns:
-                val = r.get("weekly_projection", {}).get(w["label"], 0)
-                row_data.append(val)
+                proj_val = r.get("weekly_projection", {}).get(w["label"], 0) or 0
+                dump_val = r.get("dump_stems", {}).get(w["label"], 0) or 0
+                row_data.append(proj_val + dump_val)
             writer.writerow(row_data)
 
         # Totals row in CSV
@@ -2639,6 +2645,7 @@ def exportar_matriz_api():
     else:
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.comments import Comment
         from openpyxl.utils import get_column_letter
 
         wb = openpyxl.Workbook()
@@ -2733,9 +2740,18 @@ def exportar_matriz_api():
                 int(r.get("window_total", 0)),
                 int(r.get("total_production", 0)),
             ]
-            for w in week_columns:
-                val = r.get("weekly_projection", {}).get(w["label"], 0)
-                row_vals.append(int(val) if val else 0)
+            week_comments = {}
+            for w_idx, w in enumerate(week_columns):
+                proj_val = r.get("weekly_projection", {}).get(w["label"], 0) or 0
+                dump_val = r.get("dump_stems", {}).get(w["label"], 0) or 0
+                total_val = proj_val + dump_val
+                row_vals.append(int(total_val) if total_val else 0)
+                if dump_val > 0:
+                    target_col = len(fixed_headers) + 1 + w_idx
+                    if proj_val > 0:
+                        week_comments[target_col] = f"Cosecha: {proj_val:,} + Descarte (Dump): {dump_val:,} = Total: {total_val:,}"
+                    else:
+                        week_comments[target_col] = f"Descarte (Dump): {dump_val:,}"
 
             for col_idx, val in enumerate(row_vals, start=1):
                 cell = ws.cell(row=current_row_idx, column=col_idx, value=val)
@@ -2743,6 +2759,9 @@ def exportar_matriz_api():
                 cell.font = black_regular
                 if is_closed:
                     cell.fill = closed_row_fill
+
+                if col_idx in week_comments:
+                    cell.comment = Comment(week_comments[col_idx], "Sistema Proyecciones")
 
                 if col_idx in [1, 2, 4, 8]:
                     cell.alignment = align_center

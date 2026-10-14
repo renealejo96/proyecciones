@@ -564,13 +564,34 @@
         .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; border-bottom: 2px solid #f59e0b; }
         .summary-table tr.row-grandtotal-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
 
+        /* GLOBAL SELECTION STYLES: PREVENT NATIVE BROWSER WHITE BLOB OVER DARK HEADERS */
+        ::selection {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+        }
+        .master-table, .summary-table {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .master-table input, .summary-table input {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
         /* EXCEL MULTI-CELL SELECTION & STATUS BAR */
         .cell-excel-selected {
-            outline: 2px solid #0284c7 !important;
+            outline: 2px solid #38bdf8 !important;
             outline-offset: -2px !important;
-            background-color: rgba(14, 165, 233, 0.22) !important;
+            background-color: rgba(14, 165, 233, 0.35) !important;
             position: relative;
             z-index: 4 !important;
+        }
+        tr.totals-row th.cell-excel-selected,
+        .summary-table tr.row-grandtotal td.cell-excel-selected,
+        .summary-table tr.row-color-total td.cell-excel-selected {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            outline: 2px solid #38bdf8 !important;
         }
         .cell-excel-selected .week-input {
             background-color: transparent !important;
@@ -3650,12 +3671,16 @@
 
         function getExcelColKey(cell) {
             if (!cell) return null;
-            // Exclude .week-cell in .master-table (where stems are input below weeks)
+            // Exclude regular .week-cell in .master-table (where stems are input below weeks)
             if (cell.closest('.master-table') && cell.classList.contains('week-cell')) {
                 return null;
             }
-            if (cell.dataset.weekLabel && cell.closest('.summary-table')) return cell.dataset.weekLabel;
-            if (cell.classList.contains('cell-window-total') || cell.classList.contains('col-total-final') || cell.classList.contains('col-total-window') || cell.classList.contains('subtotal-variety-window-val')) return '__TOTAL__';
+            if (cell.dataset.weekLabel && (cell.closest('.summary-table') || cell.classList.contains('js-week-total') || cell.closest('.totals-row'))) {
+                return cell.dataset.weekLabel;
+            }
+            if (cell.classList.contains('cell-window-total') || cell.classList.contains('col-total-final') || cell.classList.contains('col-total-window') || cell.classList.contains('subtotal-variety-window-val') || cell.classList.contains('js-master-total')) {
+                return '__TOTAL__';
+            }
             if (cell.classList.contains('plants-cell')) return '__PLANTS__';
             if (cell.classList.contains('col-param-stems')) return '__STEMS__';
             if (cell.classList.contains('col-param-export-stems') || cell.classList.contains('cell-program-total')) return '__PROGRAM__';
@@ -3682,6 +3707,43 @@
             const startRow = startCell.closest('tr');
             const endRow = endCell.closest('tr');
             if (!startRow || !endRow) return;
+
+            // Check if selecting within the master totals row (which lives in thead)
+            if (startRow.classList.contains('totals-row') || endRow.classList.contains('totals-row')) {
+                const row = table.querySelector('tr.totals-row');
+                if (!row) return;
+
+                const colKeys = weekColumns.map(w => w.label).concat(['__TOTAL__']);
+                const startColKey = getExcelColKey(startCell);
+                const endColKey = getExcelColKey(endCell);
+                if (!startColKey || !endColKey) return;
+
+                const startCIdx = colKeys.indexOf(startColKey);
+                const endCIdx = colKeys.indexOf(endColKey);
+                if (startCIdx === -1 || endCIdx === -1) return;
+
+                const cMin = Math.min(startCIdx, endCIdx);
+                const cMax = Math.max(startCIdx, endCIdx);
+
+                selectedExcelCells.forEach(c => c.classList.remove('cell-excel-selected'));
+                selectedExcelCells.clear();
+
+                for (let c = cMin; c <= cMax; c++) {
+                    const key = colKeys[c];
+                    let cell = null;
+                    if (key === '__TOTAL__') {
+                        cell = row.querySelector('.js-master-total, .col-total-final');
+                    } else {
+                        cell = row.querySelector(`th[data-week-label="${key}"], td[data-week-label="${key}"]`);
+                    }
+                    if (cell) {
+                        cell.classList.add('cell-excel-selected');
+                        selectedExcelCells.add(cell);
+                    }
+                }
+                updateExcelStatusBar();
+                return;
+            }
 
             const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
             const startRIdx = visibleRows.indexOf(startRow);
@@ -3750,7 +3812,7 @@
                 return;
             }
 
-            const cell = e.target.closest('td');
+            const cell = e.target.closest('td, th.js-week-total, th.js-master-total');
             if (!cell) {
                 if (!e.target.closest('th.col-week-header') && !e.target.closest('.summary-collapse-btn')) {
                     clearExcelSelection();
@@ -3795,7 +3857,7 @@
         document.addEventListener('mousemove', (e) => {
             if (!isExcelSelecting || !excelDragOrigin || !activeExcelTable) return;
 
-            const hoverCell = e.target.closest('td');
+            const hoverCell = e.target.closest('td, th.js-week-total, th.js-master-total');
             if (!hoverCell || hoverCell.closest('table') !== activeExcelTable) return;
 
             if (hoverCell !== excelDragOrigin) {
