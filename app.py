@@ -158,7 +158,7 @@ def invalidate_snapshot_cache() -> None:
 def build_projection_snapshot_from_db() -> dict[str, Any]:
     db = SessionLocal()
     try:
-        tpsr_recs = db.query(TpsrRecord).filter(TpsrRecord.plants > 0).all()
+        tpsr_recs = db.query(TpsrRecord).all()
         cycle_defs = db.query(CycleDefinitionDB).all()
         row_adjs = db.query(RowAdjustmentDB).all()
         mass_adjs = db.query(MassAdjustmentDB).all()
@@ -248,26 +248,38 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             if activity not in {"SIEMBRA", "PODA"}:
                 activity = "SIEMBRA"
 
-            source_week = rec.source_week
-            try:
-                sw_int = int(source_week)
-                if sw_int < 10000:
-                    source_week = 200000 + sw_int
-                else:
-                    source_week = sw_int
-            except (ValueError, TypeError):
-                parsed = parse_week_code(source_week)
-                source_week = parsed if parsed else current_week_code()
+            source_week = parse_week_code(rec.source_week) or parse_week_code(rec.source_week_short)
+            if not source_week:
+                try:
+                    sw_int = int(rec.source_week)
+                    if sw_int < 100:
+                        source_week = 202600 + sw_int
+                    elif sw_int < 10000:
+                        source_week = 200000 + sw_int if sw_int >= 2400 else 202600 + (sw_int % 100)
+                    elif 200001 <= sw_int <= 200053 or 202001 <= sw_int <= 202053:
+                        source_week = 202600 + (sw_int % 100)
+                    else:
+                        source_week = sw_int
+                except (ValueError, TypeError):
+                    source_week = current_week_code()
 
             plants = int(rec.plants or 0)
             product_master = str(rec.product_master or "").strip() or "GYPSOPHILA"
-            product_master_norm = normalize_text(rec.product_master_norm or product_master)
+            pm_upper = product_master.upper()
+            if "GYP" in pm_upper:
+                product_master = "GYPSOPHILA"
+            elif "VERON" in pm_upper:
+                product_master = "VERONICA"
+            elif "HYPER" in pm_upper:
+                product_master = "HYPERICUM"
+
+            product_master_norm = normalize_text(product_master)
             variety = str(rec.variety or "").strip()
             variety_norm = normalize_text(rec.variety_norm or variety)
             block = str(rec.block or "").strip()
             block_norm = normalize_text(rec.block_norm or block)
 
-            if "VERONICA" in product_master_norm or (product_master and "VERONICA" in product_master.upper()) or "SPLASH" in variety_norm:
+            if "VERONICA" in product_master_norm or "SPLASH" in variety_norm:
                 product_master = "VERONICA"
                 product_master_norm = "VERONICA"
 
@@ -712,37 +724,52 @@ def aggregate_for_week(
                     "total_dumps": tot_dumps,
                 }
 
-        if window_projection.empty:
+        if source_frame.empty:
             matrix_rows = []
         else:
-            projection_grouped = (
-                window_projection.groupby(
-                    [
-                        "product_master",
-                        "variety",
-                        "activity",
-                        "source_week",
-                        "source_week_short",
-                        "block",
-                        "cycle_weeks",
-                        "stems_per_plant",
-                        "waste_rate",
-                        "harvest_week",
-                    ],
-                    dropna=False,
-                    as_index=False,
+            if not window_projection.empty:
+                projection_grouped = (
+                    window_projection.groupby(
+                        [
+                            "product_master",
+                            "variety",
+                            "activity",
+                            "source_week",
+                            "source_week_short",
+                            "block",
+                            "cycle_weeks",
+                            "stems_per_plant",
+                            "waste_rate",
+                            "harvest_week",
+                        ],
+                        dropna=False,
+                        as_index=False,
+                    )
+                    .agg(
+                        {
+                            "exportable_stems": "sum",
+                            "dump_stems": "sum",
+                            "weekly_status": "first",
+                            "is_dump": "first",
+                            "model_exportable_stems": "sum",
+                        }
+                    )
+                    .sort_values(["variety", "activity", "source_week", "block", "harvest_week"])
                 )
-                .agg(
-                    {
-                        "exportable_stems": "sum",
-                        "dump_stems": "sum",
-                        "weekly_status": "first",
-                        "is_dump": "first",
-                        "model_exportable_stems": "sum",
-                    }
-                )
-                .sort_values(["variety", "activity", "source_week", "block", "harvest_week"])
-            )
+                source_keys = {
+                    (
+                        str(row.product_master),
+                        str(row.variety),
+                        str(row.activity),
+                        int(row.source_week),
+                        str(row.block),
+                    )
+                    for row in projection_grouped.itertuples(index=False)
+                }
+            else:
+                projection_grouped = pd.DataFrame()
+                source_keys = set()
+
             source_grouped = (
                 source_frame.groupby(
                     [
@@ -773,74 +800,86 @@ def aggregate_for_week(
                 )
                 .sort_values(["product_master", "variety", "activity", "source_week", "block"])
             )
-            source_keys = {
+
+            # Keep all plantings with harvest in window, PLUS all recent plantings from the last 30 weeks up to +12 weeks forward
+            recent_source_weeks = set(build_week_window_with_lookback(selected_week, 30, 12))
+            recent_keys = {
                 (
-                    row.product_master,
-                    row.variety,
-                    row.activity,
-                    row.source_week,
-                    row.block,
+                    str(row["product_master"]),
+                    str(row["variety"]),
+                    str(row["activity"]),
+                    int(row["source_week"]),
+                    str(row["block"]),
                 )
-                for row in projection_grouped.itertuples(index=False)
+                for _, row in source_frame.iterrows()
+                if int(row["source_week"]) in recent_source_weeks
             }
+            all_source_keys = source_keys | recent_keys
+
             source_grouped = source_grouped.loc[
                 source_grouped.apply(
                     lambda row: (
-                        row["product_master"],
-                        row["variety"],
-                        row["activity"],
-                        row["source_week"],
-                        row["block"],
+                        str(row["product_master"]),
+                        str(row["variety"]),
+                        str(row["activity"]),
+                        int(row["source_week"]),
+                        str(row["block"]),
                     )
-                    in source_keys,
+                    in all_source_keys,
                     axis=1,
                 )
             ]
 
-            projection_lookup = {
-                (
-                    row.product_master,
-                    row.variety,
-                    row.activity,
-                    row.source_week,
-                    row.block,
-                    row.harvest_week,
-                ): int(round(row.exportable_stems))
-                for row in projection_grouped.itertuples(index=False)
-            }
-            projection_status_lookup = {
-                (
-                    row.product_master,
-                    row.variety,
-                    row.activity,
-                    row.source_week,
-                    row.block,
-                    row.harvest_week,
-                ): str(row.weekly_status or "MODELO")
-                for row in projection_grouped.itertuples(index=False)
-            }
-            projection_dump_lookup = {
-                (
-                    row.product_master,
-                    row.variety,
-                    row.activity,
-                    row.source_week,
-                    row.block,
-                    row.harvest_week,
-                ): bool(getattr(row, "is_dump", False))
-                for row in projection_grouped.itertuples(index=False)
-            }
-            projection_dump_stems_lookup = {
-                (
-                    row.product_master,
-                    row.variety,
-                    row.activity,
-                    row.source_week,
-                    row.block,
-                    row.harvest_week,
-                ): int(getattr(row, "dump_stems", 0) or 0)
-                for row in projection_grouped.itertuples(index=False)
-            }
+            if not projection_grouped.empty:
+                projection_lookup = {
+                    (
+                        row.product_master,
+                        row.variety,
+                        row.activity,
+                        row.source_week,
+                        row.block,
+                        row.harvest_week,
+                    ): int(round(row.exportable_stems))
+                    for row in projection_grouped.itertuples(index=False)
+                }
+                projection_status_lookup = {
+                    (
+                        row.product_master,
+                        row.variety,
+                        row.activity,
+                        row.source_week,
+                        row.block,
+                        row.harvest_week,
+                    ): str(row.weekly_status or "MODELO")
+                    for row in projection_grouped.itertuples(index=False)
+                }
+                projection_dump_lookup = {
+                    (
+                        row.product_master,
+                        row.variety,
+                        row.activity,
+                        row.source_week,
+                        row.block,
+                        row.harvest_week,
+                    ): bool(getattr(row, "is_dump", False))
+                    for row in projection_grouped.itertuples(index=False)
+                }
+                projection_dump_stems_lookup = {
+                    (
+                        row.product_master,
+                        row.variety,
+                        row.activity,
+                        row.source_week,
+                        row.block,
+                        row.harvest_week,
+                    ): int(getattr(row, "dump_stems", 0) or 0)
+                    for row in projection_grouped.itertuples(index=False)
+                }
+            else:
+                projection_lookup = {}
+                projection_status_lookup = {}
+                projection_dump_lookup = {}
+                projection_dump_stems_lookup = {}
             matrix_rows = []
             for row in source_grouped.itertuples(index=False):
                 weekly_projection = {
@@ -3564,6 +3603,14 @@ def create_tpsr_api():
         return jsonify({"ok": False, "message": "Producto maestro, variedad y bloque son obligatorios."}), 400
     if plants is None or plants < 0:
         return jsonify({"ok": False, "message": "Número de plantas inválido."}), 400
+
+    pm_upper = pm.upper()
+    if "GYP" in pm_upper:
+        pm = "GYPSOPHILA"
+    elif "VERON" in pm_upper:
+        pm = "VERONICA"
+    elif "HYPER" in pm_upper:
+        pm = "HYPERICUM"
 
     db = SessionLocal()
     try:

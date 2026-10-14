@@ -2,7 +2,7 @@ import os
 import re
 import time
 import unicodedata
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -224,12 +224,26 @@ def parse_week_code(raw_value: Any) -> int | None:
     digits = re.sub(r"\D", "", str(raw_value).strip())
     if not digits:
         return None
-    if len(digits) == 4:
-        year = 2000 + int(digits[:2])
-        week = int(digits[2:])
+    num = int(digits)
+    # Case 1: 1 or 2 digits, e.g. 28 -> week 28 of 2026
+    if len(digits) in (1, 2) or num <= 53:
+        year = date.today().isocalendar()[0]
+        week = num
+    elif len(digits) == 4:
+        # Check if entered as "2028" (20 + week 28)
+        if 2001 <= num <= 2053:
+            year = date.today().isocalendar()[0]
+            week = num % 100
+        else:
+            year = 2000 + int(digits[:2])
+            week = int(digits[2:])
     elif len(digits) == 6:
-        year = int(digits[:4])
-        week = int(digits[4:])
+        if 200001 <= num <= 200053 or 202001 <= num <= 202053:
+            year = date.today().isocalendar()[0]
+            week = num % 100
+        else:
+            year = int(digits[:4])
+            week = int(digits[4:])
     else:
         return None
     return year * 100 + week
@@ -238,8 +252,16 @@ def parse_week_code(raw_value: Any) -> int | None:
 def format_short_week(week_code: int | None) -> str:
     if week_code is None:
         return ""
-    year = week_code // 100
-    week = week_code % 100
+    try:
+        wc = int(week_code)
+    except (ValueError, TypeError):
+        return str(week_code)
+    if wc < 100:
+        return f"{date.today().isocalendar()[0] % 100:02d}{wc:02d}"
+    year = wc // 100
+    week = wc % 100
+    if year in (2000, 2020):
+        year = date.today().isocalendar()[0]
     return f"{year % 100:02d}{week:02d}"
 
 
@@ -254,42 +276,71 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Automatic migration: ensure is_dump and dump_stems columns exist in week_adjustments, and allowed_views in app_users
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;"))
-            conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;"))
-            conn.execute(text("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);"))
-            conn.commit()
-        except Exception:
+        # 1. Schema migrations
+        for alter_sql in [
+            "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;",
+            "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;",
+            "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);",
+        ]:
             try:
-                conn.rollback()
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN is_dump BOOLEAN DEFAULT FALSE;"))
+                conn.execute(text(alter_sql))
                 conn.commit()
             except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE week_adjustments ADD COLUMN dump_stems INTEGER DEFAULT 0;"))
-                conn.commit()
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE app_users ADD COLUMN allowed_views VARCHAR(255);"))
-                conn.commit()
-            except Exception:
-                pass
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
 
-            # Automatic database data healing and normalization for tpsr_records
+        # 2. Data healing and week canonicalization migrations
+        for heal_sql in [
+            # Fix 1 or 2 digit weeks (e.g. 28 -> 202628)
+            "UPDATE tpsr_records SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+            # Fix accidental year 2000 weeks (e.g. 200028 -> 202628)
+            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+            # Fix accidental year 2020 weeks (e.g. 202028 from 200000 + 2028 -> 202628)
+            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+            # Fix 4-digit weeks entered as 20XX (e.g. 2028 -> 202628)
+            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+            # Fix 4-digit YYWW weeks (e.g. 2628 -> 202628, 2428 -> 202428)
+            "UPDATE tpsr_records SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+            # Ensure source_week_short is always 4 digits
+            "UPDATE tpsr_records SET source_week_short = LPAD(MOD(source_week, 10000)::text, 4, '0') WHERE source_week IS NOT NULL;",
+            # Normalize product_master names
+            "UPDATE tpsr_records SET product_master = 'GYPSOPHILA', product_master_norm = 'GYPSOPHILA' WHERE UPPER(product_master) LIKE '%GYP%';",
+            "UPDATE tpsr_records SET product_master = 'VERONICA', product_master_norm = 'VERONICA' WHERE UPPER(product_master) LIKE '%VERON%';",
+            "UPDATE tpsr_records SET product_master = 'HYPERICUM', product_master_norm = 'HYPERICUM' WHERE UPPER(product_master) LIKE '%HYPER%';",
+            "UPDATE tpsr_records SET product_master_norm = UPPER(TRIM(product_master)) WHERE product_master_norm IS NULL OR product_master_norm = '';",
+            "UPDATE tpsr_records SET variety_norm = UPPER(TRIM(variety)) WHERE variety_norm IS NULL OR variety_norm = '';",
+            "UPDATE tpsr_records SET block_norm = UPPER(TRIM(block)) WHERE block_norm IS NULL OR block_norm = '';",
+            "UPDATE tpsr_records SET activity = 'SIEMBRA' WHERE activity IS NULL OR UPPER(activity) LIKE '%SIEMBR%';",
+            "UPDATE tpsr_records SET activity = 'PODA' WHERE UPPER(activity) LIKE '%PODA%';",
+            # Heal row_adjustments
+            "UPDATE row_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+            "UPDATE row_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+            # Heal week_adjustments
+            "UPDATE week_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+            "UPDATE week_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+            "UPDATE week_adjustments SET harvest_week = 202600 + harvest_week WHERE harvest_week >= 1 AND harvest_week <= 53;",
+            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 200001 AND harvest_week <= 200053;",
+            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 202001 AND harvest_week <= 202053;",
+            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 2001 AND harvest_week <= 2053;",
+            "UPDATE week_adjustments SET harvest_week = 200000 + harvest_week WHERE harvest_week >= 2401 AND harvest_week <= 2953;",
+            # Heal block_closures
+            "UPDATE block_closures SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+            "UPDATE block_closures SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+        ]:
             try:
-                conn.execute(text("UPDATE tpsr_records SET source_week = 200000 + source_week WHERE source_week > 2000 AND source_week < 10000;"))
-                conn.execute(text("UPDATE tpsr_records SET source_week_short = LPAD(MOD(source_week, 10000)::text, 4, '0') WHERE source_week_short IS NULL OR source_week_short = '';"))
-                conn.execute(text("UPDATE tpsr_records SET product_master_norm = UPPER(TRIM(product_master)) WHERE product_master_norm IS NULL OR product_master_norm = '';"))
-                conn.execute(text("UPDATE tpsr_records SET variety_norm = UPPER(TRIM(variety)) WHERE variety_norm IS NULL OR variety_norm = '';"))
-                conn.execute(text("UPDATE tpsr_records SET block_norm = UPPER(TRIM(block)) WHERE block_norm IS NULL OR block_norm = '';"))
-                conn.execute(text("UPDATE tpsr_records SET activity = UPPER(TRIM(activity)) WHERE activity != UPPER(TRIM(activity));"))
+                conn.execute(text(heal_sql))
                 conn.commit()
             except Exception:
                 try:
