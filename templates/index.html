@@ -1499,7 +1499,7 @@
                             <button type="button" class="dropdown-item" id="menu-save-all">Guardar Todo en Servidor</button>
                             <button type="button" class="dropdown-item" id="menu-toggle-params">Mostrar / Ocultar Parámetros</button>
                             <button type="button" class="dropdown-item" id="menu-audit-history">Historial y Restaurar Estimaciones</button>
-                            <button type="button" class="dropdown-item" onclick="location.href='/?sync_db=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">Sincronizar PostgreSQL</button>
+                            <button type="button" class="dropdown-item" onclick="location.href='/?refresh=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">Sincronizar PostgreSQL</button>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Llenado Agrónomo</a>
                             <a class="dropdown-item" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Datos Reales</a>
@@ -1623,9 +1623,9 @@
                                     </select>
                                 </div>
                             </th>
-                            <th class="sticky-col sticky-6" title="Semana estimada en que entra a punteo / cosecha">
+                            <th class="sticky-col sticky-6" title="Semana estimada de inicio de cosecha (punteo)">
                                 <div class="header-filter-cell">
-                                    <span style="color: #93c5fd;">Sem.<br>Cose.</span>
+                                    <span style="color: #93c5fd;">Ini.<br>Cose.</span>
                                     <input type="text" id="h-filter-harvest-week" list="harvest-week-datalist" class="h-filter-ctrl" placeholder="Sem" style="width: 38px;">
                                 </div>
                             </th>
@@ -2497,11 +2497,17 @@
 
                 let matchHarvestWeek = true;
                 if (filterHarvestWeekVal) {
-                    if (allKnownHarvestWeeks.has(filterHarvestWeekVal)) {
-                        matchHarvestWeek = (harvestWeekShort === filterHarvestWeekVal);
-                    } else {
-                        matchHarvestWeek = harvestWeekShort.includes(filterHarvestWeekVal);
+                    const isStartMatch = allKnownHarvestWeeks.has(filterHarvestWeekVal)
+                        ? (harvestWeekShort === filterHarvestWeekVal)
+                        : harvestWeekShort.includes(filterHarvestWeekVal);
+                    let hasHarvestInWeek = false;
+                    const targetCell = row.querySelector(`.week-cell[data-week-label="${filterHarvestWeekVal}"]`);
+                    if (targetCell) {
+                        const inp = targetCell.querySelector('.week-input');
+                        const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                        if (val > 0) hasHarvestInWeek = true;
                     }
+                    matchHarvestWeek = isStartMatch || hasHarvestInWeek;
                 }
 
                 const matchVariety = !filterVarietyVal || (varietyName === filterVarietyVal || varietyDisplay === filterVarietyVal);
@@ -3329,7 +3335,7 @@
         });
 
         const filtersForm = document.getElementById('filters-form');
-        ['semana', 'producto'].forEach((fieldId) => {
+        ['semana', 'producto', 'horizonte_atras', 'horizonte_adelante'].forEach((fieldId) => {
             const field = document.getElementById(fieldId);
             if (field && filtersForm) {
                 field.addEventListener('change', () => filtersForm.submit());

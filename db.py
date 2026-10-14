@@ -282,6 +282,21 @@ def init_db():
             except Exception:
                 pass
 
+            # Automatic database data healing and normalization for tpsr_records
+            try:
+                conn.execute(text("UPDATE tpsr_records SET source_week = 200000 + source_week WHERE source_week > 2000 AND source_week < 10000;"))
+                conn.execute(text("UPDATE tpsr_records SET source_week_short = LPAD(MOD(source_week, 10000)::text, 4, '0') WHERE source_week_short IS NULL OR source_week_short = '';"))
+                conn.execute(text("UPDATE tpsr_records SET product_master_norm = UPPER(TRIM(product_master)) WHERE product_master_norm IS NULL OR product_master_norm = '';"))
+                conn.execute(text("UPDATE tpsr_records SET variety_norm = UPPER(TRIM(variety)) WHERE variety_norm IS NULL OR variety_norm = '';"))
+                conn.execute(text("UPDATE tpsr_records SET block_norm = UPPER(TRIM(block)) WHERE block_norm IS NULL OR block_norm = '';"))
+                conn.execute(text("UPDATE tpsr_records SET activity = UPPER(TRIM(activity)) WHERE activity != UPPER(TRIM(activity));"))
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
     db = SessionLocal()
     try:
         meta = db.query(AppMetaDB).filter_by(key="data_version").first()

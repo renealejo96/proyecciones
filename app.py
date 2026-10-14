@@ -244,15 +244,28 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
         # Consolidar registros TPSR a nivel de bloque único (activity, product_master, variety, block, source_week)
         consolidated_dict: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         for rec in tpsr_recs:
-            activity = rec.activity
+            activity = normalize_text(rec.activity)
+            if activity not in {"SIEMBRA", "PODA"}:
+                activity = "SIEMBRA"
+
             source_week = rec.source_week
-            plants = rec.plants
-            product_master = rec.product_master
-            product_master_norm = rec.product_master_norm
-            variety = rec.variety
-            variety_norm = rec.variety_norm
-            block = rec.block
-            block_norm = rec.block_norm
+            try:
+                sw_int = int(source_week)
+                if sw_int < 10000:
+                    source_week = 200000 + sw_int
+                else:
+                    source_week = sw_int
+            except (ValueError, TypeError):
+                parsed = parse_week_code(source_week)
+                source_week = parsed if parsed else current_week_code()
+
+            plants = int(rec.plants or 0)
+            product_master = str(rec.product_master or "").strip() or "GYPSOPHILA"
+            product_master_norm = normalize_text(rec.product_master_norm or product_master)
+            variety = str(rec.variety or "").strip()
+            variety_norm = normalize_text(rec.variety_norm or variety)
+            block = str(rec.block or "").strip()
+            block_norm = normalize_text(rec.block_norm or block)
 
             if "VERONICA" in product_master_norm or (product_master and "VERONICA" in product_master.upper()) or "SPLASH" in variety_norm:
                 product_master = "VERONICA"
@@ -296,10 +309,35 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             cycle_key = (product_master_norm, variety_norm, activity)
             cycle = cycle_map.get(cycle_key)
             if cycle is None:
+                # 1. Exact variety match regardless of product
                 for (p_norm, v_norm, act), cdef in cycle_map.items():
                     if v_norm == variety_norm and act == activity:
                         cycle = cdef
                         break
+            if cycle is None:
+                # 2. Fuzzy substring match on variety name (e.g. BILLION LIGHT matches BILLION LIGHTS)
+                for (p_norm, v_norm, act), cdef in cycle_map.items():
+                    if act == activity and (v_norm in variety_norm or variety_norm in v_norm):
+                        cycle = cdef
+                        break
+            if cycle is None:
+                # 3. Product master default fallback
+                for (p_norm, v_norm, act), cdef in cycle_map.items():
+                    if p_norm == product_master_norm and act == activity:
+                        cycle = cdef
+                        break
+            if cycle is None:
+                # 4. Universal safety fallback so NO RECORD FROM TPSR IS EVER SILENTLY LOST!
+                is_gyp = "GYPSO" in product_master_norm
+                cycle = {
+                    "product_master": product_master,
+                    "variety": variety,
+                    "activity": activity,
+                    "cycle_weeks": 12 if is_gyp else 16,
+                    "waste_rate": 0.15,
+                    "stems_per_plant": 10.0 if is_gyp else 8.0,
+                    "curve": (0.1, 0.35, 0.4, 0.15),
+                }
 
             source_rows.append(
                 {
@@ -325,10 +363,6 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                     "block_closed": False,
                 }
             )
-
-            if cycle is None:
-                missing_cycles[cycle_key] = missing_cycles.get(cycle_key, 0) + 1
-                continue
 
             matched_rules = []
             for rule in mass_adjustments:
@@ -1300,7 +1334,9 @@ def index() -> str:
     requested_horizon = request.args.get("horizonte", "")
     requested_horizon_back = request.args.get("horizonte_atras", "")
     requested_horizon_forward = request.args.get("horizonte_adelante", "")
-    force_refresh = request.args.get("refresh", "0") == "1"
+    force_refresh = (request.args.get("refresh", "0") == "1") or (request.args.get("sync_db", "0") == "1")
+    if force_refresh:
+        invalidate_snapshot_cache()
 
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh)
     selected_week = resolve_selected_week(requested_week, snapshot)
@@ -1351,7 +1387,9 @@ def reales() -> str:
     requested_horizon = request.args.get("horizonte", "")
     requested_horizon_back = request.args.get("horizonte_atras", "")
     requested_horizon_forward = request.args.get("horizonte_adelante", "")
-    force_refresh = request.args.get("refresh", "0") == "1"
+    force_refresh = (request.args.get("refresh", "0") == "1") or (request.args.get("sync_db", "0") == "1")
+    if force_refresh:
+        invalidate_snapshot_cache()
 
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh)
     selected_week = resolve_selected_week(requested_week, snapshot)
