@@ -144,7 +144,7 @@ def normalize_optional_text(value: Any, fallback: str = "*") -> str:
 
 
 # In-memory snapshot cache synchronized across Gunicorn workers via PostgreSQL data_version
-_WORKER_CACHE: dict[str, Any] = {"version": -1, "snapshot": None}
+_WORKER_CACHE: dict[str, Any] = {"version": -1, "timestamp": 0.0, "snapshot": None}
 _STATS_CACHE: dict[tuple, Any] = {}
 
 
@@ -152,6 +152,7 @@ def invalidate_snapshot_cache() -> None:
     bump_data_version()
     _WORKER_CACHE["snapshot"] = None
     _WORKER_CACHE["version"] = -1
+    _WORKER_CACHE["timestamp"] = 0.0
     _STATS_CACHE.clear()
 
 
@@ -321,35 +322,27 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             cycle_key = (product_master_norm, variety_norm, activity)
             cycle = cycle_map.get(cycle_key)
             if cycle is None:
-                # 1. Exact variety match regardless of product
+                # 1. Exact variety match regardless of product spelling (e.g. GYPSO vs GYPSOPHILA)
                 for (p_norm, v_norm, act), cdef in cycle_map.items():
                     if v_norm == variety_norm and act == activity:
                         cycle = cdef
                         break
             if cycle is None:
-                # 2. Fuzzy substring match on variety name (e.g. BILLION LIGHT matches BILLION LIGHTS)
-                for (p_norm, v_norm, act), cdef in cycle_map.items():
-                    if act == activity and (v_norm in variety_norm or variety_norm in v_norm):
-                        cycle = cdef
-                        break
+                # 2. Singular/plural match on variety name only (e.g. BILLION LIGHT vs BILLION LIGHTS)
+                clean_v = variety_norm.rstrip("S")
+                if len(clean_v) > 3:
+                    for (p_norm, v_norm, act), cdef in cycle_map.items():
+                        if act == activity and v_norm.rstrip("S") == clean_v:
+                            cycle = cdef
+                            break
+
+            # If no cycle definition exists for this variety in Parámetros, DO NOT project or display it!
+            # It will safely remain in TPSR and will only enter projection once its curve is created.
             if cycle is None:
-                # 3. Product master default fallback
-                for (p_norm, v_norm, act), cdef in cycle_map.items():
-                    if p_norm == product_master_norm and act == activity:
-                        cycle = cdef
-                        break
-            if cycle is None:
-                # 4. Universal safety fallback so NO RECORD FROM TPSR IS EVER SILENTLY LOST!
-                is_gyp = "GYPSO" in product_master_norm
-                cycle = {
-                    "product_master": product_master,
-                    "variety": variety,
-                    "activity": activity,
-                    "cycle_weeks": 12 if is_gyp else 16,
-                    "waste_rate": 0.15,
-                    "stems_per_plant": 10.0 if is_gyp else 8.0,
-                    "curve": (0.1, 0.35, 0.4, 0.15),
-                }
+                missing_cycles[(product_master, variety, activity)] = (
+                    missing_cycles.get((product_master, variety, activity), 0) + 1
+                )
+                continue
 
             source_rows.append(
                 {
@@ -528,9 +521,12 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
 
 def get_snapshot(force_refresh: bool = False) -> dict[str, Any]:
     current_version = get_data_version()
-    if force_refresh or _WORKER_CACHE["snapshot"] is None or _WORKER_CACHE["version"] != current_version:
+    now = time.time()
+    cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 30.0
+    if force_refresh or cache_expired or _WORKER_CACHE["snapshot"] is None or _WORKER_CACHE["version"] != current_version:
         _WORKER_CACHE["snapshot"] = build_projection_snapshot_from_db()
         _WORKER_CACHE["version"] = current_version
+        _WORKER_CACHE["timestamp"] = now
     return dict(_WORKER_CACHE["snapshot"])
 
 
@@ -801,8 +797,8 @@ def aggregate_for_week(
                 .sort_values(["product_master", "variety", "activity", "source_week", "block"])
             )
 
-            # Keep all plantings with harvest in window, PLUS all recent plantings from the last 30 weeks up to +12 weeks forward
-            recent_source_weeks = set(build_week_window_with_lookback(selected_week, 30, 12))
+            # Keep all plantings with harvest in window, PLUS all recent/active plantings from the last 52 weeks up to +26 weeks forward
+            recent_source_weeks = set(build_week_window_with_lookback(selected_week, 52, 26))
             recent_keys = {
                 (
                     str(row["product_master"]),
@@ -812,7 +808,7 @@ def aggregate_for_week(
                     str(row["block"]),
                 )
                 for _, row in source_frame.iterrows()
-                if int(row["source_week"]) in recent_source_weeks
+                if int(row["source_week"]) in recent_source_weeks or not bool(row.get("block_closed", False))
             }
             all_source_keys = source_keys | recent_keys
 
@@ -3547,6 +3543,13 @@ def update_tpsr_api():
 
         if "product_master" in payload and payload["product_master"]:
             pm = str(payload["product_master"]).strip()
+            pm_upper = pm.upper()
+            if "GYP" in pm_upper:
+                pm = "GYPSOPHILA"
+            elif "VERON" in pm_upper:
+                pm = "VERONICA"
+            elif "HYPER" in pm_upper:
+                pm = "HYPERICUM"
             if pm:
                 rec.product_master = pm
                 rec.product_master_norm = normalize_text(pm)
