@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -799,32 +800,39 @@ def aggregate_for_week(
 
             # Keep all plantings with harvest in window, PLUS all recent/active plantings from the last 52 weeks up to +26 weeks forward
             recent_source_weeks = set(build_week_window_with_lookback(selected_week, 52, 26))
-            recent_keys = {
-                (
-                    str(row["product_master"]),
-                    str(row["variety"]),
-                    str(row["activity"]),
-                    int(row["source_week"]),
-                    str(row["block"]),
-                )
-                for _, row in source_frame.iterrows()
-                if int(row["source_week"]) in recent_source_weeks or not bool(row.get("block_closed", False))
-            }
+            recent_keys = set()
+            for _, row in source_frame.iterrows():
+                try:
+                    sw_val = int(row["source_week"])
+                except (ValueError, TypeError):
+                    continue
+                is_closed = bool(row.get("block_closed", False))
+                if sw_val in recent_source_weeks or not is_closed:
+                    recent_keys.add(
+                        (
+                            str(row["product_master"]),
+                            str(row["variety"]),
+                            str(row["activity"]),
+                            sw_val,
+                            str(row["block"]),
+                        )
+                    )
             all_source_keys = source_keys | recent_keys
 
-            source_grouped = source_grouped.loc[
-                source_grouped.apply(
-                    lambda row: (
-                        str(row["product_master"]),
-                        str(row["variety"]),
-                        str(row["activity"]),
-                        int(row["source_week"]),
-                        str(row["block"]),
+            if not source_grouped.empty and all_source_keys:
+                source_grouped = source_grouped.loc[
+                    source_grouped.apply(
+                        lambda row: (
+                            str(row["product_master"]),
+                            str(row["variety"]),
+                            str(row["activity"]),
+                            int(row["source_week"]) if pd.notna(row["source_week"]) else 0,
+                            str(row["block"]),
+                        )
+                        in all_source_keys,
+                        axis=1,
                     )
-                    in all_source_keys,
-                    axis=1,
-                )
-            ]
+                ]
 
             if not projection_grouped.empty:
                 projection_lookup = {
