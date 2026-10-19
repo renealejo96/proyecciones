@@ -677,7 +677,8 @@ def aggregate_for_week(
             projection_dump_lookup[p_key] = bool(row.get("is_dump", False))
             projection_dump_stems_lookup[p_key] = dumps
 
-    recent_source_weeks = set(build_week_window_with_lookback(selected_week, 52, 26))
+    min_window_week = min(week_window) if week_window else selected_week
+    recent_source_weeks = set(build_week_window_with_lookback(selected_week, 40, 26))
 
     # Filter and sort source rows
     candidates = []
@@ -695,7 +696,11 @@ def aggregate_for_week(
         b_key = (pm, var, act, sw_val, blk)
 
         is_closed = bool(row.get("block_closed", False))
-        if b_key in source_keys or sw_val in recent_source_weeks or not is_closed:
+        eff_cycle = int(row.get("cycle_weeks") or 0)
+        h_start = shift_week(sw_val, eff_cycle) if eff_cycle else sw_val
+
+        # Include if it has harvests in the current window OR is an active/growing batch whose harvest is current/upcoming
+        if b_key in source_keys or (not is_closed and sw_val in recent_source_weeks and h_start >= min_window_week):
             candidates.append(row)
 
     candidates.sort(key=lambda r: (r.get("product_master") or "", r.get("variety") or "", r.get("activity") or "", r.get("source_week") or 0, r.get("block") or ""))

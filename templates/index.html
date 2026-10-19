@@ -2134,17 +2134,24 @@
             };
         }
 
-        function updateRowTotalsFromWeekInputs(row) {
+        function updateRowTotalsFromWeekInputs(row, precomputedTotal = null, precomputedDumps = null) {
             if (!row) return 0;
             let windowExportable = 0;
             let windowDumps = 0;
-            row.querySelectorAll('.week-cell').forEach((c) => {
-                const inp = c.querySelector('.week-input');
-                const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
-                const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
-                windowExportable += val;
-                windowDumps += dVal;
-            });
+            if (precomputedTotal !== null && precomputedDumps !== null) {
+                windowExportable = precomputedTotal;
+                windowDumps = precomputedDumps;
+            } else {
+                const cells = row.getElementsByClassName('week-cell');
+                for (let i = 0; i < cells.length; i++) {
+                    const c = cells[i];
+                    const inp = c.getElementsByClassName('week-input')[0];
+                    const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
+                    const dVal = Math.max(0, Math.round(Number.parseFloat(c.dataset.dumpStems) || 0));
+                    windowExportable += val;
+                    windowDumps += dVal;
+                }
+            }
 
             const winTotCell = row.querySelector('.cell-window-total');
             if (winTotCell) winTotCell.textContent = String(windowExportable);
@@ -2178,36 +2185,34 @@
             const isReal = (pageMode === 'REAL');
             const baseWidth = isReal ? 46 : 42;
 
+            let styleEl = document.getElementById('dynamic-week-col-widths');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'dynamic-week-col-widths';
+                document.head.appendChild(styleEl);
+            }
+
+            const cssRules = [];
             weekColumns.forEach(w => {
                 let maxDigits = 4;
                 if (w.label && w.label.length > maxDigits) {
                     maxDigits = Math.max(maxDigits, w.label.length);
                 }
 
-                const columnElements = document.querySelectorAll(`[data-week-label="${w.label}"]`);
-                columnElements.forEach(el => {
-                    const input = el.querySelector('input');
-                    if (input) {
-                        const valStr = String(input.value || '').trim();
-                        if (valStr.length > maxDigits) {
-                            maxDigits = valStr.length;
-                        }
-                    } else {
-                        const textStr = String(el.textContent || '').replace(/[^\d]/g, '').trim();
-                        if (textStr.length > maxDigits) {
-                            maxDigits = Math.min(textStr.length, 7);
-                        }
+                const totalEl = document.querySelector(`.js-week-total[data-week-label="${w.label}"]`);
+                if (totalEl) {
+                    const textStr = String(totalEl.textContent || '').replace(/[^\d]/g, '').trim();
+                    if (textStr.length > maxDigits) {
+                        maxDigits = Math.min(textStr.length, 7);
                     }
-                });
+                }
 
                 const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 8.0);
                 const widthStyle = targetWidth + 'px';
-
-                columnElements.forEach(el => {
-                    el.style.width = widthStyle;
-                    el.style.minWidth = widthStyle;
-                });
+                cssRules.push(`[data-week-label="${w.label}"] { width: ${widthStyle} !important; min-width: ${widthStyle} !important; }`);
             });
+
+            styleEl.textContent = cssRules.join('\n');
         }
 
         function updateStickyHeaderOffsets() {
@@ -2597,11 +2602,12 @@
                 let matchGlobalNonZero = true;
                 if (onlyNonZeroRows) {
                     let hasAnyVal = false;
-                    row.querySelectorAll('.week-cell').forEach((cell) => {
-                        const inp = cell.querySelector('.week-input');
+                    const weekCells = row.getElementsByClassName('week-cell');
+                    for (let i = 0; i < weekCells.length; i++) {
+                        const inp = weekCells[i].getElementsByClassName('week-input')[0];
                         const val = Math.max(0, Math.round(Number.parseFloat(inp?.value) || 0));
-                        if (val > 0) hasAnyVal = true;
-                    });
+                        if (val > 0) { hasAnyVal = true; break; }
+                    }
                     matchGlobalNonZero = hasAnyVal;
                 }
 
@@ -2640,9 +2646,11 @@
 
                 let rowWindowTotal = 0;
                 let rowWindowDumps = 0;
-                row.querySelectorAll('.week-cell').forEach((cell) => {
+                const rowCells = row.getElementsByClassName('week-cell');
+                for (let i = 0; i < rowCells.length; i++) {
+                    const cell = rowCells[i];
                     const label = cell.dataset.weekLabel;
-                    const input = cell.querySelector('.week-input');
+                    const input = cell.getElementsByClassName('week-input')[0];
                     const val = Math.max(0, Math.round(Number.parseFloat(input?.value) || 0));
                     const status = cell.dataset.status;
                     const isDump = (status === 'DUMP' || cell.dataset.isDump === 'true');
@@ -2662,10 +2670,10 @@
                     summaryData[key].proyectado[activity][label] += val;
                     summaryData[key].agronomo[activity][label] += val;
                     summaryData[key].real[activity][label] += val;
-                });
+                }
 
                 varietyTotalsMap[variety].windowTotal += rowWindowTotal;
-                updateRowTotalsFromWeekInputs(row);
+                updateRowTotalsFromWeekInputs(row, rowWindowTotal, rowWindowDumps);
 
                 if (activity === 'SIEMBRA') masterSiembraTotal += rowWindowTotal;
                 else masterPodaTotal += rowWindowTotal;
@@ -2729,7 +2737,9 @@
             }
 
             renderSummaryPanels(summaryData);
-            adjustWeekColumnWidths();
+            if (fullRecalc) {
+                adjustWeekColumnWidths();
+            }
         }
 
         async function saveRowAdjustment(row) {
@@ -3620,8 +3630,7 @@
 
         populateFilterDatalists();
         updateStickyHeaderOffsets();
-        recalcAll();
-        adjustWeekColumnWidths();
+        recalcAll(true);
 
         // ==========================================
         // EXCEL-STYLE CELL SELECTION & STATUS BAR
