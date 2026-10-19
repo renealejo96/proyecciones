@@ -15,6 +15,7 @@ services:
       - ./siembras_podas:/app/siembras_podas
     depends_on:
       - db
+    command: sh -c "python -c 'from db import init_db; init_db()' && gunicorn --bind 0.0.0.0:5000 --workers $${GUNICORN_WORKERS:-4} --timeout 120 app:app"
     restart: always
 
   db:

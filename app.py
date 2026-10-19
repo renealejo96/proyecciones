@@ -62,9 +62,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "proyecciones_secret_session_key_2026_prod")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
-# Automatically create tables and seed Postgres if empty on startup
-seed_data_from_excel_if_empty(WORKBOOK_PATH)
-
 
 def merge_bed_locations(bed_locs: list[str]) -> str:
     if not bed_locs:
@@ -3452,5 +3449,6 @@ def delete_tpsr_api():
 
 
 if __name__ == "__main__":
+    seed_data_from_excel_if_empty(WORKBOOK_PATH)
     debug_mode = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
     app.run(host="0.0.0.0", port=5000, debug=debug_mode)

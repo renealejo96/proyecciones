@@ -294,120 +294,164 @@ def float_or_zero(value: Any) -> float:
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    with engine.connect() as conn:
-        # 1. Schema migrations
-        for alter_sql in [
-            "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;",
-            "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;",
-            "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);",
-        ]:
-            try:
-                conn.execute(text(alter_sql))
-                conn.commit()
-            except Exception:
-                try:
-                    conn.rollback()
-                except Exception:
-                    pass
 
-        # 2. Data healing and week canonicalization migrations
-        for heal_sql in [
-            # Fix 1 or 2 digit weeks (e.g. 28 -> 202628)
-            "UPDATE tpsr_records SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
-            # Fix accidental year 2000 weeks (e.g. 200028 -> 202628)
-            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
-            # Fix accidental year 2020 weeks (e.g. 202028 from 200000 + 2028 -> 202628)
-            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
-            # Fix 4-digit weeks entered as 20XX (e.g. 2028 -> 202628)
-            "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
-            # Fix 4-digit YYWW weeks (e.g. 2628 -> 202628, 2428 -> 202428)
-            "UPDATE tpsr_records SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
-            # Ensure source_week_short is always 4 digits
-            "UPDATE tpsr_records SET source_week_short = LPAD(MOD(source_week, 10000)::text, 4, '0') WHERE source_week IS NOT NULL;",
-            # Normalize product_master names
-            "UPDATE tpsr_records SET product_master = 'GYPSOPHILA', product_master_norm = 'GYPSOPHILA' WHERE UPPER(product_master) LIKE '%GYP%';",
-            "UPDATE tpsr_records SET product_master = 'VERONICA', product_master_norm = 'VERONICA' WHERE UPPER(product_master) LIKE '%VERON%';",
-            "UPDATE tpsr_records SET product_master = 'HYPERICUM', product_master_norm = 'HYPERICUM' WHERE UPPER(product_master) LIKE '%HYPER%';",
-            "UPDATE tpsr_records SET product_master_norm = UPPER(TRIM(product_master)) WHERE product_master_norm IS NULL OR product_master_norm = '';",
-            "UPDATE tpsr_records SET variety_norm = UPPER(TRIM(variety)) WHERE variety_norm IS NULL OR variety_norm = '';",
-            "UPDATE tpsr_records SET block_norm = UPPER(TRIM(block)) WHERE block_norm IS NULL OR block_norm = '';",
-            "UPDATE tpsr_records SET activity = 'SIEMBRA' WHERE activity IS NULL OR UPPER(activity) LIKE '%SIEMBR%';",
-            "UPDATE tpsr_records SET activity = 'PODA' WHERE UPPER(activity) LIKE '%PODA%';",
-            # Heal row_adjustments
-            "UPDATE row_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
-            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
-            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
-            "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
-            "UPDATE row_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
-            # Heal week_adjustments
-            "UPDATE week_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
-            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
-            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
-            "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
-            "UPDATE week_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
-            "UPDATE week_adjustments SET harvest_week = 202600 + harvest_week WHERE harvest_week >= 1 AND harvest_week <= 53;",
-            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 200001 AND harvest_week <= 200053;",
-            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 202001 AND harvest_week <= 202053;",
-            "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 2001 AND harvest_week <= 2053;",
-            "UPDATE week_adjustments SET harvest_week = 200000 + harvest_week WHERE harvest_week >= 2401 AND harvest_week <= 2953;",
-            # Heal block_closures
-            "UPDATE block_closures SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
-            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
-            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
-            "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
-            "UPDATE block_closures SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
-        ]:
-            try:
-                conn.execute(text(heal_sql))
-                conn.commit()
-            except Exception:
-                try:
-                    conn.rollback()
-                except Exception:
-                    pass
-
+    # 1. Fast check: if migrations and data healing have already been applied, return immediately!
     db = SessionLocal()
     try:
-        meta = db.query(AppMetaDB).filter_by(key="data_version").first()
-        if not meta:
-            meta = AppMetaDB(key="data_version", value="1")
-            db.add(meta)
-            db.commit()
-
-        # Seed baseline audit history from current adjustments if table is empty
-        audit_count = db.query(EstimateAuditDB).count()
-        if audit_count == 0:
-            existing_adjs = db.query(WeekAdjustmentDB).all()
-            for a in existing_adjs:
-                val = a.agronomo_estimate if a.agronomo_estimate is not None else a.real_closed
-                if val is not None or a.is_dump or a.dump_stems:
-                    db.add(
-                        EstimateAuditDB(
-                            product_master=a.product_master_norm,
-                            product_master_norm=a.product_master_norm,
-                            variety=a.variety_norm,
-                            variety_norm=a.variety_norm,
-                            block=a.block,
-                            block_norm=a.block_norm,
-                            activity=a.activity,
-                            source_week=a.source_week,
-                            harvest_week=a.harvest_week,
-                            mode="AGRONOMO" if a.agronomo_estimate is not None else "REAL",
-                            action="INITIAL",
-                            previous_value=None,
-                            new_value=val,
-                            dump_stems=a.dump_stems or 0,
-                            notes="Registro inicial",
-                            created_at=a.updated_at or datetime.utcnow(),
-                        )
-                    )
-            db.commit()
-
-        seed_default_users_if_empty(db)
+        done_flag = db.query(AppMetaDB).filter_by(key="db_migration_healed_v1").first()
+        if done_flag and done_flag.value == "1":
+            return
     except Exception:
-        db.rollback()
+        pass
     finally:
         db.close()
+
+    # 2. Concurrency guard: Use PostgreSQL advisory lock so only ONE worker can execute migrations
+    with engine.connect() as conn:
+        is_postgres = False
+        try:
+            lock_res = conn.execute(text("SELECT pg_try_advisory_lock(982341);")).scalar()
+            is_postgres = True
+            if not lock_res:
+                # Another worker is already executing migrations, do not run concurrently!
+                return
+        except Exception:
+            pass
+
+        try:
+            # Re-check under lock in case another worker just finished
+            with SessionLocal() as db_chk:
+                done_flag = db_chk.query(AppMetaDB).filter_by(key="db_migration_healed_v1").first()
+                if done_flag and done_flag.value == "1":
+                    return
+
+            # 1. Schema migrations
+            for alter_sql in [
+                "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;",
+                "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;",
+                "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);",
+            ]:
+                try:
+                    conn.execute(text(alter_sql))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
+            # 2. Data healing and week canonicalization migrations (runs ONCE in history)
+            for heal_sql in [
+                # Fix 1 or 2 digit weeks (e.g. 28 -> 202628)
+                "UPDATE tpsr_records SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+                # Fix accidental year 2000 weeks (e.g. 200028 -> 202628)
+                "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+                # Fix accidental year 2020 weeks (e.g. 202028 from 200000 + 2028 -> 202628)
+                "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+                # Fix 4-digit weeks entered as 20XX (e.g. 2028 -> 202628)
+                "UPDATE tpsr_records SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+                # Fix 4-digit YYWW weeks (e.g. 2628 -> 202628, 2428 -> 202428)
+                "UPDATE tpsr_records SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+                # Ensure source_week_short is always 4 digits
+                "UPDATE tpsr_records SET source_week_short = LPAD(MOD(source_week, 10000)::text, 4, '0') WHERE source_week IS NOT NULL;",
+                # Normalize product_master names
+                "UPDATE tpsr_records SET product_master = 'GYPSOPHILA', product_master_norm = 'GYPSOPHILA' WHERE UPPER(product_master) LIKE '%GYP%';",
+                "UPDATE tpsr_records SET product_master = 'VERONICA', product_master_norm = 'VERONICA' WHERE UPPER(product_master) LIKE '%VERON%';",
+                "UPDATE tpsr_records SET product_master = 'HYPERICUM', product_master_norm = 'HYPERICUM' WHERE UPPER(product_master) LIKE '%HYPER%';",
+                "UPDATE tpsr_records SET product_master_norm = UPPER(TRIM(product_master)) WHERE product_master_norm IS NULL OR product_master_norm = '';",
+                "UPDATE tpsr_records SET variety_norm = UPPER(TRIM(variety)) WHERE variety_norm IS NULL OR variety_norm = '';",
+                "UPDATE tpsr_records SET block_norm = UPPER(TRIM(block)) WHERE block_norm IS NULL OR block_norm = '';",
+                "UPDATE tpsr_records SET activity = 'SIEMBRA' WHERE activity IS NULL OR UPPER(activity) LIKE '%SIEMBR%';",
+                "UPDATE tpsr_records SET activity = 'PODA' WHERE UPPER(activity) LIKE '%PODA%';",
+                # Heal row_adjustments
+                "UPDATE row_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+                "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+                "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+                "UPDATE row_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+                "UPDATE row_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+                # Heal week_adjustments
+                "UPDATE week_adjustments SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+                "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+                "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+                "UPDATE week_adjustments SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+                "UPDATE week_adjustments SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+                "UPDATE week_adjustments SET harvest_week = 202600 + harvest_week WHERE harvest_week >= 1 AND harvest_week <= 53;",
+                "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 200001 AND harvest_week <= 200053;",
+                "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 202001 AND harvest_week <= 202053;",
+                "UPDATE week_adjustments SET harvest_week = 202600 + (harvest_week % 100) WHERE harvest_week >= 2001 AND harvest_week <= 2053;",
+                "UPDATE week_adjustments SET harvest_week = 200000 + harvest_week WHERE harvest_week >= 2401 AND harvest_week <= 2953;",
+                # Heal block_closures
+                "UPDATE block_closures SET source_week = 202600 + source_week WHERE source_week >= 1 AND source_week <= 53;",
+                "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 200001 AND source_week <= 200053;",
+                "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 202001 AND source_week <= 202053;",
+                "UPDATE block_closures SET source_week = 202600 + (source_week % 100) WHERE source_week >= 2001 AND source_week <= 2053;",
+                "UPDATE block_closures SET source_week = 200000 + source_week WHERE source_week >= 2401 AND source_week <= 2953;",
+            ]:
+                try:
+                    conn.execute(text(heal_sql))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
+            db = SessionLocal()
+            try:
+                meta = db.query(AppMetaDB).filter_by(key="data_version").first()
+                if not meta:
+                    meta = AppMetaDB(key="data_version", value="1")
+                    db.add(meta)
+
+                # Mark migration as done permanently so it NEVER executes again
+                done_meta = db.query(AppMetaDB).filter_by(key="db_migration_healed_v1").first()
+                if not done_meta:
+                    done_meta = AppMetaDB(key="db_migration_healed_v1", value="1")
+                    db.add(done_meta)
+                else:
+                    done_meta.value = "1"
+
+                # Seed baseline audit history from current adjustments if table is empty
+                audit_count = db.query(EstimateAuditDB).count()
+                if audit_count == 0:
+                    existing_adjs = db.query(WeekAdjustmentDB).all()
+                    for a in existing_adjs:
+                        val = a.agronomo_estimate if a.agronomo_estimate is not None else a.real_closed
+                        if val is not None or a.is_dump or a.dump_stems:
+                            db.add(
+                                EstimateAuditDB(
+                                    product_master=a.product_master_norm,
+                                    product_master_norm=a.product_master_norm,
+                                    variety=a.variety_norm,
+                                    variety_norm=a.variety_norm,
+                                    block=a.block,
+                                    block_norm=a.block_norm,
+                                    activity=a.activity,
+                                    source_week=a.source_week,
+                                    harvest_week=a.harvest_week,
+                                    mode="AGRONOMO" if a.agronomo_estimate is not None else "REAL",
+                                    action="INITIAL",
+                                    previous_value=None,
+                                    new_value=val,
+                                    dump_stems=a.dump_stems or 0,
+                                    notes="Registro inicial",
+                                    created_at=a.updated_at or datetime.utcnow(),
+                                )
+                            )
+                seed_default_users_if_empty(db)
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+
+        finally:
+            if is_postgres:
+                try:
+                    conn.execute(text("SELECT pg_advisory_unlock(982341);"))
+                    conn.commit()
+                except Exception:
+                    pass
 
 
 def parse_allowed_views(allowed_views_raw: Any, role: str = "visita") -> list[str]:
