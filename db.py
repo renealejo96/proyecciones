@@ -18,8 +18,14 @@ DATABASE_URL = os.environ.get(
     "DATABASE_URL", "postgresql://postgres:admin@localhost:5432/proyecciones"
 )
 
-# Connect to database with pool resilience
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# Connect to database with robust connection pool configuration
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=1800,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -81,6 +87,10 @@ class RowAdjustmentDB(Base):
     stems_per_plant = Column(Float, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    __table_args__ = (
+        Index("ix_row_adjustments_lookup", "activity", "product_master_norm", "variety_norm", "block_norm", "source_week"),
+    )
+
 
 class MassAdjustmentDB(Base):
     __tablename__ = "mass_adjustments"
@@ -112,6 +122,10 @@ class WeekAdjustmentDB(Base):
     is_dump = Column(Boolean, default=False, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    __table_args__ = (
+        Index("ix_week_adjustments_lookup", "activity", "product_master_norm", "variety_norm", "block_norm", "source_week", "harvest_week"),
+    )
+
 
 class BlockClosureDB(Base):
     __tablename__ = "block_closures"
@@ -125,6 +139,10 @@ class BlockClosureDB(Base):
     source_week = Column(Integer, nullable=False)
     is_closed = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_block_closures_lookup", "activity", "product_master_norm", "variety_norm", "block_norm", "source_week"),
+    )
 
 
 class EstimateAuditDB(Base):

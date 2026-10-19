@@ -8,6 +8,7 @@ import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
+from collections import defaultdict
 
 import csv
 import gzip
@@ -168,6 +169,8 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
         block_closes = db.query(BlockClosureDB).all()
 
         cycle_map = {}
+        cycle_map_by_var_act = {}
+        cycle_map_by_clean_v = {}
         for c in cycle_defs:
             curve_values = tuple(
                 float(val)
@@ -187,6 +190,10 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             }
             cycle_map[(c_pm_norm, c.variety_norm, c.activity)] = c_entry
             cycle_map[(c.product_master_norm, c.variety_norm, c.activity)] = c_entry
+            cycle_map_by_var_act[(c.variety_norm, c.activity)] = c_entry
+            clean_v = c.variety_norm.rstrip("S")
+            if len(clean_v) > 3:
+                cycle_map_by_clean_v[(clean_v, c.activity)] = c_entry
 
         row_adjustments = {
             (
@@ -214,23 +221,18 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             }
             for m in mass_adjs
         ]
+        mass_override_cache = {}
 
-        week_adjustments = {
-            (
-                w.activity,
-                "VERONICA" if "VERONICA" in w.product_master_norm else w.product_master_norm,
-                w.variety_norm,
-                w.block_norm,
-                w.source_week,
-                w.harvest_week,
-            ): {
+        week_adjustments_by_block = defaultdict(dict)
+        for w in week_adjs:
+            pm_norm = "VERONICA" if "VERONICA" in w.product_master_norm else w.product_master_norm
+            b_key = (w.activity, pm_norm, w.variety_norm, w.block_norm, w.source_week)
+            week_adjustments_by_block[b_key][w.harvest_week] = {
                 "agronomo_estimate": w.agronomo_estimate,
                 "real_closed": w.real_closed,
                 "dump_stems": w.dump_stems or 0,
                 "is_dump": bool(w.is_dump or (w.dump_stems and w.dump_stems > 0)),
             }
-            for w in week_adjs
-        }
 
         block_closures = {
             (
@@ -323,19 +325,11 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
             cycle_key = (product_master_norm, variety_norm, activity)
             cycle = cycle_map.get(cycle_key)
             if cycle is None:
-                # 1. Exact variety match regardless of product spelling (e.g. GYPSO vs GYPSOPHILA)
-                for (p_norm, v_norm, act), cdef in cycle_map.items():
-                    if v_norm == variety_norm and act == activity:
-                        cycle = cdef
-                        break
+                cycle = cycle_map_by_var_act.get((variety_norm, activity))
             if cycle is None:
-                # 2. Singular/plural match on variety name only (e.g. BILLION LIGHT vs BILLION LIGHTS)
                 clean_v = variety_norm.rstrip("S")
                 if len(clean_v) > 3:
-                    for (p_norm, v_norm, act), cdef in cycle_map.items():
-                        if act == activity and v_norm.rstrip("S") == clean_v:
-                            cycle = cdef
-                            break
+                    cycle = cycle_map_by_clean_v.get((clean_v, activity))
 
             # If no cycle definition exists for this variety in Parámetros, DO NOT project or display it!
             # It will safely remain in TPSR and will only enter projection once its curve is created.
@@ -357,7 +351,7 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                     "plants": plants,
                     "bed_location": bed_location_str,
                     "pruning_number": "",
-                    "cycle_found": cycle is not None,
+                    "cycle_found": True,
                     "cycle_weeks": None,
                     "waste_rate": None,
                     "stems_per_plant": None,
@@ -370,25 +364,30 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 }
             )
 
-            matched_rules = []
-            for rule in mass_adjustments:
-                if rule["product_master_norm"] not in {"*", product_master_norm}:
-                    continue
-                if rule["variety_norm"] not in {"*", variety_norm}:
-                    continue
-                if rule["activity"] not in {"*", activity}:
-                    continue
-                score = (
-                    (1 if rule["product_master_norm"] != "*" else 0)
-                    + (1 if rule["variety_norm"] != "*" else 0)
-                    + (1 if rule["activity"] != "*" else 0)
-                )
-                matched_rules.append((score, rule))
+            mass_key = (product_master_norm, variety_norm, activity)
+            if mass_key in mass_override_cache:
+                mass_override = mass_override_cache[mass_key]
+            else:
+                matched_rules = []
+                for rule in mass_adjustments:
+                    if rule["product_master_norm"] not in {"*", product_master_norm}:
+                        continue
+                    if rule["variety_norm"] not in {"*", variety_norm}:
+                        continue
+                    if rule["activity"] not in {"*", activity}:
+                        continue
+                    score = (
+                        (1 if rule["product_master_norm"] != "*" else 0)
+                        + (1 if rule["variety_norm"] != "*" else 0)
+                        + (1 if rule["activity"] != "*" else 0)
+                    )
+                    matched_rules.append((score, rule))
 
-            mass_override = {}
-            if matched_rules:
-                matched_rules.sort(key=lambda item: item[0], reverse=True)
-                mass_override = matched_rules[0][1]
+                mass_override = {}
+                if matched_rules:
+                    matched_rules.sort(key=lambda item: item[0], reverse=True)
+                    mass_override = matched_rules[0][1]
+                mass_override_cache[mass_key] = mass_override
 
             row_override_key = (activity, product_master_norm, variety_norm, block_norm, source_week)
             row_override = row_adjustments.get(row_override_key, {})
@@ -432,31 +431,16 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
                 ) + int(model_exportable)
                 curve_meta_by_week.setdefault(harvest_week, (curve_index + 1, float(curve_pct)))
 
-            all_harvest_weeks = sorted(set(model_projection_by_week.keys()))
-            override_candidates = [
-                k
-                for k in week_adjustments.keys()
-                if k[:5] == (activity, product_master_norm, variety_norm, block_norm, source_week)
-            ]
-            for k in override_candidates:
-                all_harvest_weeks.append(int(k[5]))
-            all_harvest_weeks = sorted(set(all_harvest_weeks))
-
             closure_key = (activity, product_master_norm, variety_norm, block_norm, source_week)
             block_closed = bool(block_closures.get(closure_key, False))
             source_rows[-1]["block_closed"] = block_closed
 
+            block_week_adjs = week_adjustments_by_block.get(closure_key, {})
+            all_harvest_weeks = sorted(set(model_projection_by_week.keys()) | set(block_week_adjs.keys()))
+
             for harvest_week in all_harvest_weeks:
                 model_exportable = int(model_projection_by_week.get(harvest_week, 0))
-                week_override_key = (
-                    activity,
-                    product_master_norm,
-                    variety_norm,
-                    block_norm,
-                    source_week,
-                    harvest_week,
-                )
-                week_override = week_adjustments.get(week_override_key, {})
+                week_override = block_week_adjs.get(harvest_week, {})
                 exportable_stems = model_exportable
                 weekly_status = "MODELO"
                 is_dump = bool(week_override.get("is_dump", False))
@@ -523,12 +507,14 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
 def get_snapshot(force_refresh: bool = False) -> dict[str, Any]:
     current_version = get_data_version()
     now = time.time()
-    cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 30.0
+    # Cache is strictly version-controlled with PostgreSQL data_version.
+    # Fallback TTL is 600s (10 min) to avoid wasteful recalculations every 30s.
+    cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 600.0
     if force_refresh or cache_expired or _WORKER_CACHE["snapshot"] is None or _WORKER_CACHE["version"] != current_version:
         _WORKER_CACHE["snapshot"] = build_projection_snapshot_from_db()
         _WORKER_CACHE["version"] = current_version
         _WORKER_CACHE["timestamp"] = now
-    return dict(_WORKER_CACHE["snapshot"])
+    return _WORKER_CACHE["snapshot"]
 
 
 def available_weeks(snapshot: dict[str, Any]) -> list[int]:
@@ -626,386 +612,176 @@ def aggregate_for_week(
     horizon_weeks_forward: int,
     selected_product_master: str = "",
 ) -> dict[str, Any]:
-    projection_frame = pd.DataFrame(snapshot["projection_rows"])
-    source_frame = pd.DataFrame(snapshot["source_rows"])
     selected_product_master = (selected_product_master or "").strip()
-
-    if selected_product_master and not source_frame.empty:
-        selected_norm = normalize_text(selected_product_master)
-        source_frame = source_frame.loc[source_frame["product_master_norm"] == selected_norm].copy()
-        if not projection_frame.empty:
-            projection_frame = projection_frame.loc[
-                projection_frame["product_master_norm"] == selected_norm
-            ].copy()
+    selected_norm = normalize_text(selected_product_master) if selected_product_master else None
 
     week_window = build_week_window_with_lookback(
         selected_week, horizon_weeks_back, horizon_weeks_forward
     )
+    week_window_set = set(week_window)
     week_columns = [
         {"week_code": week_code, "label": format_short_week(week_code)} for week_code in week_window
     ]
+    week_label_map = {column["week_code"]: column["label"] for column in week_columns}
 
-    if projection_frame.empty:
-        matrix_rows: list[dict[str, Any]] = []
-        totals_by_activity = {"SIEMBRA": 0, "PODA": 0}
-        totals_by_week = {column["label"]: 0 for column in week_columns}
-        totals_by_week_by_activity = {
-            "SIEMBRA": {column["label"]: 0 for column in week_columns},
-            "PODA": {column["label"]: 0 for column in week_columns},
-        }
-    else:
-        window_projection = projection_frame.loc[
-            projection_frame["harvest_week"].isin(week_window)
-        ].copy()
-        totals_by_activity = {
-            activity: int(round(total))
-            for activity, total in window_projection.groupby("activity")["exportable_stems"].sum().items()
-        }
-        totals_by_activity.setdefault("SIEMBRA", 0)
-        totals_by_activity.setdefault("PODA", 0)
-        totals_by_week = {
-            column["label"]: int(
-                round(
-                    float(
-                        window_projection.loc[
-                            window_projection["harvest_week"] == column["week_code"],
-                            "exportable_stems",
-                        ].sum()
-                    )
-                )
-            )
-            for column in week_columns
-        }
-        totals_by_week_by_activity = {
-            "SIEMBRA": {
-                column["label"]: int(
-                    round(
-                        float(
-                            window_projection.loc[
-                                (window_projection["harvest_week"] == column["week_code"])
-                                & (window_projection["activity"] == "SIEMBRA"),
-                                "exportable_stems",
-                            ].sum()
-                        )
-                    )
-                )
-                for column in week_columns
-            },
-            "PODA": {
-                column["label"]: int(
-                    round(
-                        float(
-                            window_projection.loc[
-                                (window_projection["harvest_week"] == column["week_code"])
-                                & (window_projection["activity"] == "PODA"),
-                                "exportable_stems",
-                            ].sum()
-                        )
-                    )
-                )
-                for column in week_columns
-            },
-        }
+    totals_by_activity = {"SIEMBRA": 0, "PODA": 0}
+    totals_by_week = {column["label"]: 0 for column in week_columns}
+    totals_by_week_by_activity = {
+        "SIEMBRA": {column["label"]: 0 for column in week_columns},
+        "PODA": {column["label"]: 0 for column in week_columns},
+    }
 
-        lifetime_metrics: dict[tuple[str, str, str, int, str], dict[str, int]] = {}
-        if not projection_frame.empty:
-            for (pm_val, var_val, act_val, sw_val, blk_val), grp in projection_frame.groupby(
-                ["product_master", "variety", "activity", "source_week", "block"], dropna=False
-            ):
-                tot_exp = int(round(grp["exportable_stems"].sum()))
-                tot_dumps = int(grp["dump_stems"].sum()) if "dump_stems" in grp.columns else 0
-                tot_prod = tot_exp + tot_dumps
-                lifetime_metrics[(str(pm_val), str(var_val), str(act_val), int(sw_val), str(blk_val))] = {
-                    "total_production": tot_prod,
-                    "total_exportable": tot_exp,
-                    "total_dumps": tot_dumps,
-                }
+    lifetime_metrics: dict[tuple[str, str, str, int, str], dict[str, int]] = {}
+    projection_lookup: dict[tuple[str, str, str, int, str, int], int] = {}
+    projection_status_lookup: dict[tuple[str, str, str, int, str, int], str] = {}
+    projection_dump_lookup: dict[tuple[str, str, str, int, str, int], bool] = {}
+    projection_dump_stems_lookup: dict[tuple[str, str, str, int, str, int], int] = {}
+    source_keys: set[tuple[str, str, str, int, str]] = set()
 
-        if source_frame.empty:
-            matrix_rows = []
+    for row in snapshot.get("projection_rows", []):
+        if selected_norm and row.get("product_master_norm") != selected_norm:
+            continue
+
+        pm = str(row.get("product_master") or "")
+        var = str(row.get("variety") or "")
+        act = str(row.get("activity") or "")
+        sw = int(row.get("source_week") or 0)
+        blk = str(row.get("block") or "")
+        hw = int(row.get("harvest_week") or 0)
+        exp = int(row.get("exportable_stems") or 0)
+        dumps = int(row.get("dump_stems") or 0)
+
+        # Lifetime accumulation
+        b_key = (pm, var, act, sw, blk)
+        m = lifetime_metrics.get(b_key)
+        if m is None:
+            lifetime_metrics[b_key] = {
+                "total_production": exp + dumps,
+                "total_exportable": exp,
+                "total_dumps": dumps,
+            }
         else:
-            if not window_projection.empty:
-                projection_grouped = (
-                    window_projection.groupby(
-                        [
-                            "product_master",
-                            "variety",
-                            "activity",
-                            "source_week",
-                            "source_week_short",
-                            "block",
-                            "cycle_weeks",
-                            "stems_per_plant",
-                            "waste_rate",
-                            "harvest_week",
-                        ],
-                        dropna=False,
-                        as_index=False,
-                    )
-                    .agg(
-                        {
-                            "exportable_stems": "sum",
-                            "dump_stems": "sum",
-                            "weekly_status": "first",
-                            "is_dump": "first",
-                            "model_exportable_stems": "sum",
-                        }
-                    )
-                    .sort_values(["variety", "activity", "source_week", "block", "harvest_week"])
-                )
-                source_keys = {
-                    (
-                        str(row.product_master),
-                        str(row.variety),
-                        str(row.activity),
-                        int(row.source_week),
-                        str(row.block),
-                    )
-                    for row in projection_grouped.itertuples(index=False)
-                }
-            else:
-                projection_grouped = pd.DataFrame()
-                source_keys = set()
+            m["total_production"] += exp + dumps
+            m["total_exportable"] += exp
+            m["total_dumps"] += dumps
 
-            source_grouped = (
-                source_frame.groupby(
-                    [
-                        "product_master",
-                        "variety",
-                        "activity",
-                        "source_week",
-                        "source_week_short",
-                        "block",
-                    ],
-                    dropna=False,
-                    as_index=False,
-                )
-                .agg(
-                    {
-                        "plants": "sum",
-                        "bed_location": "first",
-                        "cycle_weeks": "first",
-                        "stems_per_plant": "first",
-                        "waste_rate": "first",
-                        "ideal_cycle_weeks": "first",
-                        "ideal_stems_per_plant": "first",
-                        "ideal_waste_rate": "first",
-                        "curve_csv": "first",
-                        "program_total": "sum",
-                        "block_closed": "first",
-                    }
-                )
-                .sort_values(["product_master", "variety", "activity", "source_week", "block"])
-            )
+        # Window projection
+        if hw in week_window_set:
+            source_keys.add(b_key)
+            lbl = week_label_map[hw]
+            totals_by_week[lbl] += exp
+            if act in totals_by_activity:
+                totals_by_activity[act] += exp
+                totals_by_week_by_activity[act][lbl] += exp
 
-            # Keep all plantings with harvest in window, PLUS all recent/active plantings from the last 52 weeks up to +26 weeks forward
-            recent_source_weeks = set(build_week_window_with_lookback(selected_week, 52, 26))
-            recent_keys = set()
-            for _, row in source_frame.iterrows():
-                try:
-                    sw_val = int(row["source_week"])
-                except (ValueError, TypeError):
-                    continue
-                is_closed = bool(row.get("block_closed", False))
-                if sw_val in recent_source_weeks or not is_closed:
-                    recent_keys.add(
-                        (
-                            str(row["product_master"]),
-                            str(row["variety"]),
-                            str(row["activity"]),
-                            sw_val,
-                            str(row["block"]),
-                        )
-                    )
-            all_source_keys = source_keys | recent_keys
+            p_key = (pm, var, act, sw, blk, hw)
+            projection_lookup[p_key] = exp
+            projection_status_lookup[p_key] = str(row.get("weekly_status") or "MODELO")
+            projection_dump_lookup[p_key] = bool(row.get("is_dump", False))
+            projection_dump_stems_lookup[p_key] = dumps
 
-            if not source_grouped.empty and all_source_keys:
-                source_grouped = source_grouped.loc[
-                    source_grouped.apply(
-                        lambda row: (
-                            str(row["product_master"]),
-                            str(row["variety"]),
-                            str(row["activity"]),
-                            int(row["source_week"]) if pd.notna(row["source_week"]) else 0,
-                            str(row["block"]),
-                        )
-                        in all_source_keys,
-                        axis=1,
-                    )
-                ]
+    recent_source_weeks = set(build_week_window_with_lookback(selected_week, 52, 26))
 
-            if not projection_grouped.empty:
-                projection_lookup = {
-                    (
-                        row.product_master,
-                        row.variety,
-                        row.activity,
-                        row.source_week,
-                        row.block,
-                        row.harvest_week,
-                    ): int(round(row.exportable_stems))
-                    for row in projection_grouped.itertuples(index=False)
-                }
-                projection_status_lookup = {
-                    (
-                        row.product_master,
-                        row.variety,
-                        row.activity,
-                        row.source_week,
-                        row.block,
-                        row.harvest_week,
-                    ): str(row.weekly_status or "MODELO")
-                    for row in projection_grouped.itertuples(index=False)
-                }
-                projection_dump_lookup = {
-                    (
-                        row.product_master,
-                        row.variety,
-                        row.activity,
-                        row.source_week,
-                        row.block,
-                        row.harvest_week,
-                    ): bool(getattr(row, "is_dump", False))
-                    for row in projection_grouped.itertuples(index=False)
-                }
-                projection_dump_stems_lookup = {
-                    (
-                        row.product_master,
-                        row.variety,
-                        row.activity,
-                        row.source_week,
-                        row.block,
-                        row.harvest_week,
-                    ): int(getattr(row, "dump_stems", 0) or 0)
-                    for row in projection_grouped.itertuples(index=False)
-                }
-            else:
-                projection_lookup = {}
-                projection_status_lookup = {}
-                projection_dump_lookup = {}
-                projection_dump_stems_lookup = {}
-            matrix_rows = []
-            for row in source_grouped.itertuples(index=False):
-                weekly_projection = {
-                    column["label"]: projection_lookup.get(
-                        (
-                            row.product_master,
-                            row.variety,
-                            row.activity,
-                            row.source_week,
-                            row.block,
-                            column["week_code"],
-                        ),
-                        0,
-                    )
-                    for column in week_columns
-                }
-                weekly_status = {
-                    column["label"]: projection_status_lookup.get(
-                        (
-                            row.product_master,
-                            row.variety,
-                            row.activity,
-                            row.source_week,
-                            row.block,
-                            column["week_code"],
-                        ),
-                        "MODELO",
-                    )
-                    for column in week_columns
-                }
-                is_dump_by_week = {
-                    column["label"]: projection_dump_lookup.get(
-                        (
-                            row.product_master,
-                            row.variety,
-                            row.activity,
-                            row.source_week,
-                            row.block,
-                            column["week_code"],
-                        ),
-                        False,
-                    )
-                    for column in week_columns
-                }
-                dump_stems_by_week = {
-                    column["label"]: projection_dump_stems_lookup.get(
-                        (
-                            row.product_master,
-                            row.variety,
-                            row.activity,
-                            row.source_week,
-                            row.block,
-                            column["week_code"],
-                        ),
-                        0,
-                    )
-                    for column in week_columns
-                }
-                week_code_by_label = {
-                    column["label"]: column["week_code"] for column in week_columns
-                }
-                eff_cycle = 0 if pd.isna(row.cycle_weeks) else int(row.cycle_weeks)
-                harvest_start_week = shift_week(int(row.source_week), eff_cycle) if eff_cycle else int(row.source_week)
-                harvest_start_week_short = format_short_week(harvest_start_week)
+    # Filter and sort source rows
+    candidates = []
+    for row in snapshot.get("source_rows", []):
+        if selected_norm and row.get("product_master_norm") != selected_norm:
+            continue
+        try:
+            sw_val = int(row.get("source_week") or 0)
+        except (ValueError, TypeError):
+            continue
+        pm = str(row.get("product_master") or "")
+        var = str(row.get("variety") or "")
+        act = str(row.get("activity") or "")
+        blk = str(row.get("block") or "")
+        b_key = (pm, var, act, sw_val, blk)
 
-                b_key = (str(row.product_master), str(row.variety), str(row.activity), int(row.source_week), str(row.block))
-                b_lifetime = lifetime_metrics.get(b_key, {"total_production": 0, "total_exportable": 0, "total_dumps": 0})
-                plants_count = int(row.plants) if int(row.plants) > 0 else 1
-                lifetime_total_prod = b_lifetime["total_production"]
-                lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
+        is_closed = bool(row.get("block_closed", False))
+        if b_key in source_keys or sw_val in recent_source_weeks or not is_closed:
+            candidates.append(row)
 
-                window_total_prod = sum(
-                    weekly_projection[w["label"]] + dump_stems_by_week[w["label"]]
-                    for w in week_columns
-                )
-                window_real_stems = round(window_total_prod / plants_count, 1) if int(row.plants) > 0 else 0.0
+    candidates.sort(key=lambda r: (r.get("product_master") or "", r.get("variety") or "", r.get("activity") or "", r.get("source_week") or 0, r.get("block") or ""))
 
-                is_closed = bool(row.block_closed)
-                # Keep tallos/planta representative of the row's full lifetime harvest + dumps, not just visible segment
-                effective_total_prod = lifetime_total_prod
-                effective_real_stems = lifetime_real_stems
+    matrix_rows: list[dict[str, Any]] = []
+    for row in candidates:
+        pm = str(row.get("product_master") or "")
+        var = str(row.get("variety") or "")
+        act = str(row.get("activity") or "")
+        sw = int(row.get("source_week") or 0)
+        blk = str(row.get("block") or "")
 
-                matrix_rows.append(
-                    {
-                        "variety": row.variety,
-                        "variety_display": format_variety_display(row.variety),
-                        "product_master": row.product_master,
-                        "activity": row.activity,
-                        "bed_location": "" if pd.isna(getattr(row, "bed_location", "")) else str(getattr(row, "bed_location", "")).strip(),
-                        "source_week": row.source_week,
-                        "source_week_short": row.source_week_short,
-                        "harvest_start_week": harvest_start_week,
-                        "harvest_start_week_short": harvest_start_week_short,
-                        "block": row.block,
-                        "plants": int(row.plants),
-                        "cycle_weeks": None if pd.isna(row.cycle_weeks) else int(row.cycle_weeks),
-                        "ideal_cycle_weeks": None
-                        if pd.isna(row.ideal_cycle_weeks)
-                        else int(row.ideal_cycle_weeks),
-                        "curve_csv": "" if pd.isna(row.curve_csv) else str(row.curve_csv),
-                        "stems_per_plant": 0.0 if pd.isna(row.stems_per_plant) else float(row.stems_per_plant),
-                        "ideal_stems_per_plant": 0.0
-                        if pd.isna(row.ideal_stems_per_plant)
-                        else float(row.ideal_stems_per_plant),
-                        "waste_rate": 0.0 if pd.isna(row.waste_rate) else float(row.waste_rate),
-                        "ideal_waste_rate": 0.0
-                        if pd.isna(row.ideal_waste_rate)
-                        else float(row.ideal_waste_rate),
-                        "program_total": 0 if pd.isna(row.program_total) else int(round(float(row.program_total))),
-                        "weekly_projection": weekly_projection,
-                        "weekly_status": weekly_status,
-                        "is_dump": is_dump_by_week,
-                        "dump_stems": dump_stems_by_week,
-                        "week_code_by_label": week_code_by_label,
-                        "window_total": int(window_total_prod),
-                        "total_production": effective_total_prod,
-                        "block_closed": is_closed,
-                        "real_stems_per_plant": effective_real_stems,
-                        "lifetime_total_production": lifetime_total_prod,
-                        "lifetime_real_stems_per_plant": lifetime_real_stems,
-                    }
-                )
+        weekly_projection = {}
+        weekly_status = {}
+        is_dump_by_week = {}
+        dump_stems_by_week = {}
+        week_code_by_label = {}
+        window_total_prod = 0
+
+        for col in week_columns:
+            lbl = col["label"]
+            hw_code = col["week_code"]
+            week_code_by_label[lbl] = hw_code
+            p_key = (pm, var, act, sw, blk, hw_code)
+
+            exp_val = projection_lookup.get(p_key, 0)
+            st_val = projection_status_lookup.get(p_key, "MODELO")
+            dump_flag = projection_dump_lookup.get(p_key, False)
+            dump_st_val = projection_dump_stems_lookup.get(p_key, 0)
+
+            weekly_projection[lbl] = exp_val
+            weekly_status[lbl] = st_val
+            is_dump_by_week[lbl] = dump_flag
+            dump_stems_by_week[lbl] = dump_st_val
+            window_total_prod += exp_val + dump_st_val
+
+        eff_cycle = int(row.get("cycle_weeks") or 0)
+        harvest_start_week = shift_week(sw, eff_cycle) if eff_cycle else sw
+        harvest_start_week_short = format_short_week(harvest_start_week)
+
+        b_key = (pm, var, act, sw, blk)
+        b_lifetime = lifetime_metrics.get(b_key, {"total_production": 0, "total_exportable": 0, "total_dumps": 0})
+        plants_raw = int(row.get("plants") or 0)
+        plants_count = plants_raw if plants_raw > 0 else 1
+        lifetime_total_prod = b_lifetime["total_production"]
+        lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if plants_raw > 0 else 0.0
+
+        is_closed = bool(row.get("block_closed", False))
+
+        matrix_rows.append(
+            {
+                "variety": var,
+                "variety_display": format_variety_display(var),
+                "product_master": pm,
+                "activity": act,
+                "bed_location": str(row.get("bed_location") or "").strip(),
+                "source_week": sw,
+                "source_week_short": row.get("source_week_short") or format_short_week(sw),
+                "harvest_start_week": harvest_start_week,
+                "harvest_start_week_short": harvest_start_week_short,
+                "block": blk,
+                "plants": plants_raw,
+                "cycle_weeks": row.get("cycle_weeks"),
+                "ideal_cycle_weeks": row.get("ideal_cycle_weeks"),
+                "curve_csv": str(row.get("curve_csv") or ""),
+                "stems_per_plant": float(row.get("stems_per_plant") or 0.0),
+                "ideal_stems_per_plant": float(row.get("ideal_stems_per_plant") or 0.0),
+                "waste_rate": float(row.get("waste_rate") or 0.0),
+                "ideal_waste_rate": float(row.get("ideal_waste_rate") or 0.0),
+                "program_total": int(round(float(row.get("program_total") or 0))),
+                "weekly_projection": weekly_projection,
+                "weekly_status": weekly_status,
+                "is_dump": is_dump_by_week,
+                "dump_stems": dump_stems_by_week,
+                "week_code_by_label": week_code_by_label,
+                "window_total": int(window_total_prod),
+                "total_production": lifetime_total_prod,
+                "block_closed": is_closed,
+                "real_stems_per_plant": lifetime_real_stems,
+                "lifetime_total_production": lifetime_total_prod,
+                "lifetime_real_stems_per_plant": lifetime_real_stems,
+            }
+        )
 
     grouped_varieties: dict[tuple[str, str], dict[str, Any]] = {}
     for row in matrix_rows:
