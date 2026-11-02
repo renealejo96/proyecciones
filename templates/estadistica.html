@@ -1367,7 +1367,15 @@
                             </div>
                         </div>
                         <div class="pbi-ms-options" id="variety-options-list">
-                            <!-- Injected dynamically by JS -->
+                            {% set current_pm = stats.selected_pm %}
+                            {% set init_vars = stats.pm_varieties_map.get(current_pm, []) if (current_pm and current_pm != 'ALL') else stats.available_varieties %}
+                            {% for v in (init_vars or []) %}
+                                {% set is_checked = (stats.selected_varieties and v in stats.selected_varieties) or (not stats.selected_varieties and stats.selected_variety == v) %}
+                                <label class="pbi-ms-item">
+                                    <input type="checkbox" name="variedad" value="{{ v }}" class="pbi-variety-cb" {{ 'checked' if is_checked else '' }}>
+                                    <span>{{ v }}</span>
+                                </label>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -1961,22 +1969,28 @@
         const varietyClearAll = document.getElementById('variety-clear-all');
         const blockSelect = document.getElementById('slicer-block');
 
-        function updateVarietyOptions() {
-            const selPm = pmSelect ? pmSelect.value : 'ALL';
+        function updateVarietyOptions(isUserChange = false) {
+            const rawPm = pmSelect ? pmSelect.value : 'ALL';
+            const selPm = (rawPm || 'ALL').trim();
             let vars = [];
-            if (selPm && selPm !== 'ALL' && pmVarietiesMap[selPm]) {
-                vars = pmVarietiesMap[selPm];
-            } else {
+            if (selPm && selPm !== 'ALL') {
+                const matchedKey = Object.keys(pmVarietiesMap).find(k => k.toUpperCase() === selPm.toUpperCase());
+                if (matchedKey && pmVarietiesMap[matchedKey]) {
+                    vars = pmVarietiesMap[matchedKey];
+                }
+            }
+            if (!vars || vars.length === 0) {
                 const setVars = new Set();
                 for (const pm in pmVarietiesMap) {
-                    pmVarietiesMap[pm].forEach(v => setVars.add(v));
+                    (pmVarietiesMap[pm] || []).forEach(v => setVars.add(v));
                 }
                 vars = Array.from(setVars).sort();
             }
 
+            if (!varietyOptionsList) return;
             varietyOptionsList.innerHTML = '';
             vars.forEach(v => {
-                const isChecked = selectedVarieties.includes(v) || (!selectedVarieties.length && selectedVariety === v);
+                const isChecked = isUserChange ? false : (selectedVarieties.includes(v) || (!selectedVarieties.length && selectedVariety === v));
                 const item = document.createElement('label');
                 item.className = 'pbi-ms-item';
                 item.innerHTML = `
@@ -2068,7 +2082,7 @@
 
         if (pmSelect) {
             pmSelect.addEventListener('change', () => {
-                updateVarietyOptions();
+                updateVarietyOptions(true);
                 updateBlockOptions();
             });
         }
@@ -2583,13 +2597,6 @@
                 document.querySelectorAll('.group-block-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('.consolidated-prod-row').forEach(r => r.style.display = 'none');
-                document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '+');
-                document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
-                document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');
-                applyTableFilters();
-            });
-        }
-                document.querySelectorAll('.group-harvest-row').forEach(r => r.style.display = 'none');
                 document.querySelectorAll('[id^="icon-pm-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-sw-"]').forEach(i => i.textContent = '+');
                 document.querySelectorAll('[id^="icon-blk-"]').forEach(i => i.textContent = '+');

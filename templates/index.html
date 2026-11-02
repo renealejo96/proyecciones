@@ -550,22 +550,93 @@
             z-index: 25;
             background: var(--header-bg);
         }
-        .summary-table tr:hover td {
-            background-color: #f1f5f9 !important;
-        }
         .summary-table tr.row-variety-subtotal { background: #f8fafc; font-weight: 700; color: var(--slate-700); }
         .summary-table tr.row-variety-subtotal td { border-top: 1px solid var(--slate-300); }
+        .summary-table tr.row-variety-subtotal td.col-name,
+        .summary-table tr.row-variety-subtotal td.col-total-window { background: #f8fafc; }
+
         .summary-table tr.row-subtotal { background: #e0f2fe; font-weight: 800; color: #0369a1; }
-        .summary-table tr.row-subtotal td { border-top: 1px solid #7dd3fc; border-bottom: 1px solid #7dd3fc; }
+        .summary-table tr.row-subtotal td { border-top: 1px solid #7dd3fc; border-bottom: 1px solid #7dd3fc; background-color: #e0f2fe; }
+        .summary-table tr.row-subtotal td.col-name,
+        .summary-table tr.row-subtotal td.col-total-window { background: #e0f2fe; }
+
         .summary-table tr.row-color-total { background: #dbeafe; font-weight: 900; color: #1e40af; }
-        .summary-table tr.row-color-total td { font-size: 0.76rem; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
+        .summary-table tr.row-color-total td { font-size: 0.76rem; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; background-color: #dbeafe; }
+        .summary-table tr.row-color-total td.col-name,
+        .summary-table tr.row-color-total td.col-total-window { background: #dbeafe; }
+
         .summary-table tr.row-color-total-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
-        .summary-table tr.row-product-total { background: #1e3a8a !important; color: #ffffff !important; font-weight: 900; font-size: 0.84rem; }
-        .summary-table tr.row-product-total td { border-top: 2px solid #60a5fa; border-bottom: 2px solid #60a5fa; color: #ffffff !important; }
-        .summary-table tr.row-product-total-dump { background: #fee2e2 !important; color: #b91c1c !important; font-weight: 800; }
-        .summary-table tr.row-grandtotal { background: var(--totals-bg); color: var(--totals-text); font-weight: 900; font-size: 0.82rem; }
-        .summary-table tr.row-grandtotal td { border-top: 2px solid #f59e0b; border-bottom: 2px solid #f59e0b; }
-        .summary-table tr.row-grandtotal-dump { background: #fee2e2; color: #b91c1c; font-weight: 800; }
+        .summary-table tr.row-color-total-dump td { background: #fee2e2; }
+
+        .summary-table tr.row-product-total,
+        .summary-table tr.row-product-total td { 
+            background: #1e3a8a !important; 
+            color: #ffffff !important; 
+            font-weight: 900 !important; 
+            font-size: 0.84rem; 
+            border-top: 2px solid #60a5fa !important; 
+            border-bottom: 2px solid #60a5fa !important; 
+        }
+        .summary-table tr.row-product-total td.col-name,
+        .summary-table tr.row-product-total td.col-act,
+        .summary-table tr.row-product-total td.col-total-window { 
+            background: #1e3a8a !important; 
+            color: #ffffff !important; 
+        }
+
+        .summary-table tr.row-product-total-dump,
+        .summary-table tr.row-product-total-dump td { 
+            background: #fee2e2 !important; 
+            color: #b91c1c !important; 
+            font-weight: 800 !important; 
+        }
+
+        .summary-table tr.row-grandtotal,
+        .summary-table tr.row-grandtotal td { 
+            background: #0f172a !important; 
+            color: #f8fafc !important; 
+            font-weight: 900 !important; 
+            font-size: 0.84rem; 
+            border-top: 2px solid #f59e0b !important; 
+            border-bottom: 2px solid #f59e0b !important; 
+        }
+        .summary-table tr.row-grandtotal td.col-name,
+        .summary-table tr.row-grandtotal td.col-act,
+        .summary-table tr.row-grandtotal td.col-total-window { 
+            background: #0f172a !important; 
+            color: #f8fafc !important; 
+        }
+        .summary-table tr.row-grandtotal td.col-name { 
+            color: #fbbf24 !important; 
+        }
+        .summary-table tr.row-grandtotal td.col-total-window { 
+            color: #38bdf8 !important; 
+        }
+
+        .summary-table tr.row-grandtotal-dump,
+        .summary-table tr.row-grandtotal-dump td { 
+            background: #fee2e2 !important; 
+            color: #b91c1c !important; 
+            font-weight: 800 !important; 
+            border-top: 1px solid #fca5a5 !important;
+            border-bottom: 2px solid #ef4444 !important;
+        }
+        .summary-table tr.row-grandtotal-dump td.col-name,
+        .summary-table tr.row-grandtotal-dump td.col-act,
+        .summary-table tr.row-grandtotal-dump td.col-total-window { 
+            background: #fee2e2 !important; 
+            color: #b91c1c !important; 
+        }
+
+        .summary-table tr:hover:not(.row-grandtotal):not(.row-product-total):not(.row-subtotal-dump):not(.row-grandtotal-dump) td:not(.col-name):not(.col-act):not(.col-total-window) {
+            background-color: #f1f5f9;
+        }
+        .summary-table tr.row-product-total:hover td {
+            background-color: #172554 !important;
+        }
+        .summary-table tr.row-grandtotal:hover td {
+            background-color: #020617 !important;
+        }
 
         /* GLOBAL SELECTION STYLES: PREVENT NATIVE BROWSER WHITE BLOB OVER DARK HEADERS */
         ::selection {

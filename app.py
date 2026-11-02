@@ -1710,6 +1710,7 @@ def get_statistics_data(
                 valid_curve_pms.add(c.product_master)
 
         available_pms = sorted([pm for pm in pm_varieties_map.keys() if pm in valid_curve_pms])
+        available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
 
         # Resolve defaults:
         # Default year is 2026 (or most recent available year)
@@ -2342,6 +2343,7 @@ def get_statistics_data(
             "available_years": available_years,
             "available_weeks": available_weeks,
             "available_pms": available_pms,
+            "available_varieties": available_varieties,
             "available_blocks": available_blocks,
             "pm_varieties_map": pm_varieties_map,
             "pm_blocks_map": pm_blocks_map,
