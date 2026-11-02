@@ -1693,9 +1693,9 @@
                             <th colspan="12" class="totals-title-col sticky-col sticky-1" style="text-align: left; padding-left: 8px;">Totales Selección Filtrada</th>
                             <th colspan="5" class="param-col">Parámetros Fila</th>
                             {% for week in weekly_view.week_columns %}
-                                <th class="js-week-total col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}">{{ weekly_view.totals_by_week[week.label] }}</th>
+                                <th class="js-week-total col-week-header {{ 'col-cutoff-week' if week.label == weekly_view.selected_week_short else '' }}" data-week-label="{{ week.label }}" data-val="{{ weekly_view.totals_by_week[week.label] }}">{{ weekly_view.totals_by_week[week.label] }}</th>
                             {% endfor %}
-                            <th class="js-master-total col-total-final">{{ weekly_view.grand_total }}</th>
+                            <th class="js-master-total col-total-final" data-val="{{ weekly_view.grand_total }}">{{ weekly_view.grand_total }}</th>
                         </tr>
                         <tr class="header-row">
                             <th class="sticky-col sticky-1">Cierre</th>
@@ -1805,7 +1805,7 @@
                                     <td class="sticky-col sticky-4 block-col">{{ row.block }}</td>
                                     <td class="sticky-col sticky-5" title="{{ row.variety }}">{{ row.variety_display or variety.variety_display or variety.variety }}</td>
                                     <td class="sticky-col sticky-6 harvest-start-col" title="Semana estimada en que entra a punteo / cosecha">{{ row.harvest_start_week_short }}</td>
-                                    <td class="sticky-col sticky-7 plants-cell">{{ row.plants }}</td>
+                                    <td class="sticky-col sticky-7 plants-cell" data-val="{{ row.plants }}">{{ row.plants }}</td>
                                     <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
                                     <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
                                     <td class="sticky-col sticky-10 param-col">{{ '%.1f'|format(row.ideal_stems_per_plant) }}</td>
@@ -1813,9 +1813,9 @@
                                     
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
                                     <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}"></td>
-                                    <td class="param-col cell-program-total col-param-export-stems">{{ row.program_total }}</td>
-                                    <td class="param-col cell-total-prod col-param-total-prod">{{ row.total_production }}</td>
-                                    <td class="param-col cell-real-stems col-param-real-stems">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
+                                    <td class="param-col cell-program-total col-param-export-stems" data-val="{{ row.program_total }}">{{ row.program_total }}</td>
+                                    <td class="param-col cell-total-prod col-param-total-prod" data-val="{{ row.total_production }}">{{ row.total_production }}</td>
+                                    <td class="param-col cell-real-stems col-param-real-stems" data-val="{{ row.real_stems_per_plant if row.real_stems_per_plant else '' }}">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
                                     
                                     {% for week in weekly_view.week_columns %}
                                         {% set status = row.weekly_status[week.label] if row.weekly_status and week.label in row.weekly_status else 'MODELO' %}
@@ -1850,7 +1850,7 @@
                                             <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
                                         </td>
                                     {% endfor %}
-                                    <td class="cell-window-total col-total-final">{{ row.window_total }}</td>
+                                    <td class="cell-window-total col-total-final" data-val="{{ row.window_total }}">{{ row.window_total }}</td>
                                 </tr>
                             {% endfor %}
 
@@ -2233,7 +2233,10 @@
             }
 
             const winTotCell = row.querySelector('.cell-window-total');
-            if (winTotCell) winTotCell.textContent = String(windowExportable);
+            if (winTotCell) {
+                winTotCell.textContent = String(windowExportable);
+                winTotCell.dataset.val = String(windowExportable);
+            }
 
             const plants = Math.max(0, Math.round(Number.parseFloat(row.querySelector('.plants-cell')?.textContent) || 0));
 
@@ -2251,10 +2254,16 @@
             row.dataset.lifetimeRealStems = currentRealStemsPp;
 
             const totalProdCell = row.querySelector('.cell-total-prod');
-            if (totalProdCell) totalProdCell.textContent = currentTotalProd.toLocaleString();
+            if (totalProdCell) {
+                totalProdCell.textContent = currentTotalProd.toLocaleString();
+                totalProdCell.dataset.val = String(currentTotalProd);
+            }
 
             const realStemsCell = row.querySelector('.cell-real-stems');
-            if (realStemsCell) realStemsCell.textContent = currentRealStemsPp;
+            if (realStemsCell) {
+                realStemsCell.textContent = currentRealStemsPp;
+                realStemsCell.dataset.val = String(currentRealStemsPp);
+            }
 
             return windowExportable;
         }
@@ -2390,6 +2399,7 @@
             const weekLabels = weekColumns.map(w => w.label);
             const targetTable = document.getElementById('table-summary-main');
             if (!targetTable) return;
+            if (typeof clearExcelSelection === 'function') clearExcelSelection();
 
             const mode = pageMode === 'REAL' ? 'real' : 'agronomo';
 
@@ -2466,7 +2476,7 @@
                             html += `<tr><td class="col-name">${item.product} - ${item.variety}</td><td class="col-act">${act === 'SIEMBRA' ? 'Siembra (S)' : 'Poda (P)'}</td>`;
                             weekLabels.forEach(lbl => {
                                 const val = weekVals[lbl] || 0;
-                                html += `<td data-week-label="${lbl}" class="summary-val-cell">${val.toLocaleString()}</td>`;
+                                html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${val}">${val.toLocaleString()}</td>`;
                                 varietyWeekSums[lbl] += val;
                                 colorWeekSums[lbl] += val;
                                 prodWeekSums[lbl] += val;
@@ -2478,7 +2488,7 @@
                                 prodDumpSums[lbl] += dVal;
                                 grandDumpsByWeek[lbl] += dVal;
                             });
-                            html += `<td class="col-total-window"><strong>${actSum.toLocaleString()}</strong></td></tr>`;
+                            html += `<td class="col-total-window" data-val="${actSum}"><strong>${actSum.toLocaleString()}</strong></td></tr>`;
                             varietyWindowTotal += actSum;
                             colorWindowTotal += actSum;
                             prodWindowTotal += actSum;
@@ -2495,17 +2505,18 @@
 
                         html += `<tr class="${subtotalClass}"><td class="col-name" colspan="2" ${indentStyle}>Subtotal ${item.variety}</td>`;
                         weekLabels.forEach(lbl => {
-                            html += `<td data-week-label="${lbl}" class="summary-val-cell">${varietyWeekSums[lbl].toLocaleString()}</td>`;
+                            const vSum = varietyWeekSums[lbl] || 0;
+                            html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${vSum}">${vSum.toLocaleString()}</td>`;
                         });
-                        html += `<td class="col-total-window"><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
+                        html += `<td class="col-total-window" data-val="${varietyWindowTotal}"><strong>${varietyWindowTotal.toLocaleString()}</strong></td></tr>`;
 
                         if (varietyDumpTotal > 0) {
                             html += `<tr class="row-subtotal-dump" style="background: #fef2f2; color: #b91c1c; font-size: 0.85rem;"><td class="col-name" colspan="2" ${indentStyle}>↳ Descarte (Dumps) ${item.variety}</td>`;
                             weekLabels.forEach(lbl => {
                                 const dVal = varietyDumpSums[lbl] || 0;
-                                html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                                html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${dVal}">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
                             });
-                            html += `<td class="col-total-window"><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
+                            html += `<td class="col-total-window" data-val="${varietyDumpTotal}"><strong>${varietyDumpTotal.toLocaleString()}</strong></td></tr>`;
                         }
                     });
 
@@ -2518,17 +2529,18 @@
 
                         html += `<tr class="row-color-total"><td class="col-name" colspan="2">TOTAL ${grp.product} ${grp.color} (${varietyLabels})</td>`;
                         weekLabels.forEach(lbl => {
-                            html += `<td data-week-label="${lbl}" class="summary-val-cell">${colorWeekSums[lbl].toLocaleString()}</td>`;
+                            const cSum = colorWeekSums[lbl] || 0;
+                            html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${cSum}">${cSum.toLocaleString()}</td>`;
                         });
-                        html += `<td class="col-total-window"><strong>${colorWindowTotal.toLocaleString()}</strong></td></tr>`;
+                        html += `<td class="col-total-window" data-val="${colorWindowTotal}"><strong>${colorWindowTotal.toLocaleString()}</strong></td></tr>`;
 
                         if (colorDumpTotal > 0) {
                             html += `<tr class="row-color-total-dump"><td class="col-name" colspan="2">TOTAL DESCARTE (DUMPS) ${grp.product} ${grp.color}</td>`;
                             weekLabels.forEach(lbl => {
                                 const dVal = colorDumpSums[lbl] || 0;
-                                html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                                html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${dVal}">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
                             });
-                            html += `<td class="col-total-window"><strong>${colorDumpTotal.toLocaleString()}</strong></td></tr>`;
+                            html += `<td class="col-total-window" data-val="${colorDumpTotal}"><strong>${colorDumpTotal.toLocaleString()}</strong></td></tr>`;
                         }
                     }
                 });
@@ -2536,32 +2548,34 @@
                 // ROW TOTAL POR PRODUCTO (E.g. TOTAL GYPSOPHILA, TOTAL VERONICA, TOTAL HYPERICUM)
                 html += `<tr class="row-product-total"><td class="col-name" colspan="2">TOTAL ${productName.toUpperCase()}</td>`;
                 weekLabels.forEach(lbl => {
-                    html += `<td data-week-label="${lbl}" class="summary-val-cell">${prodWeekSums[lbl].toLocaleString()}</td>`;
+                    const pSum = prodWeekSums[lbl] || 0;
+                    html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${pSum}">${pSum.toLocaleString()}</td>`;
                 });
-                html += `<td class="col-total-window"><strong>${prodWindowTotal.toLocaleString()}</strong></td></tr>`;
+                html += `<td class="col-total-window" data-val="${prodWindowTotal}"><strong>${prodWindowTotal.toLocaleString()}</strong></td></tr>`;
 
                 if (prodDumpTotal > 0) {
                     html += `<tr class="row-product-total-dump"><td class="col-name" colspan="2">TOTAL DESCARTE (DUMPS) ${productName.toUpperCase()}</td>`;
                     weekLabels.forEach(lbl => {
                         const dVal = prodDumpSums[lbl] || 0;
-                        html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
+                        html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${dVal}">${dVal > 0 ? dVal.toLocaleString() : '-'}</td>`;
                     });
-                    html += `<td class="col-total-window"><strong>${prodDumpTotal.toLocaleString()}</strong></td></tr>`;
+                    html += `<td class="col-total-window" data-val="${prodDumpTotal}"><strong>${prodDumpTotal.toLocaleString()}</strong></td></tr>`;
                 }
             });
 
             html += `<tr class="row-grandtotal"><td class="col-name" colspan="2">TOTAL GENERAL COSECHA / PROYECCIÓN</td>`;
             weekLabels.forEach(lbl => {
-                html += `<td data-week-label="${lbl}" class="summary-val-cell">${grandTotalsByWeek[lbl].toLocaleString()}</td>`;
+                const gSum = grandTotalsByWeek[lbl] || 0;
+                html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${gSum}">${gSum.toLocaleString()}</td>`;
             });
-            html += `<td class="col-total-window">${grandWindowTotal.toLocaleString()}</td></tr>`;
+            html += `<td class="col-total-window" data-val="${grandWindowTotal}">${grandWindowTotal.toLocaleString()}</td></tr>`;
 
             html += `<tr class="row-grandtotal-dump" style="background: #fee2e2; color: #b91c1c; font-weight: 800;"><td class="col-name" colspan="2">TOTAL GENERAL DESCARTE (DUMPS)</td>`;
             weekLabels.forEach(lbl => {
                 const dVal = grandDumpsByWeek[lbl] || 0;
-                html += `<td data-week-label="${lbl}" class="summary-val-cell">${dVal > 0 ? dVal.toLocaleString() : '0'}</td>`;
+                html += `<td data-week-label="${lbl}" class="summary-val-cell" data-val="${dVal}">${dVal > 0 ? dVal.toLocaleString() : '0'}</td>`;
             });
-            html += `<td class="col-total-window">${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
+            html += `<td class="col-total-window" data-val="${grandDumpsTotal}">${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
 
             targetTable.innerHTML = html;
         }
@@ -2770,24 +2784,31 @@
                     subRow.style.display = '';
                     subRow.querySelectorAll('.subtotal-week-val').forEach((td) => {
                         const label = td.dataset.weekLabel;
-                        td.textContent = String(vData.weeks[label] || 0);
+                        const val = vData.weeks[label] || 0;
+                        td.textContent = String(val);
+                        td.dataset.val = String(val);
                     });
                     const windowTd = subRow.querySelector('.subtotal-variety-window-val');
                     if (windowTd) {
-                        windowTd.textContent = String(vData.windowTotal || 0);
+                        const wVal = vData.windowTotal || 0;
+                        windowTd.textContent = String(wVal);
+                        windowTd.dataset.val = String(wVal);
                     }
                 }
             });
 
             masterTable.querySelectorAll('.js-week-total').forEach((th) => {
                 const label = th.dataset.weekLabel;
-                th.textContent = String(masterWeekTotals[label] || 0);
-                globalTotalsByWeek[label] += (masterWeekTotals[label] || 0);
+                const wVal = masterWeekTotals[label] || 0;
+                th.textContent = String(wVal);
+                th.dataset.val = String(wVal);
+                globalTotalsByWeek[label] += wVal;
             });
 
             const masterTotalTh = masterTable.querySelector('.js-master-total');
             if (masterTotalTh) {
                 masterTotalTh.textContent = String(masterGrandTotal);
+                masterTotalTh.dataset.val = String(masterGrandTotal);
             }
 
             const chipVisible = document.getElementById('chip-visible-rows');
@@ -3997,6 +4018,75 @@
             setTimeout(() => { if (toast.parentNode) toast.remove(); }, 1600);
         }
 
+        function parseNumericString(str) {
+            if (str == null) return null;
+            let s = String(str).trim();
+            if (!s || s === '-' || s === '–' || s === '—') return null;
+
+            s = s.replace(/[\s\u00A0\u200E\u200F\u202F\uFEFF]/g, '').replace(/[^\d.,\-+]/g, '');
+            if (!s || s === '-' || s === '+') return null;
+
+            const hasComma = s.includes(',');
+            const hasDot = s.includes('.');
+
+            if (hasComma && hasDot) {
+                const lastComma = s.lastIndexOf(',');
+                const lastDot = s.lastIndexOf('.');
+                if (lastDot > lastComma) {
+                    s = s.replace(/,/g, '');
+                } else {
+                    s = s.replace(/\./g, '').replace(',', '.');
+                }
+            } else if (hasComma) {
+                const parts = s.split(',');
+                if (parts.length > 2) {
+                    s = s.replace(/,/g, '');
+                } else if (parts.length === 2) {
+                    if (parts[1].length === 3 && parts[0].length >= 1) {
+                        s = s.replace(/,/g, '');
+                    } else {
+                        s = parts[0] + '.' + parts[1];
+                    }
+                }
+            } else if (hasDot) {
+                const parts = s.split('.');
+                if (parts.length > 2) {
+                    s = s.replace(/\./g, '');
+                } else if (parts.length === 2) {
+                    if (parts[1].length === 3 && parts[0].length >= 1) {
+                        s = s.replace(/\./g, '');
+                    } else {
+                        // keep dot as decimal
+                    }
+                }
+            }
+
+            const n = Number.parseFloat(s);
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function getNumericCellValue(cell) {
+            if (!cell) return null;
+            const input = cell.querySelector('input.week-input, input.edit-input');
+            if (input) {
+                return parseNumericString(input.value);
+            }
+            if (cell.dataset && cell.dataset.val !== undefined && cell.dataset.val !== '') {
+                const n = Number(cell.dataset.val);
+                if (Number.isFinite(n)) return n;
+            }
+            return parseNumericString(cell.textContent);
+        }
+
+        function formatExcelNumber(val) {
+            if (val == null || !Number.isFinite(val)) return '0';
+            const isInt = Math.abs(val - Math.round(val)) < 0.0001;
+            if (isInt) {
+                return Math.round(val).toLocaleString('es-CO');
+            }
+            return val.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+        }
+
         function updateExcelStatusBar() {
             const bar = document.getElementById('excel-status-bar');
             if (!bar) return;
@@ -4012,23 +4102,8 @@
             let max = -Infinity;
 
             selectedExcelCells.forEach(cell => {
-                let val = null;
-                const input = cell.querySelector('input.week-input, input.edit-input');
-                if (input) {
-                    const raw = String(input.value || '').replace(/,/g, '').trim();
-                    if (raw !== '') {
-                        const num = Number.parseFloat(raw);
-                        if (!Number.isNaN(num)) val = num;
-                    }
-                } else {
-                    const raw = String(cell.textContent || '').replace(/[^\d.-]/g, '').trim();
-                    if (raw !== '') {
-                        const num = Number.parseFloat(raw);
-                        if (!Number.isNaN(num)) val = num;
-                    }
-                }
-
-                if (val !== null) {
+                const val = getNumericCellValue(cell);
+                if (val !== null && Number.isFinite(val)) {
                     sum += val;
                     count++;
                     if (val < min) min = val;
@@ -4042,12 +4117,10 @@
             }
 
             const avg = sum / count;
-            const avgStr = (avg % 1 === 0)
-                ? avg.toLocaleString('es-CO')
-                : avg.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
-            const sumStr = sum.toLocaleString('es-CO');
-            const minStr = (min === Infinity) ? '0' : min.toLocaleString('es-CO');
-            const maxStr = (max === -Infinity) ? '0' : max.toLocaleString('es-CO');
+            const avgStr = formatExcelNumber(avg);
+            const sumStr = formatExcelNumber(sum);
+            const minStr = (min === Infinity) ? '0' : formatExcelNumber(min);
+            const maxStr = (max === -Infinity) ? '0' : formatExcelNumber(max);
 
             const avgEl = document.getElementById('excel-stat-promedio');
             const countEl = document.getElementById('excel-stat-recuento');
@@ -4070,14 +4143,17 @@
             if (cell.closest('.master-table') && cell.classList.contains('week-cell')) {
                 return null;
             }
-            if (cell.dataset.weekLabel && (cell.closest('.summary-table') || cell.classList.contains('js-week-total') || cell.closest('.totals-row'))) {
+            if (cell.dataset && cell.dataset.weekLabel) {
                 return cell.dataset.weekLabel;
+            }
+            const parentWithWeek = cell.closest('[data-week-label]');
+            if (parentWithWeek && !parentWithWeek.classList.contains('week-cell')) {
+                return parentWithWeek.dataset.weekLabel;
             }
             if (cell.classList.contains('cell-window-total') || cell.classList.contains('col-total-final') || cell.classList.contains('col-total-window') || cell.classList.contains('subtotal-variety-window-val') || cell.classList.contains('js-master-total')) {
                 return '__TOTAL__';
             }
             if (cell.classList.contains('plants-cell')) return '__PLANTS__';
-            if (cell.classList.contains('col-param-stems')) return '__STEMS__';
             if (cell.classList.contains('col-param-export-stems') || cell.classList.contains('cell-program-total')) return '__PROGRAM__';
             if (cell.classList.contains('col-param-total-prod') || cell.classList.contains('cell-total-prod')) return '__PROD__';
             if (cell.classList.contains('col-param-real-stems') || cell.classList.contains('cell-real-stems')) return '__REALSTEMS__';
@@ -4103,8 +4179,8 @@
             const endRow = endCell.closest('tr');
             if (!startRow || !endRow) return;
 
-            // Check if selecting within the master totals row (which lives in thead)
-            if (startRow.classList.contains('totals-row') || endRow.classList.contains('totals-row')) {
+            // Check if selecting within the master header / totals row (in thead)
+            if (table.classList.contains('master-table') && (startRow.closest('thead') || endRow.closest('thead'))) {
                 const row = table.querySelector('tr.totals-row');
                 if (!row) return;
 
@@ -4207,9 +4283,9 @@
                 return;
             }
 
-            const cell = e.target.closest('td, th.js-week-total, th.js-master-total');
+            const cell = e.target.closest('td, th.js-week-total, th.js-master-total, th.col-week-header');
             if (!cell) {
-                if (!e.target.closest('th.col-week-header') && !e.target.closest('.summary-collapse-btn')) {
+                if (!e.target.closest('.summary-collapse-btn')) {
                     clearExcelSelection();
                 }
                 return;
@@ -4252,7 +4328,7 @@
         document.addEventListener('mousemove', (e) => {
             if (!isExcelSelecting || !excelDragOrigin || !activeExcelTable) return;
 
-            const hoverCell = e.target.closest('td, th.js-week-total, th.js-master-total');
+            const hoverCell = e.target.closest('td, th.js-week-total, th.js-master-total, th.col-week-header');
             if (!hoverCell || hoverCell.closest('table') !== activeExcelTable) return;
 
             if (hoverCell !== excelDragOrigin) {
@@ -4287,7 +4363,7 @@
             }
         });
 
-        // Click on Column Header to select entire column (ONLY in summary table)
+        // Click on Column Header to select entire column (ONLY in summary table base rows)
         document.addEventListener('click', (e) => {
             const th = e.target.closest('th.col-week-header');
             if (!th) return;
@@ -4299,7 +4375,8 @@
             const weekLabel = th.dataset.weekLabel;
             if (!weekLabel) return;
 
-            const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
+            // In summary table, select the base rows (Siembra and Poda) so the sum is exact and doesn't duplicate subtotals
+            const visibleRows = Array.from(table.querySelectorAll('tbody tr:not([class*="total"]):not([class*="subtotal"])')).filter(tr => tr.style.display !== 'none');
             if (!visibleRows.length) return;
 
             const colKeys = weekColumns.map(w => w.label);
@@ -4352,7 +4429,7 @@
             excelBarCloseBtn.addEventListener('click', () => clearExcelSelection());
         }
 
-        // Copy average on click
+        // Copy stat values on click
         const statPromedioWrap = document.getElementById('excel-stat-promedio-wrap');
         if (statPromedioWrap) {
             statPromedioWrap.addEventListener('click', () => {
@@ -4364,7 +4441,17 @@
             });
         }
 
-        // Copy sum on click
+        const statRecuentoWrap = document.getElementById('excel-stat-recuento-wrap');
+        if (statRecuentoWrap) {
+            statRecuentoWrap.addEventListener('click', () => {
+                const val = document.getElementById('excel-stat-recuento')?.textContent;
+                if (val) {
+                    navigator.clipboard.writeText(val);
+                    showExcelCopyToast(`Recuento copiado: ${val}`);
+                }
+            });
+        }
+
         const statSumaWrap = document.getElementById('excel-stat-suma-wrap');
         if (statSumaWrap) {
             statSumaWrap.addEventListener('click', () => {
@@ -4372,6 +4459,28 @@
                 if (val) {
                     navigator.clipboard.writeText(val);
                     showExcelCopyToast(`Suma copiada: ${val}`);
+                }
+            });
+        }
+
+        const statMinEl = document.getElementById('excel-stat-min');
+        if (statMinEl) {
+            statMinEl.addEventListener('click', () => {
+                const val = statMinEl.textContent;
+                if (val) {
+                    navigator.clipboard.writeText(val);
+                    showExcelCopyToast(`Mínimo copiado: ${val}`);
+                }
+            });
+        }
+
+        const statMaxEl = document.getElementById('excel-stat-max');
+        if (statMaxEl) {
+            statMaxEl.addEventListener('click', () => {
+                const val = statMaxEl.textContent;
+                if (val) {
+                    navigator.clipboard.writeText(val);
+                    showExcelCopyToast(`Máximo copiado: ${val}`);
                 }
             });
         }
@@ -4441,7 +4550,7 @@
             <span class="stat-val stat-val-avg" id="excel-stat-promedio">0</span>
         </div>
         <div class="excel-bar-divider"></div>
-        <div class="excel-bar-stat" id="excel-stat-recuento-wrap" title="Cantidad de celdas seleccionadas">
+        <div class="excel-bar-stat" id="excel-stat-recuento-wrap" title="Cantidad de celdas seleccionadas (clic para copiar)">
             <span class="stat-label">RECUENTO:</span>
             <span class="stat-val stat-val-count" id="excel-stat-recuento">0</span>
         </div>
@@ -4453,9 +4562,9 @@
         <div class="excel-bar-divider"></div>
         <div class="excel-bar-stat excel-bar-minmax">
             <span class="stat-label">MÍN:</span>
-            <span class="stat-val" id="excel-stat-min" style="color: #cbd5e1; font-size: 0.82rem;">0</span>
+            <span class="stat-val" id="excel-stat-min" style="color: #cbd5e1; font-size: 0.82rem; cursor: pointer;" title="Clic para copiar valor mínimo">0</span>
             <span class="stat-label" style="margin-left: 5px;">MÁX:</span>
-            <span class="stat-val" id="excel-stat-max" style="color: #cbd5e1; font-size: 0.82rem;">0</span>
+            <span class="stat-val" id="excel-stat-max" style="color: #cbd5e1; font-size: 0.82rem; cursor: pointer;" title="Clic para copiar valor máximo">0</span>
         </div>
         <button type="button" class="excel-bar-close" id="excel-bar-close" title="Cerrar selección (Esc)">✕</button>
     </div>
