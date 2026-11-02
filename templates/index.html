@@ -3023,6 +3023,14 @@
             const currentStatus = cell.dataset.status;
             const isBlockedByReal = (pageMode === 'AGRONOMO' && currentStatus === 'REAL');
 
+            const isDump = (cell.dataset.isDump === 'true' || currentStatus === 'DUMP');
+            const hasDumpStems = (Number.parseInt(cell.dataset.dumpStems, 10) || 0) > 0;
+
+            // If cell is already pure MODELO with no modifications or pending dirty edits, do nothing
+            if (currentStatus === 'MODELO' && !isDump && !hasDumpStems && (!input || !input._isDirty)) {
+                return;
+            }
+
             const prevVal = input ? (input.value !== '' ? Number.parseInt(input.value, 10) : null) : null;
             const prevStatus = currentStatus;
             const prevIsDump = (cell.dataset.isDump === 'true');
