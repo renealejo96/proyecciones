@@ -1455,6 +1455,158 @@ def find_cycle_definition(
     }
 
 
+def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    first = cluster_rows[0]
+    activity = first["activity"]
+    pm = first["product_master"]
+    var = first["variety"]
+    var_disp = first.get("variety_display") or var
+
+    source_weeks = sorted(list(set(r["source_week"] for r in cluster_rows)))
+    source_weeks_short = [format_short_week(w) for w in source_weeks]
+    source_weeks_str = ", ".join(source_weeks_short)
+    source_week_max = max(source_weeks)
+    source_week_max_short = format_short_week(source_week_max)
+
+    tot_plants = sum(r["plants"] for r in cluster_rows)
+    tot_exportable = sum(r["exportable_stems"] for r in cluster_rows)
+    tot_prod = sum(r["total_production"] for r in cluster_rows)
+    tot_real = sum(r["real_stems"] for r in cluster_rows)
+    tot_dumps = sum(r.get("dump_stems", 0) for r in cluster_rows)
+
+    real_stems_pp = round(tot_prod / tot_plants, 1) if tot_plants > 0 else 0.0
+    ideal_stems_pp = first["ideal_stems_per_plant"]
+    is_below_target = (real_stems_pp < ideal_stems_pp)
+
+    # Consolidated harvest breakdown by harvest_week
+    hw_map: dict[int, dict[str, Any]] = {}
+    for r in cluster_rows:
+        for hb in r.get("harvest_breakdown", []):
+            hw = hb["harvest_week"]
+            if hw not in hw_map:
+                hw_map[hw] = {
+                    "harvest_week": hw,
+                    "harvest_week_short": hb["harvest_week_short"],
+                    "stems": 0,
+                    "exportable_stems": 0,
+                    "dump_stems": 0,
+                    "source": "MODELO",
+                }
+            hw_map[hw]["stems"] += hb["stems"]
+            hw_map[hw]["exportable_stems"] += hb.get("exportable_stems", 0)
+            hw_map[hw]["dump_stems"] += hb.get("dump_stems", 0)
+            if hb.get("source") == "REAL":
+                hw_map[hw]["source"] = "REAL"
+            elif hb.get("source") == "AGRONOMO" and hw_map[hw]["source"] != "REAL":
+                hw_map[hw]["source"] = "AGRONOMO"
+
+    sorted_hw_list = sorted(hw_map.values(), key=lambda x: x["harvest_week"])
+    for item in sorted_hw_list:
+        item["stems_pp"] = round(item["stems"] / tot_plants, 2) if tot_plants > 0 else 0.0
+        item["pct_of_total"] = round((item["stems"] / tot_prod * 100.0), 1) if tot_prod > 0 else 0.0
+
+    harvest_weeks_str = ", ".join(i["harvest_week_short"] for i in sorted_hw_list)
+
+    is_closed = any(r["is_closed"] for r in cluster_rows)
+    has_real = any(r["has_real_data"] for r in cluster_rows)
+    status_label = "CERRADO" if is_closed else ("EN COSECHA" if has_real else "PENDIENTE")
+
+    act_label = "Siembra" if activity == "SIEMBRA" else "Poda"
+    prod_label = f"Producción {prod_num} ({act_label})"
+
+    first_hw = sorted_hw_list[0]["harvest_week"] if sorted_hw_list else None
+    real_cycle_weeks = calculate_week_difference(source_weeks[0], first_hw) if first_hw else first["real_cycle_weeks"]
+    real_cycle_weeks = max(1, real_cycle_weeks)
+
+    uid = f"prod-{block}-{prod_num}-{source_week_max}"
+
+    return {
+        "uid": uid,
+        "production_num": prod_num,
+        "production_label": prod_label,
+        "activity": activity,
+        "product_master": pm,
+        "variety": var,
+        "variety_display": var_disp,
+        "block": block,
+        "source_weeks": source_weeks,
+        "source_weeks_short": source_weeks_short,
+        "source_weeks_str": source_weeks_str,
+        "source_week_max": source_week_max,
+        "source_week_max_short": source_week_max_short,
+        "is_staggered": len(source_weeks) > 1,
+        "staggered_count": len(source_weeks),
+        "plants": tot_plants,
+        "exportable_stems": tot_exportable,
+        "total_production": tot_prod,
+        "real_stems": tot_real,
+        "dump_stems": tot_dumps,
+        "real_stems_per_plant": real_stems_pp,
+        "ideal_stems_per_plant": ideal_stems_pp,
+        "is_below_target": is_below_target,
+        "real_cycle_weeks": real_cycle_weeks,
+        "ideal_cycle_weeks": first["ideal_cycle_weeks"],
+        "waste_pct": first["waste_pct"],
+        "is_closed": is_closed,
+        "status": status_label,
+        "has_real_data": has_real,
+        "harvest_weeks_str": harvest_weeks_str,
+        "harvest_breakdown": sorted_hw_list,
+    }
+
+
+def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    by_block: dict[str, list[dict[str, Any]]] = {}
+    for r in flat_block_rows:
+        blk = str(r["block"]).strip()
+        by_block.setdefault(blk, []).append(r)
+
+    def block_sort_key(b_str: str):
+        nums = re.findall(r"\d+", b_str)
+        return (int(nums[0]) if nums else 999999, b_str)
+
+    sorted_blocks = sorted(by_block.keys(), key=block_sort_key)
+    consolidated_blocks = []
+    flat_productions = []
+
+    for blk in sorted_blocks:
+        rows = by_block[blk]
+        rows.sort(key=lambda x: (x["source_week"], x["activity"], x["product_master"], x["variety"]))
+
+        productions: list[dict[str, Any]] = []
+        current_cluster: list[dict[str, Any]] = []
+
+        for r in rows:
+            if not current_cluster:
+                current_cluster.append(r)
+            else:
+                prev = current_cluster[-1]
+                is_same_act = (r["activity"] == prev["activity"])
+                is_same_crop = (r["product_master"] == prev["product_master"] and r["variety"] == prev["variety"])
+                is_close_week = (calculate_week_difference(prev["source_week"], r["source_week"]) <= 6)
+
+                if is_same_act and is_same_crop and is_close_week:
+                    current_cluster.append(r)
+                else:
+                    prod = consolidate_production_cluster(blk, len(productions) + 1, current_cluster)
+                    productions.append(prod)
+                    flat_productions.append(prod)
+                    current_cluster = [r]
+
+        if current_cluster:
+            prod = consolidate_production_cluster(blk, len(productions) + 1, current_cluster)
+            productions.append(prod)
+            flat_productions.append(prod)
+
+        consolidated_blocks.append({
+            "block": blk,
+            "productions": productions,
+            "total_productions": len(productions),
+        })
+
+    return consolidated_blocks, flat_productions
+
+
 def get_statistics_data(
     year_filter: str | None = None,
     pm_filter: str | None = None,
@@ -2018,12 +2170,26 @@ def get_statistics_data(
                 "source_week_groups": sw_groups,
             })
 
-        # Overall KPIs
-        avg_real_stems_pp = round(total_production_sum / total_plants_sum, 1) if (total_plants_sum > 0 and total_production_sum > 0) else (round(sum(real_stems_per_plant_list) / len(real_stems_per_plant_list), 1) if real_stems_per_plant_list else 0.0)
-        avg_ideal_stems_pp = round(sum(ideal_stems_per_plant_list) / len(ideal_stems_per_plant_list), 1) if ideal_stems_per_plant_list else (4.0 if "VERONICA" in pm_filter.upper() else (9.5 if "GYPSO" in pm_filter.upper() else 1.0))
-        avg_cycle = round(sum(cycle_real_list) / len(cycle_real_list), 1) if cycle_real_list else 0.0
-        avg_waste = round(sum(waste_list) / len(waste_list), 1) if waste_list else 10.0
-        total_closed_blocks = sum(1 for r in flat_block_rows if r["is_closed"])
+        # Overall KPIs (Strictly for CLOSED blocks as requested by user)
+        closed_blocks = [r for r in flat_block_rows if r["is_closed"]]
+        closed_plants_sum = sum(r["plants"] for r in closed_blocks)
+        closed_prod_sum = sum(r["total_production"] for r in closed_blocks)
+        closed_real_stems_sum = sum(r["real_stems"] for r in closed_blocks)
+        closed_dumps_sum = sum(r["dump_stems"] for r in closed_blocks)
+
+        closed_stems_pp_list = [r["real_stems_per_plant"] for r in closed_blocks]
+        closed_ideal_pp_list = [r["ideal_stems_per_plant"] for r in closed_blocks]
+        closed_cycle_list = [r["real_cycle_weeks"] for r in closed_blocks]
+        closed_waste_list = [r["waste_pct"] for r in closed_blocks]
+
+        avg_real_stems_pp = round(closed_prod_sum / closed_plants_sum, 1) if closed_plants_sum > 0 else 0.0
+        avg_ideal_stems_pp = round(sum(closed_ideal_pp_list) / len(closed_ideal_pp_list), 1) if closed_ideal_pp_list else (round(sum(ideal_stems_per_plant_list) / len(ideal_stems_per_plant_list), 1) if ideal_stems_per_plant_list else (4.0 if (pm_filter and "VERONICA" in pm_filter.upper()) else 9.5))
+        avg_cycle = round(sum(closed_cycle_list) / len(closed_cycle_list), 1) if closed_cycle_list else 0.0
+        avg_waste = round(sum(closed_waste_list) / len(closed_waste_list), 1) if closed_waste_list else 10.0
+        total_closed_blocks = len(closed_blocks)
+
+        # Build consolidated productions per block (accounting for staggered planting waves & subsequent cycles)
+        consolidated_blocks, consolidated_productions = build_consolidated_block_productions(flat_block_rows)
 
         # Chart 1: Relative Curve
         curve_labels = [f"Sem {i}" if i == 0 else f"Sem +{i}" for i in range(8)]
@@ -2052,9 +2218,9 @@ def get_statistics_data(
             for r, a in zip(chrono_real_data, chrono_agro_data)
         ]
 
-        # Chart 2 (Previously 3): Real Stems / Plant by Source Week vs Target Meta Line (Expanded Horizontally)
+        # Chart 3: Real Stems / Plant by Source Week vs Target Meta Line (ONLY for CLOSED weeks as requested)
         chart3_sorted_labels = sorted(
-            list(chart3_weeks_map.keys()),
+            [lbl for lbl in chart3_weeks_map.keys() if chart3_weeks_map[lbl].get("closed_blocks", 0) > 0],
             key=lambda lbl: chart3_weeks_map[lbl].get("source_week", 0)
         )
         if not selected_weeks_set and len(chart3_sorted_labels) > 30:
@@ -2089,7 +2255,7 @@ def get_statistics_data(
                 "avg_stems": avg_stems,
                 "blocks_count": info["blocks_count"],
                 "closed_blocks": closed_b,
-                "is_closed": closed_b > 0,
+                "is_closed": True,
                 "target": avg_ideal_stems_pp,
             })
 
@@ -2115,19 +2281,37 @@ def get_statistics_data(
                     for h in b["harvest_breakdown"]
                 ]
 
+        for prod in consolidated_productions:
+            uid = prod["uid"]
+            if prod.get("harvest_breakdown"):
+                harvest_breakdown_map[uid] = [
+                    {
+                        "hw": h["harvest_week_short"],
+                        "sw": prod["source_week_max_short"],
+                        "stems": h["stems"],
+                        "pp": h["stems_pp"],
+                        "dump": h.get("dump_stems", 0),
+                        "pct": h.get("pct_of_total", 0),
+                        "src": h.get("source", "MODELO"),
+                    }
+                    for h in prod["harvest_breakdown"]
+                ]
+
         res = {
             "kpis": {
-                "total_real_stems": total_production_sum,
-                "total_plants": total_plants_sum,
+                "total_real_stems": closed_prod_sum,
+                "total_plants": closed_plants_sum,
                 "avg_real_stems_per_plant": avg_real_stems_pp,
                 "avg_ideal_stems_per_plant": avg_ideal_stems_pp,
                 "avg_cycle_weeks": avg_cycle,
                 "avg_waste_pct": avg_waste,
-                "total_dumps": total_dumps_sum,
+                "total_dumps": closed_dumps_sum,
                 "total_lots": len(flat_block_rows),
                 "total_closed_blocks": total_closed_blocks,
             },
             "table_rows": flat_block_rows,
+            "consolidated_blocks": consolidated_blocks,
+            "consolidated_productions": consolidated_productions,
             "grouped_products": grouped_products,
             "harvest_breakdown_map": harvest_breakdown_map,
             "chart_relative": {
@@ -2840,6 +3024,9 @@ def save_week_adjustment_api():
                 if dump_stems is not None:
                     existing.dump_stems = dump_stems
                     existing.is_dump = (dump_stems > 0) or bool(is_dump)
+                elif is_reset:
+                    existing.is_dump = False
+                    existing.dump_stems = 0
             else:
                 existing.real_closed = value
                 if dump_stems is not None:

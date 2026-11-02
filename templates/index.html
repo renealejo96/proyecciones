@@ -1597,6 +1597,14 @@
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <span>Historial</span>
                     </button>
+                    <button type="button" id="btn-undo" class="toggle-params-btn" title="Deshacer último cambio (Ctrl + Z)" disabled style="opacity: 0.45; gap: 4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                        <span>Deshacer</span>
+                    </button>
+                    <button type="button" id="btn-redo" class="toggle-params-btn" title="Rehacer cambio (Ctrl + Y)" disabled style="opacity: 0.45; gap: 4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+                        <span>Rehacer</span>
+                    </button>
                     <div class="chip">Filas: <span id="chip-visible-rows">0</span></div>
                     <div class="chip">Siembras: <span id="chip-total-siembras">{{ weekly_view.totals_by_activity.SIEMBRA }}</span></div>
                     <div class="chip">Podas: <span id="chip-total-podas">{{ weekly_view.totals_by_activity.PODA }}</span></div>
@@ -2073,8 +2081,8 @@
         }
 
         function recalcRow(row) {
-            // Do not regenerate model curve if block is or was closed
-            if (row.dataset.blockClosed === 'true' || row.dataset.wasClosed === 'true') {
+            // Do not regenerate model curve if block is currently closed
+            if (row.dataset.blockClosed === 'true') {
                 updateRowTotalsFromWeekInputs(row);
                 return;
             }
@@ -2892,11 +2900,160 @@
             }, 2200);
         }
 
-        async function resetWeekCell(row, cell, explicitMode = null) {
+        function getRowUid(row) {
+            if (!row) return '';
+            if (!row.dataset.rowUid) {
+                row.dataset.rowUid = `${row.dataset.activity}|${row.dataset.productMaster}|${row.dataset.variety}|${row.dataset.block}|${row.dataset.sourceWeek}`;
+            }
+            return row.dataset.rowUid;
+        }
+
+        function findRowByUid(uid) {
+            if (!uid) return null;
+            return document.querySelector(`.projection-row[data-row-uid="${CSS.escape(uid)}"]`) ||
+                   Array.from(document.querySelectorAll('.projection-row')).find(r => getRowUid(r) === uid);
+        }
+
+        const appHistory = {
+            undoStack: [],
+            redoStack: [],
+            maxDepth: 40,
+            isApplying: false,
+
+            push(action) {
+                if (this.isApplying) return;
+                this.undoStack.push(action);
+                if (this.undoStack.length > this.maxDepth) {
+                    this.undoStack.shift();
+                }
+                this.redoStack = [];
+                this.updateButtons();
+            },
+
+            updateButtons() {
+                const btnUndo = document.getElementById('btn-undo');
+                const btnRedo = document.getElementById('btn-redo');
+                if (btnUndo) {
+                    btnUndo.disabled = this.undoStack.length === 0;
+                    btnUndo.style.opacity = this.undoStack.length === 0 ? '0.45' : '1';
+                }
+                if (btnRedo) {
+                    btnRedo.disabled = this.redoStack.length === 0;
+                    btnRedo.style.opacity = this.redoStack.length === 0 ? '0.45' : '1';
+                }
+            },
+
+            async undo() {
+                if (this.undoStack.length === 0 || this.isApplying) return;
+                const action = this.undoStack.pop();
+                this.redoStack.push(action);
+                this.updateButtons();
+                await this.apply(action, 'undo');
+            },
+
+            async redo() {
+                if (this.redoStack.length === 0 || this.isApplying) return;
+                const action = this.redoStack.pop();
+                this.undoStack.push(action);
+                this.updateButtons();
+                await this.apply(action, 'redo');
+            },
+
+            async apply(action, direction) {
+                this.isApplying = true;
+                try {
+                    if (action.type === 'cell') {
+                        const targetState = (direction === 'undo') ? action.prev : action.next;
+                        const row = findRowByUid(action.rowUid);
+                        if (!row) return;
+                        const cell = row.querySelector(`.week-cell[data-week-code="${action.weekCode}"]`);
+                        if (!cell) return;
+                        const input = cell.querySelector('.week-input');
+
+                        if (targetState.status === 'MODELO' || targetState.value === null) {
+                            if (input) {
+                                input._isDirty = false;
+                                input.blur();
+                            }
+                            await resetWeekCell(row, cell, targetState.mode || activeWeekMode, false);
+                        } else {
+                            if (input) {
+                                input.value = String(targetState.value);
+                                input._isDirty = false;
+                                input.blur();
+                            }
+                            cell.dataset.status = targetState.status || activeWeekMode;
+                            cell.dataset.isDump = targetState.isDump ? 'true' : 'false';
+                            cell.dataset.dumpStems = String(targetState.dumpStems || 0);
+                            await saveWeekCell(row, cell, false);
+                            recalcRow(row);
+                            normalizeWeeklyCellClass(cell);
+                            recalcAll(false);
+                        }
+                        showToast(direction === 'undo' ? 'Cambio de celda deshecho' : 'Cambio de celda rehecho');
+                    } else if (action.type === 'row_param') {
+                        const targetVal = (direction === 'undo') ? action.prevVal : action.nextVal;
+                        const row = findRowByUid(action.rowUid);
+                        if (!row) return;
+                        const input = row.querySelector(`.input-${action.field}`);
+                        if (input) {
+                            input.value = targetVal;
+                            input._isDirty = false;
+                            input.blur();
+                            recalcRow(row);
+                            adjustWeekColumnWidths();
+                            await saveRowAdjustment(row);
+                            recalcAll(false);
+                            showToast(direction === 'undo' ? 'Parámetro deshecho' : 'Parámetro rehecho');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error applying history action:', err);
+                } finally {
+                    this.isApplying = false;
+                    this.updateButtons();
+                }
+            }
+        };
+
+        async function resetWeekCell(row, cell, explicitMode = null, pushToHistory = true) {
             if (row.dataset.blockClosed === 'true') return;
+            const input = cell.querySelector('.week-input');
             const targetMode = explicitMode || activeWeekMode;
             const currentStatus = cell.dataset.status;
             const isBlockedByReal = (pageMode === 'AGRONOMO' && currentStatus === 'REAL');
+
+            const prevVal = input ? (input.value !== '' ? Number.parseInt(input.value, 10) : null) : null;
+            const prevStatus = currentStatus;
+            const prevIsDump = (cell.dataset.isDump === 'true');
+            const prevDumpStems = Number.parseInt(cell.dataset.dumpStems, 10) || 0;
+
+            if (input) {
+                input._isDirty = false;
+                input.blur();
+            }
+
+            if (pushToHistory && (prevStatus !== 'MODELO' || prevVal !== null)) {
+                appHistory.push({
+                    type: 'cell',
+                    rowUid: getRowUid(row),
+                    weekCode: cell.dataset.weekCode,
+                    prev: {
+                        value: prevVal,
+                        status: prevStatus,
+                        isDump: prevIsDump,
+                        dumpStems: prevDumpStems,
+                        mode: targetMode
+                    },
+                    next: {
+                        value: null,
+                        status: 'MODELO',
+                        isDump: false,
+                        dumpStems: 0,
+                        mode: targetMode
+                    }
+                });
+            }
 
             const body = {
                 activity: row.dataset.activity,
@@ -2927,6 +3084,9 @@
                 }
                 cell.dataset.dumpStems = String(result.dump_stems || 0);
 
+                if (input) {
+                    input._isDirty = false;
+                }
                 recalcRow(row);
                 normalizeWeeklyCellClass(cell);
                 applyWeekCellEditLocks();
@@ -2944,7 +3104,7 @@
             }
         }
 
-        async function saveWeekCell(row, cell) {
+        async function saveWeekCell(row, cell, pushToHistory = true) {
             const input = cell.querySelector('.week-input');
             const rawVal = input.value !== undefined ? String(input.value).trim() : '';
             const mode = activeWeekMode;
@@ -2952,12 +3112,36 @@
 
             if (rawVal === '') {
                 // If user leaves cell empty, reset it back to factory model calculation
-                await resetWeekCell(row, cell, mode);
+                await resetWeekCell(row, cell, mode, pushToHistory);
                 return;
             }
 
             const value = Math.max(0, Math.round(Number.parseFloat(rawVal) || 0));
             input.value = String(value);
+
+            if (pushToHistory && input && input._initialVal !== undefined && input._initialVal !== input.value) {
+                appHistory.push({
+                    type: 'cell',
+                    rowUid: getRowUid(row),
+                    weekCode: cell.dataset.weekCode,
+                    prev: {
+                        value: (input._initialVal !== '' ? Number.parseInt(input._initialVal, 10) : null),
+                        status: input._initialStatus || 'MODELO',
+                        isDump: input._initialIsDump || false,
+                        dumpStems: input._initialDumpStems || 0,
+                        mode: mode
+                    },
+                    next: {
+                        value: value,
+                        status: mode,
+                        isDump: isDump,
+                        dumpStems: Number.parseInt(cell.dataset.dumpStems, 10) || 0,
+                        mode: mode
+                    }
+                });
+                input._initialVal = input.value;
+                input._initialStatus = cell.dataset.status;
+            }
 
             const body = {
                 activity: row.dataset.activity,
@@ -3226,6 +3410,13 @@
         // Enhanced Auto-Select on Focus & Keyboard Navigation
         document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
             input.addEventListener('focus', () => {
+                input._initialVal = input.value;
+                const cell = input.closest('.week-cell');
+                if (cell) {
+                    input._initialStatus = cell.dataset.status;
+                    input._initialIsDump = (cell.dataset.isDump === 'true');
+                    input._initialDumpStems = Number.parseInt(cell.dataset.dumpStems, 10) || 0;
+                }
                 try {
                     input.select();
                 } catch (e) {}
@@ -3270,6 +3461,19 @@
                 input._isDirty = false;
                 const row = input.closest('.projection-row');
                 if (row) {
+                    if (input._initialVal !== undefined && input._initialVal !== input.value) {
+                        let field = 'cycle';
+                        if (input.classList.contains('input-stems')) field = 'stems';
+                        else if (input.classList.contains('input-waste')) field = 'waste';
+                        appHistory.push({
+                            type: 'row_param',
+                            rowUid: getRowUid(row),
+                            field: field,
+                            prevVal: input._initialVal,
+                            nextVal: input.value
+                        });
+                        input._initialVal = input.value;
+                    }
                     recalcRow(row);
                     adjustWeekColumnWidths();
                     await saveRowAdjustment(row);
@@ -3282,6 +3486,19 @@
                 input._isDirty = false;
                 const row = input.closest('.projection-row');
                 if (row) {
+                    if (input._initialVal !== undefined && input._initialVal !== input.value) {
+                        let field = 'cycle';
+                        if (input.classList.contains('input-stems')) field = 'stems';
+                        else if (input.classList.contains('input-waste')) field = 'waste';
+                        appHistory.push({
+                            type: 'row_param',
+                            rowUid: getRowUid(row),
+                            field: field,
+                            prevVal: input._initialVal,
+                            nextVal: input.value
+                        });
+                        input._initialVal = input.value;
+                    }
                     recalcRow(row);
                     adjustWeekColumnWidths();
                     await saveRowAdjustment(row);
@@ -3361,6 +3578,10 @@
                 if (!row || row.dataset.blockClosed === 'true' || (input && input.disabled)) return;
                 e.preventDefault();
                 e.stopPropagation();
+                if (input) {
+                    input._isDirty = false;
+                    input.blur();
+                }
                 await resetWeekCell(row, cell);
             };
 
@@ -3374,15 +3595,50 @@
             cell.addEventListener('touchend', async (e) => {
                 const currentTime = Date.now();
                 const tapLength = currentTime - lastTapTime;
-                if (tapLength > 0 && tapLength < 350) {
+                if (tapLength > 0 && tapLength < 380) {
                     const row = cell.closest('.projection-row');
                     if (!row || row.dataset.blockClosed === 'true' || (input && input.disabled)) return;
                     e.preventDefault();
                     e.stopPropagation();
+                    if (input) {
+                        input._isDirty = false;
+                        input.blur();
+                    }
                     await resetWeekCell(row, cell);
                 }
                 lastTapTime = currentTime;
             });
+        });
+
+        // Wire up Undo and Redo actions
+        const btnUndo = document.getElementById('btn-undo');
+        const btnRedo = document.getElementById('btn-redo');
+        if (btnUndo) {
+            btnUndo.addEventListener('click', () => appHistory.undo());
+        }
+        if (btnRedo) {
+            btnRedo.addEventListener('click', () => appHistory.redo());
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    appHistory.redo();
+                } else {
+                    if (document.activeElement && document.activeElement.classList.contains('week-input')) {
+                        document.activeElement.blur();
+                    }
+                    e.preventDefault();
+                    appHistory.undo();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                if (document.activeElement && document.activeElement.classList.contains('week-input')) {
+                    document.activeElement.blur();
+                }
+                e.preventDefault();
+                appHistory.redo();
+            }
         });
 
         applyWeekCellEditLocks();
