@@ -1655,9 +1655,9 @@
                         <span>Exportar Excel</span>
                     </button>
                     <button type="button" id="btn-export-csv" class="toggle-params-btn" title="Descargar en formato CSV">CSV</button>
-                    <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Mostrar u ocultar columnas de parámetros">
+                    <button type="button" id="toggle-params-btn" class="toggle-params-btn" title="Contraer o mostrar columnas de parámetros para ampliar la matriz">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
-                        <span>Parámetros</span>
+                        <span>Contraer Parámetros</span>
                     </button>
                     <button type="button" id="btn-toggle-nonzero" class="toggle-params-btn" title="Mostrar solo filas con cosecha o estimado">Solo Cosechas (>0)</button>
                     <button type="button" id="reset-filters-btn" class="toggle-params-btn" title="Limpiar los filtros de columna y semanas">
@@ -2030,6 +2030,10 @@
         const labelByWeekCode = Object.fromEntries(weekColumns.map((w) => [w.week_code, w.label]));
         const activeWeekMode = pageMode === 'REAL' ? 'REAL' : 'AGRONOMO';
 
+        // Parameter visibility state
+        let savedParamsPref = localStorage.getItem('proyecciones_params_visible');
+        let paramsVisible = savedParamsPref !== null ? (savedParamsPref === 'true') : (window.innerWidth >= 1100);
+
         // Excel-style selection state & helpers
         let selectedExcelCells = new Set();
         let selectionAnchorCell = null;
@@ -2294,16 +2298,36 @@
         function adjustWeekColumnWidths() {
             if (!weekColumns || !weekColumns.length) return;
             const isReal = (pageMode === 'REAL');
-            const baseWidth = isReal ? 46 : 42;
+            const baseMinWidth = isReal ? 46 : 42;
 
-            let styleEl = document.getElementById('dynamic-week-col-widths');
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = 'dynamic-week-col-widths';
-                document.head.appendChild(styleEl);
+            const tableWrap = document.querySelector('.table-wrap');
+            const wrapWidth = tableWrap ? tableWrap.clientWidth : window.innerWidth;
+
+            // Determine visible non-week columns width
+            const isParamsHidden = (typeof paramsVisible !== 'undefined' ? !paramsVisible : false) || (tableWrap && tableWrap.classList.contains('hide-params'));
+            let nonWeekColsWidth = 0;
+            const headerRow = document.querySelector('tr.header-row');
+            if (headerRow) {
+                const nonWeekThs = headerRow.querySelectorAll('th:not([data-week-label]):not(.col-week-header)');
+                nonWeekThs.forEach(th => {
+                    if (isParamsHidden && th.classList.contains('param-col')) return;
+                    if (th.offsetParent !== null && th.offsetWidth > 0) {
+                        nonWeekColsWidth += th.offsetWidth;
+                    }
+                });
+            }
+            if (nonWeekColsWidth <= 0) {
+                // Rock-solid fallback: Sticky cols 1..7 (453px) + Total final (54px) = 507px; + Params (416px) = 923px
+                nonWeekColsWidth = isParamsHidden ? 507 : 923;
             }
 
-            const cssRules = [];
+            // Calculate min width needed per week based on digits in label, total, or active input
+            const minWidthsByWeek = {};
+            let totalMinNeeded = 0;
+
+            const activeInput = (document.activeElement && document.activeElement.classList.contains('week-input')) ? document.activeElement : null;
+            const activeWeekLabel = activeInput ? activeInput.closest('.week-cell')?.dataset?.weekLabel : null;
+
             weekColumns.forEach(w => {
                 let maxDigits = 4;
                 if (w.label && w.label.length > maxDigits) {
@@ -2314,13 +2338,47 @@
                 if (totalEl) {
                     const textStr = String(totalEl.textContent || '').replace(/[^\d]/g, '').trim();
                     if (textStr.length > maxDigits) {
-                        maxDigits = Math.min(textStr.length, 7);
+                        maxDigits = Math.min(textStr.length, 8);
                     }
                 }
 
-                const targetWidth = Math.round(baseWidth + Math.max(0, maxDigits - 4) * 8.0);
+                if (activeWeekLabel && activeWeekLabel === w.label && activeInput) {
+                    const activeValStr = String(activeInput.value || '').replace(/[^\d]/g, '').trim();
+                    if (activeValStr.length > maxDigits) {
+                        maxDigits = Math.min(activeValStr.length, 8);
+                    }
+                }
+
+                const minForWeek = Math.round(baseMinWidth + Math.max(0, maxDigits - 4) * 8.5);
+                minWidthsByWeek[w.label] = minForWeek;
+                totalMinNeeded += minForWeek;
+            });
+
+            // Extra space to distribute across week columns to auto-fill the full screen/container width
+            const availableForWeeks = Math.max(0, wrapWidth - nonWeekColsWidth - 2);
+            const extraWidth = Math.max(0, availableForWeeks - totalMinNeeded);
+            const baseExtra = Math.floor(extraWidth / weekColumns.length);
+            let remainder = extraWidth % weekColumns.length;
+
+            let styleEl = document.getElementById('dynamic-week-col-widths');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'dynamic-week-col-widths';
+                document.head.appendChild(styleEl);
+            }
+
+            const cssRules = [];
+            weekColumns.forEach((w, i) => {
+                let extra = baseExtra;
+                if (remainder > 0) {
+                    extra += 1;
+                    remainder--;
+                }
+                let targetWidth = minWidthsByWeek[w.label] + extra;
+                // Generous cap per column (220px) to prevent absurd sizing when very few weeks are filtered
+                targetWidth = Math.min(targetWidth, 220);
                 const widthStyle = targetWidth + 'px';
-                cssRules.push(`[data-week-label="${w.label}"] { width: ${widthStyle} !important; min-width: ${widthStyle} !important; }`);
+                cssRules.push(`[data-week-label="${w.label}"] { width: ${widthStyle} !important; min-width: ${widthStyle} !important; max-width: ${widthStyle} !important; }`);
             });
 
             styleEl.textContent = cssRules.join('\n');
@@ -3431,8 +3489,6 @@
         }
 
         // Auto-hide parameter columns on smaller screens by default (< 1100px) or remember user preference
-        let savedParamsPref = localStorage.getItem('proyecciones_params_visible');
-        let paramsVisible = savedParamsPref !== null ? (savedParamsPref === 'true') : (window.innerWidth >= 1100);
         const toggleParamsBtn = document.getElementById('toggle-params-btn');
         const menuToggleParams = document.getElementById('menu-toggle-params');
         
@@ -3444,14 +3500,22 @@
                 th.colSpan = paramsVisible ? 12 : 8;
             });
             if (toggleParamsBtn) {
-                toggleParamsBtn.textContent = paramsVisible ? 'Ocultar Parámetros' : 'Mostrar Parámetros';
+                const span = toggleParamsBtn.querySelector('span');
+                if (span) {
+                    span.textContent = paramsVisible ? 'Contraer Parámetros' : 'Mostrar Parámetros';
+                } else {
+                    toggleParamsBtn.textContent = paramsVisible ? 'Contraer Parámetros' : 'Mostrar Parámetros';
+                }
+                toggleParamsBtn.title = paramsVisible ? 'Contraer columnas de parámetros para expandir la matriz' : 'Mostrar columnas de parámetros';
                 toggleParamsBtn.style.background = paramsVisible ? '#ffffff' : '#e0f2fe';
                 toggleParamsBtn.style.color = paramsVisible ? 'var(--header-bg)' : '#0284c7';
                 toggleParamsBtn.style.borderColor = paramsVisible ? 'var(--slate-300)' : '#38bdf8';
             }
             if (menuToggleParams) {
-                menuToggleParams.textContent = paramsVisible ? 'Ocultar Parámetros Fila' : 'Mostrar Parámetros Fila';
+                menuToggleParams.textContent = paramsVisible ? 'Contraer Parámetros Fila' : 'Mostrar Parámetros Fila';
             }
+            updateStickyHeaderOffsets();
+            adjustWeekColumnWidths();
         }
 
         function toggleParams() {
@@ -3648,6 +3712,10 @@
                     cell.dataset.status = 'MODELO';
                 }
                 normalizeWeeklyCellClass(cell);
+
+                if (input.value.length >= 5) {
+                    adjustWeekColumnWidths();
+                }
             });
 
             input.addEventListener('change', async () => {
