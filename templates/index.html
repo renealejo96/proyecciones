@@ -2030,6 +2030,29 @@
         const labelByWeekCode = Object.fromEntries(weekColumns.map((w) => [w.week_code, w.label]));
         const activeWeekMode = pageMode === 'REAL' ? 'REAL' : 'AGRONOMO';
 
+        // Excel-style selection state & helpers
+        let selectedExcelCells = new Set();
+        let selectionAnchorCell = null;
+        let selectionAnchorHeader = null;
+        let isExcelSelecting = false;
+        let excelDragOrigin = null;
+        let hasExcelDragged = false;
+        let activeExcelTable = null;
+
+        function clearExcelSelection() {
+            try {
+                if (typeof selectedExcelCells !== 'undefined' && selectedExcelCells && selectedExcelCells.size) {
+                    selectedExcelCells.forEach(cell => cell.classList.remove('cell-excel-selected'));
+                    selectedExcelCells.clear();
+                }
+                selectionAnchorCell = null;
+                const bar = document.getElementById('excel-status-bar');
+                if (bar) bar.style.display = 'none';
+            } catch (e) {
+                // Ignore
+            }
+        }
+
         function weekCodeToDate(weekCode) {
             const year = Math.floor(weekCode / 100);
             const week = weekCode % 100;
@@ -2396,10 +2419,11 @@
 
         // SUMMARY TABLE WITH VARIETY SUBTOTALS, COMBINED COLOR TOTALS & DUMPS
         function renderSummaryPanels(summaryData) {
-            const weekLabels = weekColumns.map(w => w.label);
-            const targetTable = document.getElementById('table-summary-main');
-            if (!targetTable) return;
-            if (typeof clearExcelSelection === 'function') clearExcelSelection();
+            try {
+                if (typeof clearExcelSelection === 'function') clearExcelSelection();
+                const targetTable = document.getElementById('table-summary-main');
+                if (!targetTable || !summaryData) return;
+                const weekLabels = weekColumns.map(w => w.label);
 
             const mode = pageMode === 'REAL' ? 'real' : 'agronomo';
 
@@ -2578,6 +2602,9 @@
             html += `<td class="col-total-window" data-val="${grandDumpsTotal}">${grandDumpsTotal.toLocaleString()}</td></tr></tbody>`;
 
             targetTable.innerHTML = html;
+            } catch (err) {
+                console.error('Error rendering summary panels:', err);
+            }
         }
 
         let allKnownBlocks = new Set();
@@ -3984,28 +4011,9 @@
             adjustWeekColumnWidths();
         });
 
-        populateFilterDatalists();
-        updateStickyHeaderOffsets();
-        recalcAll(true);
-
         // ==========================================
         // EXCEL-STYLE CELL SELECTION & STATUS BAR
         // ==========================================
-        let selectedExcelCells = new Set();
-        let selectionAnchorCell = null;
-        let selectionAnchorHeader = null;
-        let isExcelSelecting = false;
-        let excelDragOrigin = null;
-        let hasExcelDragged = false;
-        let activeExcelTable = null;
-
-        function clearExcelSelection() {
-            selectedExcelCells.forEach(cell => cell.classList.remove('cell-excel-selected'));
-            selectedExcelCells.clear();
-            selectionAnchorCell = null;
-            const bar = document.getElementById('excel-status-bar');
-            if (bar) bar.style.display = 'none';
-        }
 
         function showExcelCopyToast(text) {
             const oldToast = document.querySelector('.excel-copy-toast');
@@ -4541,6 +4549,12 @@
 
         const menuExportCsv = document.getElementById('menu-export-csv');
         if (menuExportCsv) menuExportCsv.addEventListener('click', () => triggerMatrixExport('csv'));
+
+        // Initial setup and full matrix calculation
+        populateFilterDatalists();
+        updateStickyHeaderOffsets();
+        adjustWeekColumnWidths();
+        recalcAll(true);
     </script>
 
     <!-- EXCEL STATUS BAR (SUMA, PROMEDIO, RECUENTO AL SELECCIONAR CELDAS) -->
