@@ -1278,6 +1278,21 @@
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .block-segment-header {
+            width: 100%;
+            max-width: 620px;
+            margin: 0 auto 10px;
+            box-sizing: border-box;
+        }
+        .cycles-container {
+            width: 100%;
+            max-width: 620px;
+            margin: 0 auto;
+            box-sizing: border-box;
         }
         .cycle-card {
             background: #ffffff;
@@ -1287,7 +1302,8 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
             transition: box-shadow 0.18s ease, border-color 0.18s ease;
             width: 100%;
-            max-width: 100%;
+            max-width: 620px;
+            margin: 0 auto;
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -1300,6 +1316,7 @@
             max-width: 100%;
             overflow: hidden;
             box-sizing: border-box;
+            margin: 0 auto;
         }
         .curve-node-group circle {
             transition: r 0.15s ease, stroke-width 0.15s ease;
@@ -1307,6 +1324,159 @@
         .curve-node-group:hover circle {
             r: 5.5;
             stroke-width: 3;
+        }
+
+        /* BTN FICHA MODAL */
+        .btn-ficha-modal {
+            background: #f3e8ff;
+            border: 1px solid #d8b4fe;
+            color: #7e22ce;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            vertical-align: middle;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(126, 34, 206, 0.08);
+            margin-left: 5px;
+        }
+        .btn-ficha-modal:hover {
+            background: #7e22ce;
+            color: #ffffff;
+            border-color: #7e22ce;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(126, 34, 206, 0.25);
+        }
+
+        /* MODAL POPUP FICHA TÉCNICA */
+        .block-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+            animation: fadeInModal 0.15s ease-out;
+        }
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .block-modal-card {
+            background: #ffffff;
+            border-radius: 12px;
+            max-width: 860px;
+            width: 100%;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.28);
+            border: 1px solid #cbd5e1;
+            overflow: hidden;
+            animation: slideUpModal 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUpModal {
+            from { transform: translateY(16px) scale(0.98); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .block-modal-header {
+            padding: 12px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .btn-modal-close {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-size: 1rem;
+            font-weight: 700;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-modal-close:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        .block-modal-body {
+            padding: 16px 18px;
+            overflow-y: auto;
+            flex-grow: 1;
+            background: #ffffff;
+        }
+        .block-modal-footer {
+            padding: 10px 18px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .modal-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+        }
+        .modal-kpi-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .modal-kpi-item .label {
+            font-size: 0.62rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .modal-kpi-item .value {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .modal-cycle-tab {
+            padding: 5px 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            background: #f1f5f9;
+            color: #475569;
+            transition: all 0.15s ease;
+        }
+        .modal-cycle-tab.active {
+            background: #ffffff;
+            color: #7e22ce;
+            border-color: #d8b4fe #d8b4fe #ffffff;
+            border-top: 2px solid #7e22ce;
+            box-shadow: 0 -2px 5px rgba(126, 34, 206, 0.05);
         }
 
         /* METRIC BADGES & STATUSES */
@@ -1918,6 +2088,9 @@
                                                     <span style="display: inline-block; width: 16px;"></span>
                                                 {% endif %}
                                                 <strong>Bloque {{ row.block }}</strong>
+                                                <button type="button" class="btn-ficha-modal" onclick="event.stopPropagation(); openBlockDetailModal('{{ row.block }}');" title="Abrir Ficha Técnica y Curva de Cosecha">
+                                                    🔍 Ficha
+                                                </button>
                                             </td>
                                             <td class="col-left" title="{{ row.variety_display }}"><strong>{{ row.variety_display }}</strong></td>
                                             <td><code>{{ row.source_week_short }}</code></td>
@@ -1979,6 +2152,9 @@
                                         <td class="col-left" style="padding-left: 14px;">
                                             <span class="toggle-icon-sm" id="icon-blk-{{ cblock.uid }}" title="Clic para desplegar ciclos y curvas de cosecha">+</span>
                                             <strong>Bloque {{ cblock.block }}</strong>
+                                            <button type="button" class="btn-ficha-modal" onclick="event.stopPropagation(); openBlockDetailModal('{{ cblock.uid }}');" title="Abrir Ficha Técnica y Curva de Cosecha">
+                                                🔍 Ficha
+                                            </button>
                                             <span class="badge-ac" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 0.62rem; padding: 1px 4px; margin-left: 3px;" title="{{ cblock.total_productions }} Ciclo(s): {{ cblock.activities_str }}">
                                                 {{ cblock.total_productions }}C ({{ cblock.activities_str }})
                                             </span>
@@ -2035,6 +2211,9 @@
                                                         <span style="font-size: 0.82rem; font-weight: 800; color: #581c87;">
                                                             🌾 Historial Productivo: Bloque {{ cblock.block }}
                                                         </span>
+                                                        <button type="button" class="btn-ficha-modal" onclick="openBlockDetailModal('{{ cblock.uid }}');" style="margin-left: 4px;">
+                                                            🔍 Ver Ficha Completa
+                                                        </button>
                                                         <span style="font-size: 0.66rem; background: #f3e8ff; color: #7e22ce; padding: 1px 7px; border-radius: 9999px; font-weight: 700; border: 1px solid #d8b4fe;">
                                                             {{ cblock.product_master }} · {{ cblock.variety_display }}
                                                         </span>
@@ -2118,7 +2297,7 @@
                                                             </div>
 
                                                             <!-- LINE CHART & MINI TABLE CONTAINER -->
-                                                            <div style="display: flex; flex-direction: column; gap: 4px; max-width: 580px; width: 100%; box-sizing: border-box;">
+                                                            <div style="display: flex; flex-direction: column; gap: 4px; max-width: 600px; width: 100%; margin: 0 auto; box-sizing: border-box;">
                                                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
                                                                     <span style="font-size: 0.66rem; font-weight: 800; color: #475569; text-transform: uppercase;">
                                                                         📈 Curva Agronómica de Producción (Distribución Semanal):
@@ -2127,7 +2306,7 @@
                                                                         Cosecha: {{ prod.harvest_weeks_display or prod.harvest_weeks_str or 'Sin corte' }}
                                                                     </span>
                                                                 </div>
-                                                                <div class="js-prod-line-chart" data-prod-uid="{{ prod.uid }}" style="width: 100%; max-width: 580px; box-sizing: border-box;">
+                                                                <div class="js-prod-line-chart" data-prod-uid="{{ prod.uid }}" style="width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box;">
                                                                     <!-- Line chart SVG & Mini-table injected by JS -->
                                                                 </div>
                                                             </div>
@@ -2143,6 +2322,83 @@
                     </table>
                 </div>
                 <script id="harvest-data-json" type="application/json">{{ (stats.harvest_breakdown_map or {}) | tojson }}</script>
+                <script id="consolidated-blocks-json" type="application/json">{{ (stats.consolidated_blocks or []) | tojson }}</script>
+
+                <!-- MODAL POPUP: FICHA TÉCNICA Y CURVA DE COSECHA DEL BLOQUE -->
+                <div id="block-detail-modal" class="block-modal-backdrop" style="display: none;" onclick="handleModalBackdropClick(event)">
+                    <div class="block-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-block-title">
+                        <!-- HEADER -->
+                        <div class="block-modal-header">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="font-size: 1.25rem;">🌾</span>
+                                <span id="modal-block-title" style="font-size: 1.05rem; font-weight: 800; color: #1e1b4b;">Bloque</span>
+                                <span id="modal-pm-badge" class="badge-ac" style="background: #e0e7ff; color: #3730a3; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px;">PM</span>
+                                <span id="modal-variety-badge" class="badge-ac" style="background: #ede9fe; color: #6b21a8; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px;">Variedades</span>
+                                <span id="modal-status-badge" class="badge-status-pending">ESTADO</span>
+                            </div>
+                            <button type="button" class="btn-modal-close" onclick="closeBlockModal()" title="Cerrar ventana (Esc)">✕</button>
+                        </div>
+
+                        <!-- BODY -->
+                        <div class="block-modal-body">
+                            <!-- EXECUTIVE KPIS GRID -->
+                            <div id="modal-kpis-grid" class="modal-kpi-grid">
+                                <!-- Injected by JS -->
+                            </div>
+
+                            <!-- VARIETY BREAKDOWN (IF MULTI-VARIETY) -->
+                            <div id="modal-varieties-container" style="display: none; margin-top: 12px; padding: 8px 12px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px;">
+                                <div style="font-size: 0.68rem; font-weight: 800; color: #5b21b6; margin-bottom: 6px; text-transform: uppercase;">
+                                    🌱 Capacidad y Rendimiento por Variedad en el Bloque:
+                                </div>
+                                <div id="modal-varieties-chips" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                            </div>
+
+                            <!-- MULTI-CYCLE TABS (IF MULTIPLE PRODUCTIONS) -->
+                            <div id="modal-cycles-tabs" style="display: none; margin-top: 14px; border-bottom: 2px solid #e2e8f0; gap: 4px; display: flex; flex-wrap: wrap;">
+                                <!-- Tab buttons injected via JS -->
+                            </div>
+
+                            <!-- CURVE & WEEKLY MATRIX -->
+                            <div style="margin-top: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.03em;">
+                                        📈 Curva Agronómica de Producción y Corte Semanal
+                                    </span>
+                                    <span id="modal-harvest-weeks-range" style="font-size: 0.68rem; color: #64748b; font-weight: 600;">
+                                        Cosecha: -
+                                    </span>
+                                </div>
+
+                                <!-- HIGH-DEFINITION SVG CURVE CONTAINER -->
+                                <div id="modal-curve-container" style="margin-bottom: 12px;">
+                                    <!-- Injected via JS -->
+                                </div>
+
+                                <!-- WEEKLY HARVEST MATRIX TABLE -->
+                                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                                    <div style="padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.70rem; font-weight: 700; color: #475569; display: flex; justify-content: space-between; align-items: center;">
+                                        <span>Desglose Detallado Semanal: Tallos, % Aporte y T/pl</span>
+                                        <span id="modal-table-summary-info" style="color: #64748b; font-size: 0.65rem;">-</span>
+                                    </div>
+                                    <div id="modal-matrix-table-container" style="max-height: 250px; overflow-y: auto;">
+                                        <!-- Injected via JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FOOTER -->
+                        <div class="block-modal-footer">
+                            <div style="font-size: 0.68rem; color: #64748b;">
+                                💡 <em>Presione <kbd style="background: #e2e8f0; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">ESC</kbd> o haga clic fuera para cerrar</em>
+                            </div>
+                            <button type="button" class="btn-action-primary" onclick="closeBlockModal()" style="padding: 4px 14px; font-size: 0.75rem; background: #7e22ce; color: #ffffff; border-radius: 6px; border: none; cursor: pointer; font-weight: 700;">
+                                Cerrar Ficha
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- END SUBTAB 2 -->
@@ -2617,6 +2873,332 @@
         }
 
         const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
+        const CONSOLIDATED_BLOCKS_DATA = JSON.parse(document.getElementById('consolidated-blocks-json')?.textContent || '[]');
+
+        // ---------------- MODAL LOGIC: FICHA TÉCNICA Y CURVA DE COSECHA ----------------
+        let activeModalBlock = null;
+        let activeModalProdUid = 'ALL';
+
+        function findBlockDossier(identifier) {
+            if (!identifier) return null;
+            const cleanId = String(identifier).trim();
+            // 1. Direct UID match
+            let found = CONSOLIDATED_BLOCKS_DATA.find(b => b.uid === cleanId);
+            if (found) return found;
+
+            // 2. Exact block number match
+            found = CONSOLIDATED_BLOCKS_DATA.find(b => String(b.block).trim().toUpperCase() === cleanId.toUpperCase());
+            if (found) return found;
+
+            // 3. Match 'blk-cons-' + cleanId
+            found = CONSOLIDATED_BLOCKS_DATA.find(b => b.uid === `blk-cons-${cleanId}`);
+            if (found) return found;
+
+            // 4. Production UID match
+            found = CONSOLIDATED_BLOCKS_DATA.find(b => (b.productions || []).some(p => p.uid === cleanId));
+            if (found) return found;
+
+            // 5. Hierarchical format: e.g. 'GYPSOPHILA-202618-SIEMBRA-101'
+            const parts = cleanId.split('-');
+            const lastPart = parts[parts.length - 1];
+            if (lastPart) {
+                found = CONSOLIDATED_BLOCKS_DATA.find(b => String(b.block).trim().toUpperCase() === lastPart.trim().toUpperCase());
+                if (found) return found;
+            }
+
+            return null;
+        }
+
+        function openBlockDetailModal(identifier, initialProdUid = null) {
+            const cblock = findBlockDossier(identifier);
+            if (!cblock) {
+                console.warn('Block data not found for', identifier);
+                return;
+            }
+
+            activeModalBlock = cblock;
+            activeModalProdUid = initialProdUid || 'ALL';
+
+            const modal = document.getElementById('block-detail-modal');
+            if (!modal) return;
+
+            renderModalDossier(cblock, activeModalProdUid);
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBlockModal() {
+            const modal = document.getElementById('block-detail-modal');
+            if (modal) modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function handleModalBackdropClick(event) {
+            if (event.target && event.target.id === 'block-detail-modal') {
+                closeBlockModal();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeBlockModal();
+        });
+
+        function renderModalDossier(cblock, selectedProdUid) {
+            if (!cblock) return;
+
+            // Header Elements
+            const titleEl = document.getElementById('modal-block-title');
+            const pmEl = document.getElementById('modal-pm-badge');
+            const varEl = document.getElementById('modal-variety-badge');
+            const statusEl = document.getElementById('modal-status-badge');
+
+            if (titleEl) titleEl.textContent = `Bloque ${cblock.block}`;
+            if (pmEl) pmEl.textContent = cblock.product_master || '-';
+            if (varEl) varEl.textContent = cblock.variety_display || '-';
+            if (statusEl) {
+                if (cblock.is_closed) {
+                    statusEl.className = 'badge-status-closed';
+                    statusEl.textContent = 'CERRADO';
+                } else if (cblock.has_real_data) {
+                    statusEl.className = 'badge-status-harvest';
+                    statusEl.textContent = 'EN COSECHA';
+                } else {
+                    statusEl.className = 'badge-status-pending';
+                    statusEl.textContent = 'PENDIENTE';
+                }
+            }
+
+            // Multi-cycle Tabs
+            const tabsContainer = document.getElementById('modal-cycles-tabs');
+            const productions = cblock.productions || [];
+            if (tabsContainer) {
+                if (productions.length > 1) {
+                    tabsContainer.style.display = 'flex';
+                    let tabsHtml = `
+                        <div class="modal-cycle-tab ${selectedProdUid === 'ALL' ? 'active' : ''}" onclick="renderModalDossier(activeModalBlock, 'ALL')">
+                            📊 Consolidado Completo (${productions.length} Ciclos)
+                        </div>
+                    `;
+                    productions.forEach(p => {
+                        tabsHtml += `
+                            <div class="modal-cycle-tab ${selectedProdUid === p.uid ? 'active' : ''}" onclick="renderModalDossier(activeModalBlock, '${p.uid}')">
+                                ${p.production_label}
+                            </div>
+                        `;
+                    });
+                    tabsContainer.innerHTML = tabsHtml;
+                } else {
+                    tabsContainer.style.display = 'none';
+                }
+            }
+
+            // Active Scope Metrics
+            let scopePlants = cblock.total_plants;
+            let scopeProd = cblock.total_production;
+            let scopeRealPP = cblock.real_stems_per_plant;
+            let scopeIdealPP = cblock.ideal_stems_per_plant;
+            let scopeCycle = cblock.avg_cycle_weeks;
+            let scopeWaste = cblock.avg_waste_pct;
+            let scopeDump = cblock.total_dump || 0;
+            let scopeHWRange = cblock.harvest_weeks_display || cblock.harvest_weeks_str || 'Sin corte';
+            let chartId = cblock.uid;
+            let items = HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
+
+            if (selectedProdUid && selectedProdUid !== 'ALL') {
+                const prod = productions.find(p => p.uid === selectedProdUid);
+                if (prod) {
+                    scopePlants = prod.plants;
+                    scopeProd = prod.total_production;
+                    scopeRealPP = prod.real_stems_per_plant;
+                    scopeIdealPP = prod.ideal_stems_per_plant;
+                    scopeCycle = prod.real_cycle_weeks;
+                    scopeWaste = prod.waste_pct;
+                    scopeDump = prod.dump_stems || 0;
+                    scopeHWRange = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
+                    chartId = prod.uid;
+                    items = HARVEST_BREAKDOWN_MAP[prod.uid] || [];
+                }
+            }
+
+            const diffPP = (scopeRealPP - scopeIdealPP).toFixed(2);
+            const isOptimal = scopeRealPP >= scopeIdealPP;
+            const diffSign = (diffPP > 0) ? `+${diffPP}` : `${diffPP}`;
+
+            // Executive KPI Cards
+            const kpiGrid = document.getElementById('modal-kpis-grid');
+            if (kpiGrid) {
+                kpiGrid.innerHTML = `
+                    <div class="modal-kpi-item">
+                        <div class="label">🌱 Capacidad Plantas</div>
+                        <div class="value">${Number(scopePlants).toLocaleString()} <span style="font-size: 0.65rem; color: #64748b; font-weight: 600;">pl</span></div>
+                    </div>
+                    <div class="modal-kpi-item">
+                        <div class="label">📦 Producción Total</div>
+                        <div class="value" style="color: #059669;">${Number(scopeProd).toLocaleString()} <span style="font-size: 0.65rem; color: #64748b; font-weight: 600;">tallos</span></div>
+                    </div>
+                    <div class="modal-kpi-item" style="border-left: 3px solid ${isOptimal ? '#16a34a' : '#dc2626'};">
+                        <div class="label">🎯 Rendimiento Real</div>
+                        <div class="value" style="color: ${isOptimal ? '#166534' : '#991b1b'};">
+                            ${scopeRealPP} <span style="font-size: 0.65rem; font-weight: 600;">T/pl</span>
+                            <span style="font-size: 0.62rem; padding: 1px 5px; border-radius: 4px; background: ${isOptimal ? '#dcfce7' : '#fee2e2'}; color: ${isOptimal ? '#166534' : '#991b1b'}; font-weight: 800; margin-left: 4px;">${diffSign}</span>
+                        </div>
+                    </div>
+                    <div class="modal-kpi-item">
+                        <div class="label">⭐ Meta Teórica</div>
+                        <div class="value" style="color: #d97706;">${scopeIdealPP} <span style="font-size: 0.65rem; color: #64748b; font-weight: 600;">T/pl</span></div>
+                    </div>
+                    <div class="modal-kpi-item">
+                        <div class="label">⏱️ Ciclo a Corte</div>
+                        <div class="value" style="color: #334155;">${scopeCycle} <span style="font-size: 0.65rem; color: #64748b; font-weight: 600;">sem</span></div>
+                    </div>
+                    <div class="modal-kpi-item">
+                        <div class="label">🗑️ Descarte / Dump</div>
+                        <div class="value" style="color: ${scopeDump > 0 ? '#dc2626' : '#64748b'};">
+                            ${scopeWaste}% ${scopeDump > 0 ? `<span style="font-size: 0.65rem; font-weight: 700;">(${Number(scopeDump).toLocaleString()})</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Varieties Breakdown Chips
+            const varContainer = document.getElementById('modal-varieties-container');
+            const chipsEl = document.getElementById('modal-varieties-chips');
+            if (varContainer && chipsEl) {
+                let vbList = [];
+                if (selectedProdUid && selectedProdUid !== 'ALL') {
+                    const prod = productions.find(p => p.uid === selectedProdUid);
+                    if (prod && prod.variety_breakdown) vbList = prod.variety_breakdown;
+                } else {
+                    const mapV = {};
+                    productions.forEach(p => {
+                        (p.variety_breakdown || []).forEach(vb => {
+                            if (!mapV[vb.variety]) {
+                                mapV[vb.variety] = { variety: vb.variety, plants: 0, production: 0 };
+                            }
+                            mapV[vb.variety].plants += vb.plants;
+                            mapV[vb.variety].production += vb.production;
+                        });
+                    });
+                    vbList = Object.values(mapV);
+                    vbList.forEach(v => {
+                        v.real_stems_pp = v.plants > 0 ? (v.production / v.plants).toFixed(2) : '0.0';
+                    });
+                }
+
+                if (vbList.length > 1) {
+                    varContainer.style.display = 'block';
+                    chipsEl.innerHTML = vbList.map(vb => `
+                        <span style="font-size: 0.70rem; background: #ffffff; color: #4c1d95; padding: 4px 10px; border-radius: 6px; border: 1px solid #c4b5fd; font-weight: 600;">
+                            <strong>${vb.variety}</strong>: ${Number(vb.plants).toLocaleString()} pl | ${Number(vb.production).toLocaleString()} tallos (<strong>${vb.real_stems_pp}</strong> T/pl)
+                        </span>
+                    `).join('');
+                } else {
+                    varContainer.style.display = 'none';
+                }
+            }
+
+            // Harvest Weeks Range Display
+            const rangeEl = document.getElementById('modal-harvest-weeks-range');
+            if (rangeEl) rangeEl.textContent = `Semanas Cosecha: ${scopeHWRange}`;
+
+            // Curve Injection
+            const curveContainer = document.getElementById('modal-curve-container');
+            if (curveContainer) {
+                curveContainer.innerHTML = generateModalLineChartSVG(items, chartId);
+            }
+
+            // Table Matrix Injection
+            const tableContainer = document.getElementById('modal-matrix-table-container');
+            const tableInfoEl = document.getElementById('modal-table-summary-info');
+            if (tableInfoEl) tableInfoEl.textContent = `${items.length} semanas registradas`;
+            if (tableContainer) {
+                tableContainer.innerHTML = generateHarvestMiniTableHTML(items, true);
+            }
+        }
+
+        // ---------------- HIGH-DEFINITION SVG CURVE FOR MODAL ----------------
+        function generateModalLineChartSVG(items, chartId) {
+            if (!items || !items.length) {
+                return `<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin datos de cosecha registrados para este ciclo</div>`;
+            }
+
+            const viewBoxW = 740;
+            const viewBoxH = 135;
+            const padL = 40;
+            const padR = 40;
+            const padT = 24;
+            const padB = 28;
+            const uW = viewBoxW - padL - padR;
+            const uH = viewBoxH - padT - padB;
+
+            const maxPct = Math.max(...items.map(i => i.pct || 0), 5);
+
+            const points = items.map((hw, idx) => {
+                const x = padL + (items.length > 1 ? (idx / (items.length - 1)) * uW : uW / 2);
+                const y = padT + uH - ((hw.pct || 0) / maxPct) * uH;
+                return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, hw, idx };
+            });
+
+            // Smooth bezier spline curve
+            let lineD = `M ${points[0].x} ${points[0].y}`;
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                const cpX1 = prev.x + (curr.x - prev.x) / 2;
+                const cpY1 = prev.y;
+                const cpX2 = prev.x + (curr.x - prev.x) / 2;
+                const cpY2 = curr.y;
+                lineD += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${curr.x} ${curr.y}`;
+            }
+
+            const areaD = `${lineD} L ${points[points.length - 1].x} ${padT + uH} L ${points[0].x} ${padT + uH} Z`;
+
+            const hasReal = items.some(i => i.src === 'REAL');
+            const primaryColor = hasReal ? '#7e22ce' : '#059669';
+            const gradStart = hasReal ? 'rgba(126, 34, 206, 0.32)' : 'rgba(5, 150, 105, 0.32)';
+            const gradEnd = hasReal ? 'rgba(126, 34, 206, 0.01)' : 'rgba(5, 150, 105, 0.01)';
+
+            const safeId = String(chartId).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            let guidesAndNodes = '';
+            points.forEach((p, idx) => {
+                const nodeColor = (p.hw.src === 'REAL') ? '#7e22ce' : (p.hw.src === 'AGRONOMO' ? '#059669' : '#2563eb');
+                const dumpBadge = (p.hw.dump && p.hw.dump > 0) ? ` | ${Number(p.hw.dump).toLocaleString()} dump` : '';
+                const titleText = `Semana ${p.hw.hw}: ${Number(p.hw.stems).toLocaleString()} tallos (${p.hw.pct}%) | ${p.hw.pp} T/pl${dumpBadge} [${p.hw.src}]`;
+
+                guidesAndNodes += `
+                    <g class="curve-node-group">
+                        <title>${titleText}</title>
+                        <line x1="${p.x}" y1="${p.y}" x2="${p.x}" y2="${padT + uH}" stroke="#e2e8f0" stroke-dasharray="2,2" stroke-width="1.2"/>
+                        <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#ffffff" stroke="${nodeColor}" stroke-width="2.5" style="cursor: pointer;" />
+                        <text x="${p.x}" y="${Math.max(12, p.y - 7)}" text-anchor="middle" font-size="9" font-weight="800" fill="${nodeColor}" font-family="var(--font-mono)">${p.hw.pct}%</text>
+                        <text x="${p.x}" y="${viewBoxH - 8}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#475569" font-family="var(--font-sans)">S${p.hw.hw}</text>
+                    </g>
+                `;
+            });
+
+            return `
+                <div style="width: 100%; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; box-sizing: border-box;">
+                    <svg viewBox="0 0 ${viewBoxW} ${viewBoxH}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 130px; display: block;">
+                        <defs>
+                            <linearGradient id="grad-modal-${safeId}" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="${gradStart}"/>
+                                <stop offset="100%" stop-color="${gradEnd}"/>
+                            </linearGradient>
+                        </defs>
+                        <line x1="${padL - 10}" y1="${padT + uH}" x2="${viewBoxW - padR + 10}" y2="${padT + uH}" stroke="#cbd5e1" stroke-width="1.2"/>
+                        <path d="${areaD}" fill="url(#grad-modal-${safeId})" />
+                        <path d="${lineD}" fill="none" stroke="${primaryColor}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+                        ${guidesAndNodes}
+                    </svg>
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #f1f5f9; font-size: 0.65rem; color: #64748b;">
+                        <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7e22ce;"></span> Cosecha Real</span>
+                        <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #059669;"></span> Proyección Agrónomo</span>
+                        <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span> Modelo Teórico</span>
+                    </div>
+                </div>
+            `;
+        }
 
         // ---------------- LINE CHART SVG GENERATOR FOR HARVEST CURVES ----------------
         function generateLineChartSVG(items, chartId) {
@@ -2686,7 +3268,7 @@
             });
 
             return `
-                <div class="line-chart-container" style="width: 100%; max-width: 580px; overflow: hidden; background: #ffffff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 4px 6px; box-sizing: border-box;">
+                <div class="line-chart-container" style="width: 100%; max-width: 600px; margin: 0 auto; overflow: hidden; background: #ffffff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 4px 6px; box-sizing: border-box;">
                     <svg viewBox="0 0 ${viewBoxW} ${viewBoxH}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 95px; display: block;">
                         <defs>
                             <linearGradient id="grad-${safeId}" x1="0" y1="0" x2="0" y2="1">
@@ -2704,7 +3286,7 @@
         }
 
         // ---------------- MINI TABLE GENERATOR FOR WEEKLY HARVEST BREAKDOWN ----------------
-        function generateHarvestMiniTableHTML(items) {
+        function generateHarvestMiniTableHTML(items, isModal = false) {
             if (!items || !items.length) {
                 return `<div style="padding: 6px; color: #94a3b8; font-size: 0.68rem; font-style: italic;">Sin datos de desglose semanal.</div>`;
             }
@@ -2734,22 +3316,22 @@
 
                 rowsHtml += `
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 3px 6px; font-weight: 700; color: #475569; text-align: left;">Sem ${hw.hw}</td>
-                        <td style="padding: 3px 6px; text-align: right; font-weight: 700; color: #0f172a;">
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; font-weight: 700; color: #475569; text-align: left;">Sem ${hw.hw}</td>
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; text-align: right; font-weight: 700; color: #0f172a;">
                             ${stemsNum.toLocaleString()} ${dumpSpan}
                         </td>
-                        <td style="padding: 3px 6px; text-align: right;">
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; text-align: right;">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-                                <div style="width: 36px; height: 5px; background: #ede9fe; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
+                                <div style="width: ${isModal ? '48px' : '36px'}; height: 5px; background: #ede9fe; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
                                     <div style="width: ${Math.min(100, pctNum)}%; height: 100%; background: #7e22ce; border-radius: 2px;"></div>
                                 </div>
                                 <span style="font-weight: 700; color: #6b21a8; font-size: 0.68rem; min-width: 32px; text-align: right;">${pctNum.toFixed(1)}%</span>
                             </div>
                         </td>
-                        <td style="padding: 3px 6px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #1e293b;">
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #1e293b;">
                             ${ppNum.toFixed(2)}
                         </td>
-                        <td style="padding: 3px 6px; text-align: center;">${srcBadge}</td>
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; text-align: center;">${srcBadge}</td>
                     </tr>
                 `;
             });
@@ -2759,7 +3341,7 @@
                 : '';
 
             return `
-                <div class="harvest-mini-table-container" style="margin-top: 6px; width: 100%; max-width: 580px; overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); box-sizing: border-box;">
+                <div class="harvest-mini-table-container" style="margin-top: 6px; width: 100%; max-width: ${isModal ? '100%' : '600px'}; margin: 6px auto 0; overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); box-sizing: border-box;">
                     <div style="padding: 4px 8px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.64rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; display: flex; justify-content: space-between; align-items: center;">
                         <span>📊 Detalle Semanal de Cosecha (${items.length} semanas)</span>
                         <span style="font-size: 0.60rem; color: #64748b; font-weight: 600;">Tallos · % Aporte · T/pl</span>
@@ -2834,12 +3416,15 @@
                     data-variety="${variety}"
                     data-week="${swShort}">
                     <td colspan="12" style="white-space: normal !important; padding: 10px 14px 12px; border-left: 3px solid #9333ea; background: #faf5ff;">
-                        <div style="max-width: 580px; width: 100%; box-sizing: border-box;">
+                        <div style="max-width: 620px; width: 100%; margin: 0 auto; box-sizing: border-box;">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size: 0.72rem; font-weight: 800; color: #581c87; text-transform: uppercase;">
                                         📈 Curva Agronómica de Entrada a Cosecha (${items.length} sem):
                                     </span>
+                                    <button type="button" class="btn-ficha-modal" onclick="openBlockDetailModal('${blk}');" style="margin-left: 4px;">
+                                        🔍 Ver Ficha
+                                    </button>
                                     <span style="font-size: 0.62rem; color: #7e22ce; background: #f3e8ff; padding: 1px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #e9d5ff;">
                                         Campana de Recolección · Bloque ${blk} (${variety})
                                     </span>

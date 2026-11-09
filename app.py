@@ -1634,7 +1634,9 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
                 prev = current_cluster[-1]
                 is_same_act = (r["activity"] == prev["activity"])
                 is_same_crop = (r["product_master"] == prev["product_master"])
-                is_close_week = (calculate_week_difference(prev["source_week"], r["source_week"]) <= 6)
+                # Staggered planting window for beds of the same crop and block is typically up to 16 weeks
+                window_weeks = 16 if (r["activity"] == "SIEMBRA") else 8
+                is_close_week = (calculate_week_difference(prev["source_week"], r["source_week"]) <= window_weeks)
 
                 if is_same_act and is_same_crop and is_close_week:
                     current_cluster.append(r)
@@ -1653,10 +1655,26 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
         total_prod_sum = sum(p["total_production"] for p in productions)
         total_dump_sum = sum(p.get("dump_stems", 0) for p in productions)
         
-        # Physical plant capacity of the block (max of production cycles or sum of distinct varieties)
-        max_plants = max((p["plants"] for p in productions), default=0)
+        # Physical plant capacity across coexisting varieties in the block
+        var_max_plants: dict[str, int] = {}
+        for p in productions:
+            if p.get("variety_breakdown"):
+                for vb in p["variety_breakdown"]:
+                    v_key = vb["variety"]
+                    var_max_plants[v_key] = max(var_max_plants.get(v_key, 0), vb.get("plants", 0))
+            else:
+                v_key = p.get("variety_display") or p.get("variety") or "default"
+                var_max_plants[v_key] = max(var_max_plants.get(v_key, 0), p.get("plants", 0))
+
+        block_capacity = sum(var_max_plants.values())
+        max_plants = max(block_capacity, max((p["plants"] for p in productions), default=0))
         
-        real_stems_pp = round(total_prod_sum / max_plants, 2) if max_plants > 0 else 0.0
+        tot_plants_all_cycles = sum(p["plants"] for p in productions)
+        if tot_plants_all_cycles > 0:
+            weighted_real_sum = sum(p["real_stems_per_plant"] * p["plants"] for p in productions)
+            real_stems_pp = round(weighted_real_sum / tot_plants_all_cycles, 2)
+        else:
+            real_stems_pp = round(total_prod_sum / max_plants, 2) if max_plants > 0 else 0.0
         
         weighted_ideal_sum = sum(p["ideal_stems_per_plant"] * p["plants"] for p in productions)
         weighted_plants_sum = sum(p["plants"] for p in productions)
