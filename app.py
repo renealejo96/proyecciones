@@ -1598,8 +1598,76 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             productions.append(prod)
             flat_productions.append(prod)
 
+        # Consolidate block-level summary metrics across its productions
+        total_prod_sum = sum(p["total_production"] for p in productions)
+        total_dump_sum = sum(p.get("dump_stems", 0) for p in productions)
+        
+        # Physical plant capacity of the block (max of production cycles or sum of distinct varieties)
+        max_plants = max((p["plants"] for p in productions), default=0)
+        
+        real_stems_pp = round(total_prod_sum / max_plants, 2) if max_plants > 0 else 0.0
+        
+        weighted_ideal_sum = sum(p["ideal_stems_per_plant"] * p["plants"] for p in productions)
+        weighted_plants_sum = sum(p["plants"] for p in productions)
+        ideal_stems_pp = round(weighted_ideal_sum / weighted_plants_sum, 2) if weighted_plants_sum > 0 else 0.0
+        
+        is_below = (real_stems_pp < ideal_stems_pp) if (real_stems_pp > 0 and ideal_stems_pp > 0) else False
+        
+        pms = sorted(list(set(p["product_master"] for p in productions if p.get("product_master"))))
+        var_disps = sorted(list(set(p["variety_display"] for p in productions if p.get("variety_display"))))
+        vars_raw = sorted(list(set(p["variety"] for p in productions if p.get("variety"))))
+        acts = sorted(list(set(p["activity"] for p in productions if p.get("activity"))))
+        
+        if "SIEMBRA" in acts and "PODA" in acts:
+            acts_str = "Siembra + Poda"
+        elif "SIEMBRA" in acts:
+            acts_str = "Siembra"
+        elif "PODA" in acts:
+            acts_str = "Poda"
+        else:
+            acts_str = ", ".join(acts) if acts else "-"
+            
+        sw_list = []
+        for p in productions:
+            act_prefix = "S" if p["activity"] == "SIEMBRA" else "P"
+            sw_list.append(f"{act_prefix}:{p['source_weeks_str']}")
+        source_weeks_summary = " | ".join(sw_list)
+        
+        avg_cycle = round(sum(p["real_cycle_weeks"] for p in productions) / len(productions), 1) if productions else 0.0
+        avg_waste = round(sum(p["waste_pct"] for p in productions) / len(productions), 1) if productions else 0.0
+        
+        all_hw = sorted(list(set(hw.strip() for p in productions for hw in p.get("harvest_weeks_str", "").split(",") if hw.strip())))
+        harvest_weeks_summary = ", ".join(all_hw)
+        
+        is_all_closed = all(p["is_closed"] for p in productions) if productions else False
+        has_any_real = any(p.get("has_real_data") for p in productions) if productions else False
+        overall_status = "CERRADO" if is_all_closed else ("EN COSECHA" if has_any_real else "PENDIENTE")
+        
+        block_uid = f"blk-cons-{blk}"
+
         consolidated_blocks.append({
             "block": blk,
+            "uid": block_uid,
+            "product_master": ", ".join(pms),
+            "variety": ", ".join(vars_raw),
+            "variety_display": " / ".join(var_disps),
+            "varieties_list": var_disps,
+            "activities": acts,
+            "activities_str": acts_str,
+            "source_weeks_str": source_weeks_summary,
+            "source_week_max_short": productions[-1]["source_week_max_short"] if productions else "",
+            "total_plants": max_plants,
+            "total_production": total_prod_sum,
+            "total_dump": total_dump_sum,
+            "real_stems_per_plant": real_stems_pp,
+            "ideal_stems_per_plant": ideal_stems_pp,
+            "is_below_target": is_below,
+            "avg_cycle_weeks": avg_cycle,
+            "avg_waste_pct": avg_waste,
+            "harvest_weeks_str": harvest_weeks_summary,
+            "is_closed": is_all_closed,
+            "has_real_data": has_any_real,
+            "status": overall_status,
             "productions": productions,
             "total_productions": len(productions),
         })
@@ -2297,6 +2365,36 @@ def get_statistics_data(
                     }
                     for h in prod["harvest_breakdown"]
                 ]
+
+        for cblock in consolidated_blocks:
+            cuid = cblock["uid"]
+            combined_hw = {}
+            for prod in cblock["productions"]:
+                for h in prod.get("harvest_breakdown", []):
+                    hw_short = h["harvest_week_short"]
+                    if hw_short not in combined_hw:
+                        combined_hw[hw_short] = {
+                            "hw": hw_short,
+                            "sw": cblock["source_week_max_short"],
+                            "stems": 0,
+                            "dump": 0,
+                            "src": h.get("source", "MODELO"),
+                        }
+                    combined_hw[hw_short]["stems"] += h["stems"]
+                    combined_hw[hw_short]["dump"] += h.get("dump_stems", 0)
+                    if h.get("source") == "REAL":
+                        combined_hw[hw_short]["src"] = "REAL"
+                    elif h.get("source") == "AGRONOMO" and combined_hw[hw_short]["src"] != "REAL":
+                        combined_hw[hw_short]["src"] = "AGRONOMO"
+
+            tot_b_prod = cblock["total_production"]
+            tot_b_plants = cblock["total_plants"]
+            sorted_cb_hw = sorted(combined_hw.values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
+            for item in sorted_cb_hw:
+                item["pct"] = round((item["stems"] / tot_b_prod * 100.0), 1) if tot_b_prod > 0 else 0.0
+                item["pp"] = round(item["stems"] / tot_b_plants, 2) if tot_b_plants > 0 else 0.0
+            
+            harvest_breakdown_map[cuid] = sorted_cb_hw
 
         res = {
             "kpis": {
