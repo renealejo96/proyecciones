@@ -1352,6 +1352,36 @@
             box-shadow: 0 2px 5px rgba(126, 34, 206, 0.25);
         }
 
+        /* VARIETY FILTER CHIPS (INLINE & MODAL) */
+        .btn-var-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.68rem;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid #c4b5fd;
+            background: #ffffff;
+            color: #5b21b6;
+            transition: all 0.15s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(124, 58, 237, 0.05);
+        }
+        .btn-var-chip:hover {
+            background: #f5f3ff;
+            border-color: #8b5cf6;
+            color: #4c1d95;
+            transform: translateY(-1px);
+        }
+        .btn-var-chip.active {
+            background: #7c3aed !important;
+            color: #ffffff !important;
+            border-color: #7c3aed !important;
+            box-shadow: 0 1px 4px rgba(124, 58, 237, 0.35);
+        }
+
         /* MODAL POPUP FICHA TÉCNICA */
         .block-modal-backdrop {
             position: fixed;
@@ -1815,8 +1845,10 @@
                 <!-- CHART 1: RELATIVE HARVEST CURVE -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Curva Relativa: Real vs Ideal</h3>
-                        <span class="chart-tag">% Cosechado por Sem Relativa</span>
+                        <h3>📈 Curva Relativa de Entrada a Cosecha: Real vs Modelo</h3>
+                        <span class="chart-tag" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+                            🌱 % Cosechado por Sem Relativa
+                        </span>
                     </div>
                     <div class="chart-body">
                         <canvas id="relativeCurveChart"></canvas>
@@ -1873,10 +1905,10 @@
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
-                            <h3>Rendimiento Tallos / Planta vs Meta por Semana de Siembra</h3>
-                            <span class="chart-tag" id="chart-closed-tag">
+                            <h3>📊 Rendimiento Histórico: Tallos / Planta vs Meta por Semana</h3>
+                            <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
                                 {% if stats.chart_stems_pp.last_closed_label %}
-                                    Datos cerrados hasta: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
+                                    🏆 Cierre Real: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
                                 {% else %}
                                     Eje X: Semanas de Siembra / Poda
                                 {% endif %}
@@ -2259,12 +2291,27 @@
                                                             </div>
 
                                                             {% if prod.variety_breakdown and (prod.variety_breakdown | length) > 1 %}
-                                                                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; padding: 5px 8px; background: #ede9fe; border-radius: 6px; border: 1px solid #ddd6fe;">
-                                                                    <span style="font-size: 0.65rem; font-weight: 700; color: #5b21b6; align-self: center;">🌾 Desglose por Variedad:</span>
+                                                                <div class="prod-variety-filter-bar" data-prod-uid="{{ prod.uid }}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 10px; background: #f5f3ff; border-radius: 8px; border: 1px solid #ddd6fe;">
+                                                                    <span style="font-size: 0.66rem; font-weight: 800; color: #5b21b6; display: flex; align-items: center; gap: 4px;">
+                                                                        🌾 Variedad:
+                                                                    </span>
+                                                                    <button type="button" 
+                                                                            class="btn-var-chip active" 
+                                                                            data-prod-uid="{{ prod.uid }}" 
+                                                                            data-variety="ALL" 
+                                                                            onclick="filterInlineCycleVariety('{{ prod.uid }}', 'ALL', this)"
+                                                                            title="Ver curva consolidada de todas las variedades">
+                                                                        Todas (Consolidado)
+                                                                    </button>
                                                                     {% for vb in prod.variety_breakdown %}
-                                                                        <span style="font-size: 0.65rem; background: #ffffff; color: #4c1d95; padding: 2px 7px; border-radius: 4px; border: 1px solid #c4b5fd;">
-                                                                            <strong>{{ vb.variety }}</strong>: {{ '{:,}'.format(vb.plants) }} pl | {{ '{:,}'.format(vb.production) }} tallos (<strong>{{ vb.real_stems_pp }}</strong> T/pl)
-                                                                        </span>
+                                                                        <button type="button" 
+                                                                                class="btn-var-chip" 
+                                                                                data-prod-uid="{{ prod.uid }}" 
+                                                                                data-variety="{{ vb.variety }}" 
+                                                                                onclick="filterInlineCycleVariety('{{ prod.uid }}', '{{ vb.variety }}', this)"
+                                                                                title="Clic para ver la curva y producción exclusiva de {{ vb.variety }}">
+                                                                            <strong>{{ vb.variety }}</strong>: {{ '{:,}'.format(vb.plants) }} pl · {{ '{:,}'.format(vb.production) }} t (<strong>{{ vb.real_stems_pp }}</strong> T/pl)
+                                                                        </button>
                                                                     {% endfor %}
                                                                 </div>
                                                             {% endif %}
@@ -2304,10 +2351,10 @@
                                                             <!-- LINE CHART & MINI TABLE CONTAINER -->
                                                             <div style="display: flex; flex-direction: column; gap: 4px; max-width: 600px; width: 100%; margin: 0 auto; box-sizing: border-box;">
                                                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-                                                                    <span style="font-size: 0.66rem; font-weight: 800; color: #475569; text-transform: uppercase;">
+                                                                    <span class="js-prod-chart-title" data-prod-uid="{{ prod.uid }}" style="font-size: 0.66rem; font-weight: 800; color: #475569; text-transform: uppercase;">
                                                                         📈 Curva Agronómica de Producción (Distribución Semanal):
                                                                     </span>
-                                                                    <span style="font-size: 0.60rem; color: #64748b;">
+                                                                    <span class="js-prod-harvest-range" data-prod-uid="{{ prod.uid }}" style="font-size: 0.60rem; color: #64748b;">
                                                                         Cosecha: {{ prod.harvest_weeks_display or prod.harvest_weeks_str or 'Sin corte' }}
                                                                     </span>
                                                                 </div>
@@ -2883,6 +2930,7 @@
         // ---------------- MODAL LOGIC: FICHA TÉCNICA Y CURVA DE COSECHA ----------------
         let activeModalBlock = null;
         let activeModalProdUid = 'ALL';
+        let activeModalVariety = 'ALL';
 
         function findBlockDossier(identifier) {
             if (!identifier) return null;
@@ -2923,6 +2971,7 @@
 
             activeModalBlock = cblock;
             activeModalProdUid = initialProdUid || 'ALL';
+            activeModalVariety = 'ALL';
 
             const modal = document.getElementById('block-detail-modal');
             if (!modal) return;
@@ -2948,8 +2997,26 @@
             if (e.key === 'Escape') closeBlockModal();
         });
 
+        function selectModalVariety(variety) {
+            activeModalVariety = variety;
+            if (activeModalBlock) {
+                renderModalDossier(activeModalBlock, activeModalProdUid);
+            }
+        }
+
         function renderModalDossier(cblock, selectedProdUid) {
             if (!cblock) return;
+            activeModalProdUid = selectedProdUid || 'ALL';
+            const productions = cblock.productions || [];
+
+            // Reset activeModalVariety if not present in the current production
+            if (activeModalVariety !== 'ALL') {
+                if (selectedProdUid && selectedProdUid !== 'ALL') {
+                    const currentP = productions.find(p => p.uid === selectedProdUid);
+                    const hasVar = currentP && (currentP.variety_breakdown || []).some(v => v.variety === activeModalVariety);
+                    if (!hasVar) activeModalVariety = 'ALL';
+                }
+            }
 
             // Header Elements
             const titleEl = document.getElementById('modal-block-title');
@@ -2959,7 +3026,7 @@
 
             if (titleEl) titleEl.textContent = `Bloque ${cblock.block}`;
             if (pmEl) pmEl.textContent = cblock.product_master || '-';
-            if (varEl) varEl.textContent = cblock.variety_display || '-';
+            if (varEl) varEl.textContent = (activeModalVariety !== 'ALL') ? `${activeModalVariety} (Bloque ${cblock.block})` : (cblock.variety_display || '-');
             if (statusEl) {
                 if (cblock.is_closed) {
                     statusEl.className = 'badge-status-closed';
@@ -2975,7 +3042,6 @@
 
             // Multi-cycle Tabs
             const tabsContainer = document.getElementById('modal-cycles-tabs');
-            const productions = cblock.productions || [];
             if (tabsContainer) {
                 if (productions.length > 1) {
                     tabsContainer.style.display = 'flex';
@@ -3022,6 +3088,45 @@
                     scopeHWRange = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
                     chartId = prod.uid;
                     items = HARVEST_BREAKDOWN_MAP[prod.uid] || [];
+
+                    if (activeModalVariety && activeModalVariety !== 'ALL') {
+                        const vb = (prod.variety_breakdown || []).find(v => v.variety === activeModalVariety);
+                        if (vb) {
+                            scopePlants = vb.plants;
+                            scopeProd = vb.production;
+                            scopeRealPP = vb.real_stems_pp;
+                            scopeIdealPP = vb.ideal_stems_pp || prod.ideal_stems_per_plant;
+                            scopeDump = vb.dump || 0;
+                            scopeHWRange = vb.harvest_weeks_display || vb.harvest_weeks_str || scopeHWRange;
+                            chartId = `${prod.uid}_var_${activeModalVariety}`;
+                            items = HARVEST_BREAKDOWN_MAP[chartId] || [];
+                        }
+                    }
+                }
+            } else {
+                if (activeModalVariety && activeModalVariety !== 'ALL') {
+                    let vPlants = 0;
+                    let vProd = 0;
+                    let vDump = 0;
+                    let vIdealWeighted = 0;
+                    productions.forEach(p => {
+                        const vb = (p.variety_breakdown || []).find(v => v.variety === activeModalVariety);
+                        if (vb) {
+                            vPlants = Math.max(vPlants, vb.plants || 0);
+                            vProd += (vb.production || 0);
+                            vDump += (vb.dump || 0);
+                            vIdealWeighted += ((vb.ideal_stems_pp || p.ideal_stems_per_plant || 0) * (vb.plants || 0));
+                        }
+                    });
+                    if (vPlants > 0 || vProd > 0) {
+                        scopePlants = vPlants;
+                        scopeProd = vProd;
+                        scopeDump = vDump;
+                        scopeRealPP = vPlants > 0 ? (vProd / vPlants).toFixed(2) : '0.00';
+                        scopeIdealPP = vPlants > 0 ? (vIdealWeighted / vPlants).toFixed(2) : scopeIdealPP;
+                    }
+                    chartId = `${cblock.uid}_var_${activeModalVariety}`;
+                    items = HARVEST_BREAKDOWN_MAP[chartId] || [];
                 }
             }
 
@@ -3065,7 +3170,7 @@
                 `;
             }
 
-            // Varieties Breakdown Chips
+            // Varieties Breakdown Chips (Interactive Filters)
             const varContainer = document.getElementById('modal-varieties-container');
             const chipsEl = document.getElementById('modal-varieties-chips');
             if (varContainer && chipsEl) {
@@ -3078,25 +3183,40 @@
                     productions.forEach(p => {
                         (p.variety_breakdown || []).forEach(vb => {
                             if (!mapV[vb.variety]) {
-                                mapV[vb.variety] = { variety: vb.variety, plants: 0, production: 0 };
+                                mapV[vb.variety] = { variety: vb.variety, plants: 0, production: 0, ideal_stems_pp: vb.ideal_stems_pp };
                             }
-                            mapV[vb.variety].plants += vb.plants;
+                            mapV[vb.variety].plants = Math.max(mapV[vb.variety].plants, vb.plants);
                             mapV[vb.variety].production += vb.production;
                         });
                     });
                     vbList = Object.values(mapV);
                     vbList.forEach(v => {
-                        v.real_stems_pp = v.plants > 0 ? (v.production / v.plants).toFixed(2) : '0.0';
+                        v.real_stems_pp = v.plants > 0 ? (v.production / v.plants).toFixed(2) : '0.00';
                     });
                 }
 
                 if (vbList.length > 1) {
                     varContainer.style.display = 'block';
-                    chipsEl.innerHTML = vbList.map(vb => `
-                        <span style="font-size: 0.70rem; background: #ffffff; color: #4c1d95; padding: 4px 10px; border-radius: 6px; border: 1px solid #c4b5fd; font-weight: 600;">
-                            <strong>${vb.variety}</strong>: ${Number(vb.plants).toLocaleString()} pl | ${Number(vb.production).toLocaleString()} tallos (<strong>${vb.real_stems_pp}</strong> T/pl)
-                        </span>
-                    `).join('');
+                    let chipsHtml = `
+                        <button type="button" 
+                                class="btn-var-chip ${activeModalVariety === 'ALL' ? 'active' : ''}" 
+                                onclick="selectModalVariety('ALL')"
+                                title="Ver curva consolidada de todas las variedades">
+                            🌐 Todas las Variedades (Consolidado)
+                        </button>
+                    `;
+                    chipsHtml += vbList.map(vb => {
+                        const isSel = (activeModalVariety === vb.variety);
+                        return `
+                            <button type="button" 
+                                    class="btn-var-chip ${isSel ? 'active' : ''}" 
+                                    onclick="selectModalVariety('${vb.variety}')"
+                                    title="Clic para aislar la curva y métricas exclusivas de ${vb.variety}">
+                                <strong>${vb.variety}</strong>: ${Number(vb.plants).toLocaleString()} pl | ${Number(vb.production).toLocaleString()} tallos (<strong>${vb.real_stems_pp}</strong> T/pl)
+                            </button>
+                        `;
+                    }).join('');
+                    chipsEl.innerHTML = chipsHtml;
                 } else {
                     varContainer.style.display = 'none';
                 }
@@ -3115,17 +3235,30 @@
                 // Multi-cycle overview: separate curves and separated multi-cycle table
                 let multiCurvesHtml = '';
                 productions.forEach((prod, pIdx) => {
-                    const pItems = (HARVEST_BREAKDOWN_MAP[prod.uid] || []).filter(i => (Number(i.stems) || 0) > 0);
+                    let pKey = prod.uid;
+                    let vbItem = null;
+                    if (activeModalVariety && activeModalVariety !== 'ALL') {
+                        pKey = `${prod.uid}_var_${activeModalVariety}`;
+                        vbItem = (prod.variety_breakdown || []).find(v => v.variety === activeModalVariety);
+                    }
+
+                    const rawPItems = HARVEST_BREAKDOWN_MAP[pKey] || [];
+                    const pItems = rawPItems.filter(i => (Number(i.stems) || 0) > 0);
+                    if (!pItems.length && activeModalVariety !== 'ALL') return; // skip cycle if variety had no harvest in it
+
                     const isPoda = (prod.activity || '').toUpperCase() === 'PODA';
                     const actColor = isPoda ? '#7e22ce' : '#059669';
                     const actBg = isPoda ? '#faf5ff' : '#f0fdf4';
                     const actBorder = isPoda ? '#d8b4fe' : '#86efac';
                     const actIcon = isPoda ? '✂️' : '🌱';
                     const actLabel = isPoda ? 'Poda' : 'Siembra';
-                    const prodName = prod.production_label || `Producción ${prod.production_num || (pIdx + 1)} (${actLabel})`;
-                    const hwStr = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
+                    let prodName = prod.production_label || `Producción ${prod.production_num || (pIdx + 1)} (${actLabel})`;
+                    if (activeModalVariety !== 'ALL') prodName += ` — ${activeModalVariety}`;
+                    const hwStr = (vbItem && (vbItem.harvest_weeks_display || vbItem.harvest_weeks_str)) || prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
+                    const cStems = vbItem ? vbItem.production : prod.total_production;
+                    const cPP = vbItem ? vbItem.real_stems_pp : prod.real_stems_per_plant;
 
-                    if (pIdx > 0) {
+                    if (pIdx > 0 && multiCurvesHtml.length > 0) {
                         multiCurvesHtml += `
                             <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 10px; color: #6b21a8; font-size: 0.68rem; font-weight: 700;">
                                 <span style="height: 1px; flex: 1; background: #e9d5ff;"></span>
@@ -3149,17 +3282,18 @@
                                     </span>
                                 </div>
                                 <div style="font-size: 0.68rem; font-weight: 700; color: #334155;">
-                                    ${Number(prod.total_production).toLocaleString()} tallos · <span style="color: ${actColor}; font-weight: 800;">${prod.real_stems_per_plant} T/pl</span>
+                                    ${Number(cStems).toLocaleString()} tallos · <span style="color: ${actColor}; font-weight: 800;">${cPP} T/pl</span>
                                 </div>
                             </div>
-                            ${generateModalLineChartSVG(pItems, prod.uid, prod.activity)}
+                            ${generateModalLineChartSVG(pItems, pKey, prod.activity)}
                         </div>
                     `;
                 });
 
-                if (curveContainer) curveContainer.innerHTML = multiCurvesHtml;
-                if (tableInfoEl) tableInfoEl.textContent = `${productions.length} ciclos · Desglose Comparativo Siembra / Poda`;
-                if (tableContainer) tableContainer.innerHTML = generateMultiCycleHarvestTableHTML(cblock);
+                if (curveContainer) curveContainer.innerHTML = multiCurvesHtml || `<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin datos de cosecha registrados para esta variedad</div>`;
+                const varSuffix = (activeModalVariety !== 'ALL') ? ` · Variedad: ${activeModalVariety}` : '';
+                if (tableInfoEl) tableInfoEl.textContent = `${productions.length} ciclos · Desglose Comparativo Siembra / Poda${varSuffix}`;
+                if (tableContainer) tableContainer.innerHTML = generateMultiCycleHarvestTableHTML(cblock, activeModalVariety);
 
             } else {
                 // Single cycle view (either selected specific tab or single-cycle block)
@@ -3170,8 +3304,9 @@
                 if (curveContainer) {
                     curveContainer.innerHTML = generateModalLineChartSVG(validItems, chartId, act);
                 }
+                const varSuffix = (activeModalVariety !== 'ALL') ? ` · ${activeModalVariety}` : '';
                 if (tableInfoEl) {
-                    tableInfoEl.textContent = `${validItems.length} semanas registradas`;
+                    tableInfoEl.textContent = `${validItems.length} semanas registradas${varSuffix}`;
                 }
                 if (tableContainer) {
                     tableContainer.innerHTML = generateHarvestMiniTableHTML(validItems, true, act);
@@ -3466,7 +3601,7 @@
         }
 
         // ---------------- MULTI-CYCLE STRUCTURED HARVEST TABLE FOR MODAL ----------------
-        function generateMultiCycleHarvestTableHTML(cblock) {
+        function generateMultiCycleHarvestTableHTML(cblock, activeVariety = 'ALL') {
             if (!cblock || !cblock.productions || !cblock.productions.length) {
                 return `<div style="padding: 6px; color: #94a3b8; font-size: 0.68rem; font-style: italic;">Sin datos de desglose multi-ciclo.</div>`;
             }
@@ -3477,7 +3612,19 @@
             let grandWeeks = 0;
 
             cblock.productions.forEach((prod, pIdx) => {
-                const pItems = (HARVEST_BREAKDOWN_MAP[prod.uid] || []).filter(i => (Number(i.stems) || 0) > 0);
+                let pKey = prod.uid;
+                let vbItem = null;
+                if (activeVariety && activeVariety !== 'ALL') {
+                    pKey = `${prod.uid}_var_${activeVariety}`;
+                    vbItem = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === activeVariety.trim());
+                }
+
+                const rawPItems = HARVEST_BREAKDOWN_MAP[pKey] || [];
+                const pItems = rawPItems.filter(i => (Number(i.stems) || 0) > 0);
+                if (activeVariety !== 'ALL' && !pItems.length) {
+                    return; // skip cycle if variety had no stems in this cycle
+                }
+
                 const isPoda = (prod.activity || '').toUpperCase() === 'PODA';
                 const actColor = isPoda ? '#7e22ce' : '#059669';
                 const actBg = isPoda ? '#faf5ff' : '#f0fdf4';
@@ -3487,12 +3634,15 @@
                 const actText = isPoda ? '#6b21a8' : '#047857';
                 const actIcon = isPoda ? '✂️' : '🌱';
                 const actLabel = isPoda ? 'Poda' : 'Siembra';
-                const prodName = prod.production_label || `Producción ${prod.production_num || (pIdx + 1)} (${actLabel})`;
-                const hwStr = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
+                let prodName = prod.production_label || `Producción ${prod.production_num || (pIdx + 1)} (${actLabel})`;
+                if (activeVariety !== 'ALL') prodName += ` — ${activeVariety}`;
+                const hwStr = (vbItem && (vbItem.harvest_weeks_display || vbItem.harvest_weeks_str)) || prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
 
                 const subtotalStems = pItems.reduce((acc, i) => acc + (Number(i.stems) || 0), 0);
                 const subtotalDump = pItems.reduce((acc, i) => acc + (Number(i.dump) || 0), 0);
-                const subtotalPP = prod.real_stems_per_plant || (prod.plants > 0 ? (subtotalStems / prod.plants) : 0);
+                
+                const prodPlants = (vbItem && vbItem.plants) ? vbItem.plants : (prod.plants || 0);
+                const subtotalPP = (vbItem && vbItem.real_stems_pp) ? vbItem.real_stems_pp : (prodPlants > 0 ? (subtotalStems / prodPlants).toFixed(2) : (prod.real_stems_per_plant || '0.00'));
                 const subtotalPct = pItems.reduce((acc, i) => acc + (Number(i.pct) || 0), 0);
 
                 grandStems += subtotalStems;
@@ -3506,7 +3656,7 @@
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>${actIcon} ${prodName} — Semanas: ${hwStr}</span>
                                 <span style="font-size: 0.62rem; color: #475569; font-weight: 600;">
-                                    ${Number(prod.plants).toLocaleString()} plantas | Meta: ${prod.ideal_stems_per_plant} T/pl
+                                    ${Number(prodPlants).toLocaleString()} plantas | Meta: ${vbItem ? vbItem.ideal_stems_pp : prod.ideal_stems_per_plant} T/pl
                                 </span>
                             </div>
                         </td>
@@ -3568,7 +3718,7 @@
                             ${subtotalPct.toFixed(1)}%
                         </td>
                         <td style="padding: 4px 8px; text-align: right; font-family: var(--font-mono); color: ${actColor};">
-                            ${Number(subtotalPP).toFixed(2)}
+                            ${subtotalPP}
                         </td>
                         <td style="padding: 4px 8px; text-align: center; font-size: 0.60rem; color: ${actText};">
                             ${actLabel}
@@ -3577,15 +3727,25 @@
                 `;
             });
 
+            if (!bodyHtml) {
+                return `<div style="padding: 18px 12px; text-align: center; color: #64748b; font-size: 0.72rem; font-style: italic; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">No se registraron cortes semanales para la variedad <strong>${activeVariety}</strong> en los ciclos de este bloque.</div>`;
+            }
+
             const grandDumpSpan = grandDump > 0 
                 ? `<span style="color: #dc2626; font-size: 0.60rem; font-weight: 700; margin-left: 3px;">(${grandDump.toLocaleString()} dmp)</span>` 
                 : '';
-            const grandPP = cblock.real_stems_per_plant || (cblock.total_plants > 0 ? (grandStems / cblock.total_plants) : 0);
+            
+            let grandPlants = cblock.total_plants;
+            if (activeVariety !== 'ALL' && cblock.variety_breakdown && cblock.variety_breakdown.length) {
+                const vb = cblock.variety_breakdown.find(v => (v.variety || '').trim() === activeVariety.trim());
+                if (vb && vb.plants) grandPlants = vb.plants;
+            }
+            const grandPP = grandPlants > 0 ? (grandStems / grandPlants).toFixed(2) : (cblock.real_stems_per_plant || '0.00');
 
             return `
                 <div class="harvest-mini-table-container" style="margin-top: 6px; width: 100%; max-width: 100%; overflow-x: auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); box-sizing: border-box;">
                     <div style="padding: 5px 8px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; font-size: 0.64rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; display: flex; justify-content: space-between; align-items: center;">
-                        <span>📊 Detalle de Cosecha por Ciclo (${cblock.productions.length} ciclos · ${grandWeeks} semanas)</span>
+                        <span>📊 Detalle de Cosecha por Ciclo ${activeVariety !== 'ALL' ? `— Variedad: <strong style="color: #0369a1;">${activeVariety}</strong>` : ''} (${grandWeeks} semanas)</span>
                         <span style="font-size: 0.60rem; color: #64748b; font-weight: 600;">Siembra (Verde) / Poda (Morado)</span>
                     </div>
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.68rem; font-family: var(--font-pbi);">
@@ -3621,7 +3781,7 @@
                                     ${Number(grandPP).toFixed(2)}
                                 </td>
                                 <td style="padding: 5px 8px; text-align: center; font-size: 0.60rem; color: #475569;">
-                                    Consolidado
+                                    ${activeVariety !== 'ALL' ? activeVariety : 'Consolidado'}
                                 </td>
                             </tr>
                         </tfoot>
@@ -3727,6 +3887,55 @@
                     }
                 });
             }
+        }
+
+        // Filter inline cycle chart and mini-table by specific variety
+        function filterInlineCycleVariety(prodUid, variety, btn) {
+            const chartContainer = document.getElementById(`inline-chart-${prodUid}`);
+            if (!chartContainer) return;
+
+            // Highlight clicked button within its button group
+            const chipGroup = btn.parentElement;
+            if (chipGroup) {
+                chipGroup.querySelectorAll('.btn-var-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+
+            const act = chartContainer.dataset.activity || 'SIEMBRA';
+            const cardEl = chartContainer.closest('.prod-cycle-card');
+            const titleEl = cardEl ? cardEl.querySelector('.js-prod-chart-title') : null;
+            const rangeEl = cardEl ? cardEl.querySelector('.js-prod-harvest-range') : null;
+
+            let lookupKey = prodUid;
+            let titleSuffix = '';
+            if (variety && variety !== 'ALL') {
+                lookupKey = `${prodUid}_var_${variety}`;
+                titleSuffix = ` · ${variety}`;
+            }
+
+            const rawItems = HARVEST_BREAKDOWN_MAP[lookupKey] || [];
+            const items = rawItems.filter(i => (Number(i.stems) || 0) > 0);
+
+            if (titleEl) {
+                const actName = (act.toUpperCase() === 'PODA') ? 'Poda' : 'Siembra';
+                titleEl.textContent = `📈 Curva de ${actName}${titleSuffix} (${items.length} sem):`;
+            }
+
+            if (rangeEl && items.length > 0) {
+                const weeks = items.map(i => i.hw).sort((a,b) => a - b);
+                rangeEl.textContent = `Sem ${weeks[0]} - Sem ${weeks[weeks.length - 1]}`;
+            }
+
+            if (!items.length) {
+                chartContainer.innerHTML = `
+                    <div style="padding: 24px 12px; text-align: center; color: #94a3b8; font-size: 0.72rem; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; margin-top: 6px;">
+                        ℹ️ No se registraron datos de cosecha semanales para la variedad <strong>${variety}</strong> en este ciclo.
+                    </div>
+                `;
+                return;
+            }
+
+            chartContainer.innerHTML = generateLineChartSVG(items, lookupKey, act) + generateHarvestMiniTableHTML(items, false, act);
         }
 
         let isFlatView = false;
@@ -4069,14 +4278,25 @@
             });
         }
 
-        // ---------------- CHART.JS CONFIGURATION - LIGHT POWER BI STYLE ----------------
+        // ---------------- CHART.JS CONFIGURATION - MODERN HIGH-DEFINITION STYLE ----------------
         const pbiFontFamily = "'Franklin Gothic Demi Cond', 'Franklin Gothic Medium Cond', 'Franklin Gothic Demi', 'Franklin Gothic', 'Arial Narrow', sans-serif";
         if (typeof Chart !== 'undefined') {
             Chart.defaults.font.family = pbiFontFamily;
             Chart.defaults.color = '#475569';
         }
 
-        // 1. RENDER CHART 1: RELATIVE HARVEST CURVE (LINEAS FINAS EN AZUL BRILLANTE Y DISCONTINUA EN NARANJA)
+        // Helper to generate lush vertical canvas gradients matching SVG area curves
+        function getChartCanvasGradient(context, colorStart, colorEnd) {
+            const chart = context.chart;
+            const {ctx, chartArea} = chart;
+            if (!chartArea) return colorStart;
+            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            gradient.addColorStop(0, colorStart);
+            gradient.addColorStop(1, colorEnd);
+            return gradient;
+        }
+
+        // 1. RENDER CHART 1: RELATIVE HARVEST CURVE (CURVA RELATIVA REAL VS MODELO CON RELLENO GRADIENTE ESMERALDA)
         const ctxRelative = document.getElementById('relativeCurveChart');
         if (ctxRelative && typeof Chart !== 'undefined') {
             new Chart(ctxRelative, {
@@ -4087,30 +4307,38 @@
                         {
                             label: 'Curva Real (%)',
                             data: chartRelativeData.real_curve,
-                            borderColor: '#0284c7',
-                            backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                            borderColor: '#059669',
+                            backgroundColor: function(context) {
+                                return getChartCanvasGradient(context, 'rgba(5, 150, 105, 0.32)', 'rgba(5, 150, 105, 0.01)');
+                            },
                             fill: true,
-                            tension: 0.35,
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#0284c7',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1.5,
+                            tension: 0.38,
+                            borderWidth: 2.8,
+                            pointRadius: 4.5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#059669',
+                            pointBorderWidth: 2.5,
+                            pointHoverBackgroundColor: '#059669',
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 3,
                         },
                         {
-                            label: 'Curva Ideal (%)',
+                            label: 'Curva Modelo Ideal (%)',
                             data: chartRelativeData.ideal_curve,
-                            borderColor: '#ea580c',
+                            borderColor: '#d97706',
                             backgroundColor: 'transparent',
-                            borderDash: [5, 5],
-                            tension: 0.35,
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            pointBackgroundColor: '#ea580c',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1,
+                            borderDash: [5, 4],
+                            tension: 0.38,
+                            borderWidth: 2.2,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#d97706',
+                            pointBorderWidth: 2,
+                            pointHoverBackgroundColor: '#d97706',
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 2.5,
                         }
                     ]
                 },
@@ -4118,6 +4346,9 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
+                    layout: {
+                        padding: { left: 4, right: 12, top: 6, bottom: 6 }
+                    },
                     plugins: {
                         legend: {
                             position: 'top',
@@ -4125,20 +4356,24 @@
                                 color: '#1e293b',
                                 font: { family: pbiFontFamily, size: 11, weight: '700' },
                                 usePointStyle: true,
-                                boxWidth: 7
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
                             backgroundColor: '#0f172a',
-                            borderColor: '#0284c7',
-                            borderWidth: 1,
+                            borderColor: '#059669',
+                            borderWidth: 1.5,
                             titleColor: '#ffffff',
                             bodyColor: '#f1f5f9',
+                            padding: 10,
+                            boxPadding: 4,
+                            cornerRadius: 8,
+                            usePointStyle: true,
                             callbacks: {
-                                label: function(c) { return `${c.dataset.label}: ${c.parsed.y}%`; }
+                                label: function(c) { return ` ${c.dataset.label}: ${c.parsed.y}%`; }
                             },
-                            titleFont: { family: pbiFontFamily, weight: '800' },
-                            bodyFont: { family: pbiFontFamily, weight: '600' }
+                            titleFont: { family: pbiFontFamily, weight: '800', size: 12 },
+                            bodyFont: { family: pbiFontFamily, weight: '600', size: 11 }
                         }
                     },
                     scales: {
@@ -4163,20 +4398,38 @@
             });
         }
 
-        // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META
+        // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (RELLENO GRADIENTE MORADO/INDIGO CON BEAD NODES)
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
             const hasClosedCutoff = (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0);
-            const pointColors = chartStemsPpData.real_stems_pp.map((v, i) => {
+            const pointBorderColors = chartStemsPpData.real_stems_pp.map((v, i) => {
                 const target = chartStemsPpData.target_stems_pp[i] || 0;
                 const isClosed = hasClosedCutoff ? (i <= chartStemsPpData.last_closed_index) : true;
                 if (!isClosed) return '#94a3b8'; // Slate gray for blocks still open/in-progress
                 return v >= target ? '#059669' : '#dc2626';
             });
 
-            // Plugin to draw a vertical indicator line where closed blocks end
+            // Plugin to draw a vertical indicator line & shaded closed zone where closed blocks end
             const closedCutoffPlugin = {
                 id: 'closedCutoffLine',
+                beforeDatasetsDraw(chart) {
+                    if (!hasClosedCutoff) return;
+                    const idx = chartStemsPpData.last_closed_index;
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || !meta.data[idx]) return;
+
+                    const x = meta.data[idx].x;
+                    const top = chart.chartArea.top;
+                    const bottom = chart.chartArea.bottom;
+                    const left = chart.chartArea.left;
+                    const ctx = chart.ctx;
+
+                    // Light zone shading behind closed blocks
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(5, 150, 105, 0.035)';
+                    ctx.fillRect(left, top, x - left, bottom - top);
+                    ctx.restore();
+                },
                 afterDatasetsDraw(chart) {
                     if (!hasClosedCutoff) return;
                     const idx = chartStemsPpData.last_closed_index;
@@ -4190,27 +4443,26 @@
 
                     ctx.save();
 
-                    // 1. Vertical indicator line (dashed amber/gold)
+                    // 1. Subtle glow behind vertical line
                     ctx.beginPath();
-                    ctx.setLineDash([5, 4]);
-                    ctx.lineWidth = 2.5;
-                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = 'rgba(217, 119, 6, 0.12)';
                     ctx.moveTo(x, top + 22);
                     ctx.lineTo(x, bottom);
                     ctx.stroke();
 
-                    // 2. Subtle shadow highlight behind the vertical line
+                    // 2. Vertical indicator line (dashed amber/gold)
                     ctx.beginPath();
-                    ctx.setLineDash([]);
-                    ctx.lineWidth = 6;
-                    ctx.strokeStyle = 'rgba(217, 119, 6, 0.15)';
+                    ctx.setLineDash([5, 4]);
+                    ctx.lineWidth = 2.2;
+                    ctx.strokeStyle = '#d97706';
                     ctx.moveTo(x, top + 22);
                     ctx.lineTo(x, bottom);
                     ctx.stroke();
 
                     // 3. Top badge pill indicator
                     const lbl = chartStemsPpData.last_closed_label || `Sem ${chartStemsPpData.labels[idx]}`;
-                    const text = `Cierre: ${lbl}`;
+                    const text = `🔒 Cierre: ${lbl}`;
                     ctx.font = `bold 10px ${pbiFontFamily}`;
                     const textWidth = ctx.measureText(text).width;
                     const pillW = textWidth + 14;
@@ -4247,16 +4499,21 @@
                         {
                             label: 'Rendimiento Real (T/pl)',
                             data: chartStemsPpData.real_stems_pp,
-                            borderColor: '#0284c7',
-                            backgroundColor: 'rgba(2, 132, 199, 0.06)',
+                            borderColor: '#7e22ce',
+                            backgroundColor: function(context) {
+                                return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
+                            },
                             fill: true,
-                            tension: 0.25,
-                            borderWidth: 2,
+                            tension: 0.35,
+                            borderWidth: 2.8,
                             pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: pointColors,
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1.5,
+                            pointHoverRadius: 7.5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: pointBorderColors,
+                            pointBorderWidth: 2.5,
+                            pointHoverBackgroundColor: function(ctx) { return pointBorderColors[ctx.dataIndex] || '#7e22ce'; },
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 3,
                         },
                         {
                             label: 'Meta Ideal (T/pl)',
@@ -4266,6 +4523,7 @@
                             backgroundColor: 'transparent',
                             borderWidth: 2,
                             pointRadius: 0,
+                            pointHoverRadius: 0
                         }
                     ]
                 },
@@ -4274,7 +4532,7 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     layout: {
-                        padding: { left: 4, right: 10, top: 4, bottom: 8 }
+                        padding: { left: 4, right: 12, top: 4, bottom: 8 }
                     },
                     plugins: {
                         legend: {
@@ -4283,15 +4541,19 @@
                                 color: '#1e293b',
                                 font: { family: pbiFontFamily, size: 11, weight: '700' },
                                 usePointStyle: true,
-                                boxWidth: 7
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
                             backgroundColor: '#0f172a',
-                            borderColor: '#0284c7',
-                            borderWidth: 1,
+                            borderColor: '#7e22ce',
+                            borderWidth: 1.5,
                             titleColor: '#ffffff',
                             bodyColor: '#f1f5f9',
+                            padding: 10,
+                            boxPadding: 4,
+                            cornerRadius: 8,
+                            usePointStyle: true,
                             callbacks: {
                                 title: function(items) {
                                     if (!items.length) return '';
@@ -4343,8 +4605,8 @@
                                     }
                                 }
                             },
-                            titleFont: { family: pbiFontFamily, weight: '800' },
-                            bodyFont: { family: pbiFontFamily, weight: '600' }
+                            titleFont: { family: pbiFontFamily, weight: '800', size: 12 },
+                            bodyFont: { family: pbiFontFamily, weight: '600', size: 11 }
                         }
                     },
                     scales: {
