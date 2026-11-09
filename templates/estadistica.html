@@ -1907,7 +1907,9 @@
                         <div class="chart-header">
                             <h3>📊 Rendimiento Histórico: Tallos / Planta vs Meta por Semana</h3>
                             <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
-                                {% if stats.chart_stems_pp.last_closed_label %}
+                                {% if stats.chart_stems_pp.years %}
+                                    🏆 Multianual: {{ stats.chart_stems_pp.years | join(' vs ') }}
+                                {% elif stats.chart_stems_pp.last_closed_label %}
                                     🏆 Cierre Real: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
                                 {% else %}
                                     Eje X: Semanas de Siembra / Poda
@@ -4020,7 +4022,7 @@
 
             const act = (foundProd && foundProd.activity) || chartContainer.dataset.activity || 'SIEMBRA';
             const isClosed = foundProd ? Boolean(foundProd.is_closed) : (chartContainer.dataset.isClosed === 'true');
-            const cardEl = chartContainer.closest('.prod-cycle-card') || btn.closest('.prod-cycle-card');
+            const cardEl = chartContainer.closest('.cycle-card') || chartContainer.closest('.prod-cycle-card') || btn.closest('.cycle-card') || btn.closest('.prod-cycle-card');
             const titleEl = cardEl ? cardEl.querySelector('.js-prod-chart-title') : null;
             const rangeEl = cardEl ? cardEl.querySelector('.js-prod-harvest-range') : null;
 
@@ -4561,15 +4563,82 @@
             });
         }
 
-        // 2. RENDER CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META (RELLENO GRADIENTE MORADO/INDIGO CON BEAD NODES)
+        // 2. RENDER CHART 2: MULTI-YEAR STEMS PER PLANT BY CALENDAR WEEK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
-            const hasClosedCutoff = (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0);
-            const pointBorderColors = chartStemsPpData.real_stems_pp.map((v, i) => {
-                const target = chartStemsPpData.target_stems_pp[i] || 0;
-                const isClosed = hasClosedCutoff ? (i <= chartStemsPpData.last_closed_index) : true;
-                if (!isClosed) return '#94a3b8'; // Slate gray for blocks still open/in-progress
-                return v >= target ? '#059669' : '#dc2626';
+            const isMultiYear = Boolean(chartStemsPpData.series_by_year && chartStemsPpData.years && chartStemsPpData.years.length > 0);
+            const hasClosedCutoff = !isMultiYear && (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0);
+
+            const datasets = [];
+            const yearColorPalette = {
+                '2026': { line: '#7e22ce', bg: 'rgba(126, 34, 206, 0.20)', fill: true, width: 3.0, ptRadius: 4.5 },
+                '2025': { line: '#2563eb', bg: 'transparent', fill: false, width: 2.4, ptRadius: 3.5 },
+                '2024': { line: '#059669', bg: 'transparent', fill: false, width: 2.2, ptRadius: 3.5 },
+                '2023': { line: '#d97706', bg: 'transparent', fill: false, width: 2.0, ptRadius: 3.0 },
+            };
+            const fallbackPalette = ['#0891b2', '#db2777', '#4f46e5', '#65a30d'];
+
+            if (isMultiYear) {
+                chartStemsPpData.years.forEach((yr, idx) => {
+                    const cfg = yearColorPalette[yr] || {
+                        line: fallbackPalette[idx % fallbackPalette.length],
+                        bg: 'transparent',
+                        fill: false,
+                        width: 2.2,
+                        ptRadius: 3.5
+                    };
+                    const dataPoints = chartStemsPpData.series_by_year[yr];
+                    datasets.push({
+                        label: `Año ${yr}`,
+                        data: dataPoints,
+                        borderColor: cfg.line,
+                        backgroundColor: cfg.fill ? function(context) {
+                            return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.22)', 'rgba(126, 34, 206, 0.01)');
+                        } : 'transparent',
+                        fill: cfg.fill,
+                        tension: 0.35,
+                        borderWidth: cfg.width,
+                        pointRadius: cfg.ptRadius,
+                        pointHoverRadius: cfg.ptRadius + 2.5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: cfg.line,
+                        pointBorderWidth: 2,
+                        spanGaps: true,
+                    });
+                });
+            } else {
+                const pointBorderColors = (chartStemsPpData.real_stems_pp || []).map((v, i) => {
+                    const target = (chartStemsPpData.target_stems_pp && chartStemsPpData.target_stems_pp[i]) || 0;
+                    return v >= target ? '#059669' : '#dc2626';
+                });
+                datasets.push({
+                    label: 'Rendimiento Real (T/pl)',
+                    data: chartStemsPpData.real_stems_pp,
+                    borderColor: '#7e22ce',
+                    backgroundColor: function(context) {
+                        return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
+                    },
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.8,
+                    pointRadius: 5,
+                    pointHoverRadius: 7.5,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: pointBorderColors,
+                    pointBorderWidth: 2.5,
+                });
+            }
+
+            // Always add Target Meta Ideal line:
+            datasets.push({
+                label: 'Meta Ideal (T/pl)',
+                data: chartStemsPpData.target_stems_pp,
+                borderColor: '#dc2626',
+                borderDash: [6, 4],
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 0
             });
 
             // Plugin to draw a vertical indicator line & shaded closed zone where closed blocks end
@@ -4658,37 +4727,7 @@
                 type: 'line',
                 data: {
                     labels: chartStemsPpData.labels,
-                    datasets: [
-                        {
-                            label: 'Rendimiento Real (T/pl)',
-                            data: chartStemsPpData.real_stems_pp,
-                            borderColor: '#7e22ce',
-                            backgroundColor: function(context) {
-                                return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
-                            },
-                            fill: true,
-                            tension: 0.35,
-                            borderWidth: 2.8,
-                            pointRadius: 5,
-                            pointHoverRadius: 7.5,
-                            pointBackgroundColor: '#ffffff',
-                            pointBorderColor: pointBorderColors,
-                            pointBorderWidth: 2.5,
-                            pointHoverBackgroundColor: function(ctx) { return pointBorderColors[ctx.dataIndex] || '#7e22ce'; },
-                            pointHoverBorderColor: '#ffffff',
-                            pointHoverBorderWidth: 3,
-                        },
-                        {
-                            label: 'Meta Ideal (T/pl)',
-                            data: chartStemsPpData.target_stems_pp,
-                            borderColor: '#dc2626',
-                            borderDash: [6, 4],
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            pointHoverRadius: 0
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -4720,52 +4759,37 @@
                             callbacks: {
                                 title: function(items) {
                                     if (!items.length) return '';
-                                    return items[0].label;
+                                    const raw = items[0].label;
+                                    const cleanWk = raw ? String(raw).replace(/^Sem\s*/i, '') : raw;
+                                    return `Semana ${cleanWk}`;
                                 },
                                 label: function(context) {
-                                    const i = context.dataIndex;
-                                    const detail = (chartStemsPpData && chartStemsPpData.details) ? chartStemsPpData.details[i] : null;
-                                    const meta = (chartStemsPpData && chartStemsPpData.target_stems_pp) ? chartStemsPpData.target_stems_pp[i] : 0;
+                                    const ds = context.dataset;
+                                    const val = context.parsed.y;
+                                    if (val === null || val === undefined) return null;
 
-                                    if (context.datasetIndex === 0) {
-                                        const lines = [];
-                                        if (detail) {
-                                            const hasSiem = detail.siem_t_pl !== null && detail.siem_t_pl !== undefined;
-                                            const hasPoda = detail.poda_t_pl !== null && detail.poda_t_pl !== undefined;
-
-                                            if (hasSiem && hasPoda) {
-                                                const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
-                                                const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
-                                                lines.push(`Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
-                                            } else if (hasSiem) {
-                                                const siemIcon = detail.siem_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`Siem: ${detail.siem_t_pl} t/p ${siemIcon}`);
-                                            } else if (hasPoda) {
-                                                const podaIcon = detail.poda_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`Poda: ${detail.poda_t_pl} t/p ${podaIcon}`);
-                                            } else {
-                                                const totIcon = detail.total_t_pl >= meta ? '🟢' : '🔴';
-                                                lines.push(`Siem: ${detail.total_t_pl} t/p ${totIcon}`);
-                                            }
-
-                                            // Show closed status in tooltip
-                                            if (hasClosedCutoff) {
-                                                if (i <= chartStemsPpData.last_closed_index) {
-                                                    lines.push(`Cierre Real: Bloque(s) Cerrados`);
-                                                } else {
-                                                    lines.push(`Estado: En Cosecha / Abierto`);
-                                                }
-                                            }
-                                        } else {
-                                            const val = context.parsed.y;
-                                            const icon = val >= meta ? '🟢' : '🔴';
-                                            lines.push(`Siem: ${val} t/p ${icon}`);
-                                        }
-                                        return lines;
-                                    } else {
-                                        return `Meta: ${meta} t/p`;
+                                    if (ds.label && ds.label.startsWith('Meta')) {
+                                        return `🎯 ${ds.label}: ${val} T/pl`;
                                     }
+
+                                    const yr = ds.label ? ds.label.replace('Año ', '') : '';
+                                    const meta = (chartStemsPpData && chartStemsPpData.target_stems_pp) ? chartStemsPpData.target_stems_pp[context.dataIndex] : 0;
+                                    const icon = (meta && val >= meta) ? '🟢' : (meta ? '🔴' : '');
+
+                                    let extra = '';
+                                    if (chartStemsPpData.details_by_year && chartStemsPpData.details_by_year[yr]) {
+                                        const d = chartStemsPpData.details_by_year[yr][context.dataIndex];
+                                        if (d) {
+                                            if (d.siem_t_pl !== null && d.poda_t_pl !== null) {
+                                                extra = ` (Siem: ${d.siem_t_pl} | Poda: ${d.poda_t_pl})`;
+                                            } else if (d.siem_t_pl !== null) {
+                                                extra = ` (Siem: ${d.siem_t_pl})`;
+                                            } else if (d.poda_t_pl !== null) {
+                                                extra = ` (Poda: ${d.poda_t_pl})`;
+                                            }
+                                        }
+                                    }
+                                    return `${ds.label}: ${val} T/pl ${icon}${extra}`;
                                 }
                             },
                             titleFont: { family: pbiFontFamily, weight: '800', size: 12 },
@@ -4786,10 +4810,15 @@
                             ticks: {
                                 color: '#64748b',
                                 font: { family: pbiFontFamily, size: 10, weight: '700' },
-                                maxRotation: 45,
+                                maxRotation: 0,
                                 minRotation: 0,
-                                autoSkip: false,
+                                autoSkip: true,
+                                maxTicksLimit: 26,
                                 padding: 6,
+                                callback: function(val, index) {
+                                    const lbl = this.getLabelForValue(val);
+                                    return lbl ? String(lbl).replace(/^Sem\s*/i, '') : val;
+                                }
                             },
                             grid: { display: false }
                         }

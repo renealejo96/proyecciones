@@ -2031,9 +2031,13 @@ def get_statistics_data(
         if resolved_year:
             try:
                 y_int = int(resolved_year)
-                week_adj_query = week_adj_query.filter(
+                year_condition_adj = (
                     (WeekAdjustmentDB.source_week >= y_int * 100) & (WeekAdjustmentDB.source_week < (y_int + 1) * 100)
                 )
+                if closed_sws_list:
+                    week_adj_query = week_adj_query.filter(year_condition_adj | WeekAdjustmentDB.source_week.in_(closed_sws_list))
+                else:
+                    week_adj_query = week_adj_query.filter(year_condition_adj)
             except ValueError:
                 pass
         if selected_weeks_set:
@@ -2163,12 +2167,23 @@ def get_statistics_data(
                         chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
                 elif hw in adj_agro_map:
                     val = adj_agro_map[hw]
-                    src = "AGRONOMO"
-                    if val > 0:
-                        chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
+                    # Historical closures or weeks prior to week 2630 must always show as REAL
+                    if is_closed or hw < 202630:
+                        src = "REAL"
+                        if val > 0:
+                            block_real_stems += val
+                            chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
+                    else:
+                        src = "AGRONOMO"
+                        if val > 0:
+                            chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
                 elif not is_closed:
-                    val = curve_hw_map.get(hw, 0)
-                    src = "MODELO"
+                    if hw < 202630:
+                        val = 0
+                        src = "REAL"
+                    else:
+                        val = curve_hw_map.get(hw, 0)
+                        src = "MODELO"
                 else:
                     val = 0
                     src = "REAL"
@@ -2426,46 +2441,99 @@ def get_statistics_data(
             for r, a in zip(chrono_real_data, chrono_agro_data)
         ]
 
-        # Chart 3: Real Stems / Plant by Source Week vs Target Meta Line (ONLY for CLOSED weeks as requested)
-        chart3_sorted_labels = sorted(
-            [lbl for lbl in chart3_weeks_map.keys() if chart3_weeks_map[lbl].get("closed_blocks", 0) > 0],
-            key=lambda lbl: chart3_weeks_map[lbl].get("source_week", 0)
-        )
-        if not selected_weeks_set and len(chart3_sorted_labels) > 30:
-            chart3_sorted_labels = chart3_sorted_labels[-30:]
+        # Chart 3: Multi-Year Real Stems / Plant Comparison by Calendar Week (Format 45, 46 etc. comparing 2026 vs 2025 vs 2024)
+        year_week_stems: dict[str, dict[int, dict[str, Any]]] = {}
+        all_calendar_weeks_set: set[int] = set()
 
-        chart_stems_pp_real = []
-        chart_stems_pp_target = []
-        chart_stems_pp_details = []
-        last_closed_label = None
-        last_closed_index = -1
+        for b in flat_block_rows:
+            if not b["is_closed"]:
+                continue
+            sw_val = b.get("source_week")
+            if not sw_val:
+                continue
+            sw_str = str(sw_val)
+            if len(sw_str) < 6:
+                continue
+            try:
+                y_str = sw_str[:4]
+                wk_num = int(sw_str[-2:])
+            except ValueError:
+                continue
 
-        for idx, lbl in enumerate(chart3_sorted_labels):
-            info = chart3_weeks_map[lbl]
-            pp = round(info["total_production"] / info["total_plants"], 1) if info["total_plants"] > 0 else 0.0
-            chart_stems_pp_real.append(pp)
-            chart_stems_pp_target.append(avg_ideal_stems_pp)
+            b_plants = b.get("plants", 0)
+            b_prod = b.get("total_production", 0)
+            if b_plants <= 0 or b_prod <= 0:
+                continue
 
-            siem_pp = round(info["siem_prod"] / info["siem_plants"], 1) if info.get("siem_plants", 0) > 0 else None
-            poda_pp = round(info["poda_prod"] / info["poda_plants"], 1) if info.get("poda_plants", 0) > 0 else None
-            avg_stems = round(info["total_production"] / info["blocks_count"]) if info.get("blocks_count", 0) > 0 else 0
-            closed_b = info.get("closed_blocks", 0)
-            if closed_b > 0:
-                last_closed_label = lbl
-                last_closed_index = idx
+            all_calendar_weeks_set.add(wk_num)
+            if y_str not in year_week_stems:
+                year_week_stems[y_str] = {}
+            if wk_num not in year_week_stems[y_str]:
+                year_week_stems[y_str][wk_num] = {
+                    "plants": 0,
+                    "prod": 0,
+                    "siem_plants": 0,
+                    "siem_prod": 0,
+                    "poda_plants": 0,
+                    "poda_prod": 0,
+                    "blocks_count": 0,
+                }
+            acc = year_week_stems[y_str][wk_num]
+            acc["plants"] += b_plants
+            acc["prod"] += b_prod
+            acc["blocks_count"] += 1
+            if b.get("activity") == "SIEMBRA":
+                acc["siem_plants"] += b_plants
+                acc["siem_prod"] += b_prod
+            elif b.get("activity") == "PODA":
+                acc["poda_plants"] += b_plants
+                acc["poda_prod"] += b_prod
 
-            chart_stems_pp_details.append({
-                "total_t_pl": pp,
-                "siem_t_pl": siem_pp,
-                "poda_t_pl": poda_pp,
-                "total_production": info["total_production"],
-                "total_plants": info["total_plants"],
-                "avg_stems": avg_stems,
-                "blocks_count": info["blocks_count"],
-                "closed_blocks": closed_b,
-                "is_closed": True,
-                "target": avg_ideal_stems_pp,
-            })
+        # Filter by selected weeks if specified
+        if selected_weeks_set:
+            wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
+            sorted_calendar_weeks = sorted([w for w in all_calendar_weeks_set if w in wk_filter_set])
+        else:
+            sorted_calendar_weeks = sorted(list(all_calendar_weeks_set))
+
+        chart3_sorted_labels = [f"Sem {w}" for w in sorted_calendar_weeks]
+        series_by_year: dict[str, list[float | None]] = {}
+        details_by_year: dict[str, list[dict[str, Any] | None]] = {}
+        available_chart_years = sorted(list(year_week_stems.keys()), reverse=True)
+
+        for y_str in available_chart_years:
+            y_data = []
+            y_details = []
+            for wk_num in sorted_calendar_weeks:
+                if wk_num in year_week_stems[y_str]:
+                    cell = year_week_stems[y_str][wk_num]
+                    t_pl = round(cell["prod"] / cell["plants"], 2) if cell["plants"] > 0 else None
+                    y_data.append(t_pl)
+                    siem_pp = round(cell["siem_prod"] / cell["siem_plants"], 2) if cell["siem_plants"] > 0 else None
+                    poda_pp = round(cell["poda_prod"] / cell["poda_plants"], 2) if cell["poda_plants"] > 0 else None
+                    y_details.append({
+                        "year": y_str,
+                        "week": wk_num,
+                        "total_t_pl": t_pl,
+                        "siem_t_pl": siem_pp,
+                        "poda_t_pl": poda_pp,
+                        "total_plants": cell["plants"],
+                        "total_production": cell["prod"],
+                        "blocks_count": cell["blocks_count"],
+                        "target": avg_ideal_stems_pp,
+                    })
+                else:
+                    y_data.append(None)
+                    y_details.append(None)
+            series_by_year[y_str] = y_data
+            details_by_year[y_str] = y_details
+
+        primary_year = resolved_year if resolved_year in series_by_year else ("2026" if "2026" in series_by_year else (available_chart_years[0] if available_chart_years else None))
+        chart_stems_pp_real = series_by_year.get(primary_year, []) if primary_year else []
+        chart_stems_pp_target = [avg_ideal_stems_pp] * len(chart3_sorted_labels)
+        chart_stems_pp_details = details_by_year.get(primary_year, []) if primary_year else []
+        last_closed_label = chart3_sorted_labels[-1] if chart3_sorted_labels else None
+        last_closed_index = len(chart3_sorted_labels) - 1 if chart3_sorted_labels else -1
 
         # Chart 4: Hybrid Lifecycle Curve (Closed Real Stems + Future Projected Estimates)
         hybrid_weeks = sorted_chrono_weeks
@@ -2636,6 +2704,10 @@ def get_statistics_data(
             },
             "chart_stems_pp": {
                 "labels": chart3_sorted_labels,
+                "calendar_weeks": sorted_calendar_weeks,
+                "series_by_year": series_by_year,
+                "years": available_chart_years,
+                "details_by_year": details_by_year,
                 "real_stems_pp": chart_stems_pp_real,
                 "target_stems_pp": chart_stems_pp_target,
                 "details": chart_stems_pp_details,

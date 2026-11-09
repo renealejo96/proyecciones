@@ -117,9 +117,7 @@ def normalize_variedad(source_sheet_name, value):
         return 'ROMANTIC GLORY'
 
     if normalized_sheet_key in {'gyp codigos', 'billion lights'}:
-        if 'BILLION' in comparable:
-            return 'BILLION LIGHTS'
-        return 'G3'
+        return 'BILLION LIGHTS'
 
     if normalized_sheet_key == 'sunflower 2025_inv':
         normalized = re.sub(r'\bPLANTULA\b', '', normalized).strip()
