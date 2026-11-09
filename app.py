@@ -1529,6 +1529,8 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     hw_map: dict[int, dict[str, Any]] = {}
     for r in cluster_rows:
         for hb in r.get("harvest_breakdown", []):
+            if hb.get("stems", 0) <= 0:
+                continue
             hw = hb["harvest_week"]
             if hw not in hw_map:
                 hw_map[hw] = {
@@ -1547,7 +1549,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
             elif hb.get("source") == "AGRONOMO" and hw_map[hw]["source"] != "REAL":
                 hw_map[hw]["source"] = "AGRONOMO"
 
-    sorted_hw_list = sorted(hw_map.values(), key=lambda x: x["harvest_week"])
+    sorted_hw_list = sorted([item for item in hw_map.values() if item["stems"] > 0], key=lambda x: x["harvest_week"])
     for item in sorted_hw_list:
         item["stems_pp"] = round(item["stems"] / tot_plants, 2) if tot_plants > 0 else 0.0
         item["pct_of_total"] = round((item["stems"] / tot_prod * 100.0), 1) if tot_prod > 0 else 0.0
@@ -2110,21 +2112,26 @@ def get_statistics_data(
                 if hw in adj_real_map:
                     val = adj_real_map[hw]
                     src = "REAL"
-                    block_real_stems += val
-                    chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
+                    if val > 0:
+                        block_real_stems += val
+                        chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
                 elif hw in adj_agro_map:
                     val = adj_agro_map[hw]
                     src = "AGRONOMO"
-                    chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
+                    if val > 0:
+                        chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
                 else:
                     val = curve_hw_map.get(hw, 0)
                     src = "MODELO"
 
                 d_stems = adj_dump_map.get(hw, 0)
-                block_dumps += d_stems
-
-                # Cierre real: total tallos producidos = exportables (val) + dumps (d_stems)
                 hw_total = val + d_stems
+
+                # Skip zero-stem weeks: if there is no harvest (explicitly zeroed out or no production), it should not be in the curve
+                if hw_total <= 0:
+                    continue
+
+                block_dumps += d_stems
                 block_total_production += hw_total
                 hw_pp = round(hw_total / plants, 2) if plants > 0 else 0.0
 
@@ -2430,8 +2437,10 @@ def get_statistics_data(
                         "dump": h.get("dump_stems", 0),
                         "pct": h.get("pct_of_total", 0),
                         "src": h.get("source", "MODELO"),
+                        "activity": b.get("activity", "SIEMBRA"),
                     }
                     for h in b["harvest_breakdown"]
+                    if h.get("stems", 0) > 0
                 ]
 
         for prod in consolidated_productions:
@@ -2446,8 +2455,12 @@ def get_statistics_data(
                         "dump": h.get("dump_stems", 0),
                         "pct": h.get("pct_of_total", 0),
                         "src": h.get("source", "MODELO"),
+                        "activity": prod.get("activity", "SIEMBRA"),
+                        "production_label": prod.get("production_label", ""),
+                        "production_num": prod.get("production_num", 1),
                     }
                     for h in prod["harvest_breakdown"]
+                    if h.get("stems", 0) > 0
                 ]
 
         for cblock in consolidated_blocks:
@@ -2455,6 +2468,8 @@ def get_statistics_data(
             combined_hw = {}
             for prod in cblock["productions"]:
                 for h in prod.get("harvest_breakdown", []):
+                    if h.get("stems", 0) <= 0:
+                        continue
                     hw_short = h["harvest_week_short"]
                     if hw_short not in combined_hw:
                         combined_hw[hw_short] = {
@@ -2463,6 +2478,8 @@ def get_statistics_data(
                             "stems": 0,
                             "dump": 0,
                             "src": h.get("source", "MODELO"),
+                            "activity": prod.get("activity", "SIEMBRA"),
+                            "production_label": prod.get("production_label", ""),
                         }
                     combined_hw[hw_short]["stems"] += h["stems"]
                     combined_hw[hw_short]["dump"] += h.get("dump_stems", 0)
@@ -2473,7 +2490,7 @@ def get_statistics_data(
 
             tot_b_prod = cblock["total_production"]
             tot_b_plants = cblock["total_plants"]
-            sorted_cb_hw = sorted(combined_hw.values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
+            sorted_cb_hw = sorted([item for item in combined_hw.values() if item["stems"] > 0], key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
             for item in sorted_cb_hw:
                 item["pct"] = round((item["stems"] / tot_b_prod * 100.0), 1) if tot_b_prod > 0 else 0.0
                 item["pp"] = round(item["stems"] / tot_b_plants, 2) if tot_b_plants > 0 else 0.0
