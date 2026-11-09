@@ -1696,9 +1696,10 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
         harvest_weeks_summary = ", ".join(all_hw)
         harvest_weeks_display = format_week_range_display(all_hw)
         
+        has_any_closed = any(p["is_closed"] for p in productions) if productions else False
         is_all_closed = all(p["is_closed"] for p in productions) if productions else False
         has_any_real = any(p.get("has_real_data") for p in productions) if productions else False
-        overall_status = "CERRADO" if is_all_closed else ("EN COSECHA" if has_any_real else "PENDIENTE")
+        overall_status = "CERRADO" if (is_all_closed or has_any_closed) else ("EN COSECHA" if has_any_real else "PENDIENTE")
         
         block_uid = f"blk-cons-{blk}"
 
@@ -1724,7 +1725,8 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             "avg_waste_pct": avg_waste,
             "harvest_weeks_str": harvest_weeks_summary,
             "harvest_weeks_display": harvest_weeks_display,
-            "is_closed": is_all_closed,
+            "is_closed": has_any_closed,
+            "is_all_closed": is_all_closed,
             "has_real_data": has_any_real,
             "status": overall_status,
             "productions": productions,
@@ -1888,14 +1890,6 @@ def get_statistics_data(
 
         # 3. Query Block Closures with filters applied
         closure_query = db.query(BlockClosureDB)
-        if resolved_year:
-            try:
-                y_int = int(resolved_year)
-                closure_query = closure_query.filter(
-                    (BlockClosureDB.source_week >= y_int * 100) & (BlockClosureDB.source_week < (y_int + 1) * 100)
-                )
-            except ValueError:
-                pass
         if selected_weeks_set:
             closure_query = closure_query.filter(BlockClosureDB.source_week.in_(selected_weeks_set))
         else:
@@ -1916,21 +1910,32 @@ def get_statistics_data(
             closure_query = closure_query.filter(BlockClosureDB.block_norm == normalize_text(block_filter))
 
         closures_list = closure_query.all()
-        closed_blocks_set: set[tuple[str, str, int, str, str]] = set(
-            (c.product_master_norm, c.variety_norm, c.source_week, c.activity, c.block_norm)
-            for c in closures_list
-            if c.is_closed
-        )
+        closed_blocks_set: set[tuple[str, str, int, str, str]] = set()
+        closed_blocks_by_lot: set[tuple[str, int, str, str]] = set()
+        closed_sws_list: list[int] = []
+        for c in closures_list:
+            if c.is_closed:
+                c_pm = normalize_text(c.product_master_norm)
+                c_var = normalize_text(c.variety_norm)
+                c_ac = normalize_text(c.activity)
+                c_blk = normalize_text(c.block_norm or c.block)
+                closed_blocks_set.add((c_pm, c_var, c.source_week, c_ac, c_blk))
+                closed_blocks_by_lot.add((c_pm, c.source_week, c_ac, c_blk))
+                closed_sws_list.append(c.source_week)
 
         # 4. Query TPSR records with filters
         tpsr_query = db.query(TpsrRecord)
         if resolved_year:
             try:
                 y_int = int(resolved_year)
-                tpsr_query = tpsr_query.filter(
+                year_condition = (
                     (TpsrRecord.year == y_int)
                     | ((TpsrRecord.source_week >= y_int * 100) & (TpsrRecord.source_week < (y_int + 1) * 100))
                 )
+                if closed_sws_list:
+                    tpsr_query = tpsr_query.filter(year_condition | TpsrRecord.source_week.in_(closed_sws_list))
+                else:
+                    tpsr_query = tpsr_query.filter(year_condition)
             except ValueError:
                 pass
         if selected_weeks_set:
@@ -2118,7 +2123,7 @@ def get_statistics_data(
             for item in harvest_breakdown:
                 item["pct_of_total"] = round((item["stems"] / block_total_production * 100.0), 1) if block_total_production > 0 else 0.0
 
-            is_closed = k_norm in closed_blocks_set
+            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot)
             has_real_data = (block_real_stems > 0) or (block_dumps > 0)
 
             # Tallos por planta considera el total real producido (incluyendo dumps)
