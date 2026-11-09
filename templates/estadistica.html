@@ -1116,6 +1116,9 @@
             width: 100%;
             max-width: 100%;
             overflow-x: hidden;
+            overflow-y: auto;
+            max-height: 75vh;
+            position: relative;
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
             box-sizing: border-box;
@@ -1124,13 +1127,17 @@
         .matrix-table {
             width: 100%;
             table-layout: fixed;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             font-size: 0.73rem;
             font-family: var(--font-pbi);
             color: var(--text-body);
         }
 
         .matrix-table th {
+            position: sticky;
+            top: 0;
+            z-index: 40;
             background: #f1f5f9;
             color: #1e293b;
             font-weight: 800;
@@ -1141,6 +1148,7 @@
             letter-spacing: 0.01em;
             overflow: hidden;
             text-overflow: ellipsis;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
         }
 
         .matrix-table th.col-left { text-align: left; }
@@ -1772,7 +1780,7 @@
                         <span>Estado:</span>
                         <select id="t-filter-status" class="t-filter-ctrl">
                             <option value="">(Todos)</option>
-                            <option value="CERRADO">Solo Cerrados</option>
+                            <option value="CERRADO" selected>Solo Cerrados</option>
                             <option value="EN COSECHA">En Cosecha</option>
                         </select>
                     </div>
@@ -2065,6 +2073,17 @@
                                                                     {% endif %}
                                                                 </div>
                                                             </div>
+
+                                                            {% if prod.variety_breakdown and (prod.variety_breakdown | length) > 1 %}
+                                                                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; padding: 5px 8px; background: #ede9fe; border-radius: 6px; border: 1px solid #ddd6fe;">
+                                                                    <span style="font-size: 0.65rem; font-weight: 700; color: #5b21b6; align-self: center;">🌾 Desglose por Variedad:</span>
+                                                                    {% for vb in prod.variety_breakdown %}
+                                                                        <span style="font-size: 0.65rem; background: #ffffff; color: #4c1d95; padding: 2px 7px; border-radius: 4px; border: 1px solid #c4b5fd;">
+                                                                            <strong>{{ vb.variety }}</strong>: {{ '{:,}'.format(vb.plants) }} pl | {{ '{:,}'.format(vb.production) }} tallos (<strong>{{ vb.real_stems_pp }}</strong> T/pl)
+                                                                        </span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            {% endif %}
 
                                                             <!-- CYCLE METRICS ROW -->
                                                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #f1f5f9;">
@@ -2684,6 +2703,102 @@
             `;
         }
 
+        // ---------------- MINI TABLE GENERATOR FOR WEEKLY HARVEST BREAKDOWN ----------------
+        function generateHarvestMiniTableHTML(items) {
+            if (!items || !items.length) {
+                return `<div style="padding: 6px; color: #94a3b8; font-size: 0.68rem; font-style: italic;">Sin datos de desglose semanal.</div>`;
+            }
+
+            const totalStems = items.reduce((acc, i) => acc + (Number(i.stems) || 0), 0);
+            const totalDump = items.reduce((acc, i) => acc + (Number(i.dump) || 0), 0);
+            const totalPP = items.reduce((acc, i) => acc + (Number(i.pp) || 0), 0);
+            const totalPct = items.reduce((acc, i) => acc + (Number(i.pct) || 0), 0);
+
+            let rowsHtml = '';
+            items.forEach(hw => {
+                const stemsNum = Number(hw.stems || 0);
+                const dumpNum = Number(hw.dump || 0);
+                const ppNum = Number(hw.pp || 0);
+                const pctNum = Number(hw.pct || 0);
+
+                let srcBadge = '<span class="badge-status-pending" style="font-size: 0.58rem; padding: 1px 5px;">Modelo</span>';
+                if (hw.src === 'REAL') {
+                    srcBadge = '<span class="badge-status-closed" style="font-size: 0.58rem; padding: 1px 5px;">Real</span>';
+                } else if (hw.src === 'AGRONOMO') {
+                    srcBadge = '<span class="badge-status-harvest" style="font-size: 0.58rem; padding: 1px 5px;">Agrónomo</span>';
+                }
+
+                const dumpSpan = dumpNum > 0 
+                    ? `<span style="color: #dc2626; font-size: 0.60rem; font-weight: 700; margin-left: 3px;" title="${dumpNum.toLocaleString()} tallos en dump">(${dumpNum.toLocaleString()} dmp)</span>` 
+                    : '';
+
+                rowsHtml += `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 3px 6px; font-weight: 700; color: #475569; text-align: left;">Sem ${hw.hw}</td>
+                        <td style="padding: 3px 6px; text-align: right; font-weight: 700; color: #0f172a;">
+                            ${stemsNum.toLocaleString()} ${dumpSpan}
+                        </td>
+                        <td style="padding: 3px 6px; text-align: right;">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                                <div style="width: 36px; height: 5px; background: #ede9fe; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
+                                    <div style="width: ${Math.min(100, pctNum)}%; height: 100%; background: #7e22ce; border-radius: 2px;"></div>
+                                </div>
+                                <span style="font-weight: 700; color: #6b21a8; font-size: 0.68rem; min-width: 32px; text-align: right;">${pctNum.toFixed(1)}%</span>
+                            </div>
+                        </td>
+                        <td style="padding: 3px 6px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #1e293b;">
+                            ${ppNum.toFixed(2)}
+                        </td>
+                        <td style="padding: 3px 6px; text-align: center;">${srcBadge}</td>
+                    </tr>
+                `;
+            });
+
+            const dumpTotalSpan = totalDump > 0 
+                ? `<span style="color: #dc2626; font-size: 0.60rem; font-weight: 700; margin-left: 3px;">(${totalDump.toLocaleString()} dmp)</span>` 
+                : '';
+
+            return `
+                <div class="harvest-mini-table-container" style="margin-top: 8px; width: 100%; overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                    <div style="padding: 4px 8px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.64rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; display: flex; justify-content: space-between; align-items: center;">
+                        <span>📊 Detalle Semanal de Cosecha (${items.length} semanas)</span>
+                        <span style="font-size: 0.60rem; color: #64748b; font-weight: 600;">Tallos · % Aporte · T/pl</span>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.68rem; font-family: var(--font-pbi);">
+                        <thead>
+                            <tr style="background: #f1f5f9; color: #475569; border-bottom: 1px solid #cbd5e1; font-size: 0.62rem; text-transform: uppercase;">
+                                <th style="padding: 3px 6px; text-align: left;">Sem. Cosecha</th>
+                                <th style="padding: 3px 6px; text-align: right;">Tallos</th>
+                                <th style="padding: 3px 6px; text-align: right;">% Aporte</th>
+                                <th style="padding: 3px 6px; text-align: right;">T/pl Semanal</th>
+                                <th style="padding: 3px 6px; text-align: center;">Origen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8fafc; border-top: 2px solid #cbd5e1; font-weight: 800; color: #0f172a;">
+                                <td style="padding: 4px 6px; text-align: left;">Total (${items.length} sem)</td>
+                                <td style="padding: 4px 6px; text-align: right; color: #059669;">
+                                    ${totalStems.toLocaleString()} ${dumpTotalSpan}
+                                </td>
+                                <td style="padding: 4px 6px; text-align: right; color: #6b21a8;">
+                                    ${totalPct.toFixed(1)}%
+                                </td>
+                                <td style="padding: 4px 6px; text-align: right; font-family: var(--font-mono); color: #0284c7;">
+                                    ${totalPP.toFixed(2)} T/pl
+                                </td>
+                                <td style="padding: 4px 6px; text-align: center; font-size: 0.60rem; color: #64748b;">
+                                    Consolidado
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+        }
+
         function ensureHarvestRowsRendered(blockUid) {
             let harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
             if (harvestRows.length > 0) return harvestRows;
@@ -2700,8 +2815,9 @@
             const blk = blockRow.dataset.block || '';
             const variety = blockRow.dataset.variety || '';
 
-            // Agronomic line chart
+            // Agronomic line chart & structured mini-table
             const lineChartHtml = generateLineChartSVG(items, blockUid);
+            const miniTableHtml = generateHarvestMiniTableHTML(items);
 
             let html = `
                 <tr class="group-harvest-row harvest-of-${blockUid} blk-child-of-${swUid} sw-grandchild-of-${pm}"
@@ -2718,62 +2834,18 @@
                                         📈 Curva Agronómica de Entrada a Cosecha (${items.length} sem):
                                     </span>
                                     <span style="font-size: 0.62rem; color: #7e22ce; background: #f3e8ff; padding: 1px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #e9d5ff;">
-                                        Campana de Recolección
+                                        Campana de Recolección · Bloque ${blk} (${variety})
                                     </span>
                                 </div>
                             </div>
-                            <div style="width: 100%; max-width: 100%; box-sizing: border-box; background: #ffffff; border-radius: 6px; border: 1px solid #e9d5ff; padding: 4px 6px;">
+                            <div style="width: 100%; max-width: 100%; box-sizing: border-box; background: #ffffff; border-radius: 6px; border: 1px solid #e9d5ff; padding: 6px 8px;">
                                 ${lineChartHtml}
+                                ${miniTableHtml}
                             </div>
                         </div>
                     </td>
                 </tr>
             `;
-
-            items.forEach(hw => {
-                const dumpBadge = (hw.dump && hw.dump > 0)
-                    ? `<span style="display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.60rem; font-weight: 700;">${Number(hw.dump).toLocaleString()} dmp</span>`
-                    : '';
-                const expBadge = (hw.dump && hw.dump > 0)
-                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">${Number(hw.stems - hw.dump).toLocaleString()} exp</span>`
-                    : '';
-                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">Modelo</span>`;
-                if (hw.src === 'REAL') {
-                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">Real</span>`;
-                } else if (hw.src === 'AGRONOMO') {
-                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">Agrónomo</span>`;
-                }
-
-                html += `<tr class="group-harvest-row harvest-of-${blockUid} blk-child-of-${swUid} sw-grandchild-of-${pm}"
-                             style="display: none;"
-                             data-pm="${pm}"
-                             data-block="${blk}"
-                             data-variety="${variety}"
-                             data-week="${swShort}">
-                    <td class="col-left" style="padding-left: 36px; color: #7e22ce; font-weight: 700;">
-                        ↳ Sem. ${hw.hw} ${dumpBadge}
-                    </td>
-                    <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <div style="width: 40px; height: 5px; background: #f3e8ff; border-radius: 3px; overflow: hidden; display: inline-block;">
-                                <div style="width: ${Math.min(100, hw.pct)}%; height: 100%; background: #7e22ce; border-radius: 2px;"></div>
-                            </div>
-                            <span>${hw.pct}%</span>
-                            ${expBadge}
-                        </div>
-                    </td>
-                    <td style="text-align: center; color: var(--text-subtle);">${swShort}</td>
-                    <td style="text-align: center; color: var(--text-subtle);">-</td>
-                    <td style="color: var(--text-subtle);">-</td>
-                    <td style="color: #7e22ce; font-weight: 700;">${Number(hw.stems).toLocaleString()}</td>
-                    <td style="color: #7e22ce; font-weight: 700; font-family: var(--font-mono);">${hw.pp}</td>
-                    <td style="color: var(--text-subtle);">-</td>
-                    <td style="color: var(--text-subtle);">-</td>
-                    <td style="color: var(--text-subtle);">-</td>
-                    <td style="text-align: center; font-weight: 600; color: #7e22ce;">Sem ${hw.hw}</td>
-                    <td style="text-align: center;">${srcBadge}</td>
-                </tr>`;
-            });
 
             blockRow.insertAdjacentHTML('afterend', html);
             return document.querySelectorAll(`.harvest-of-${blockUid}`);
@@ -2807,7 +2879,7 @@
                     if (!chartContainer.dataset.rendered) {
                         const prodUid = chartContainer.dataset.prodUid;
                         const items = HARVEST_BREAKDOWN_MAP[prodUid] || [];
-                        chartContainer.innerHTML = generateLineChartSVG(items, prodUid);
+                        chartContainer.innerHTML = generateLineChartSVG(items, prodUid) + generateHarvestMiniTableHTML(items);
                         chartContainer.dataset.rendered = 'true';
                     }
                 });
@@ -3118,13 +3190,16 @@
         if (filterReset) {
             filterReset.addEventListener('click', () => {
                 if (filterBlock) filterBlock.value = '';
-                if (filterStatus) filterStatus.value = '';
+                if (filterStatus) filterStatus.value = 'CERRADO';
                 if (filterPerf) filterPerf.value = '';
                 document.querySelectorAll('.tbl-week-cb').forEach(cb => cb.checked = true);
                 updateTblWeekDropdownText();
                 applyTableFilters();
             });
         }
+
+        // Apply default filter on load (Solo Cerrados)
+        applyTableFilters();
 
         // DIRECT CSV EXPORT WITH POWER BI MULTI-WEEK SUPPORT
         const btnExportCsv = document.getElementById('btn-export-csv');

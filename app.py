@@ -1483,8 +1483,11 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     first = cluster_rows[0]
     activity = first["activity"]
     pm = first["product_master"]
-    var = first["variety"]
-    var_disp = first.get("variety_display") or var
+    
+    distinct_vars = sorted(list(set(r.get("variety_display") or r["variety"] for r in cluster_rows if r.get("variety"))))
+    var_disp = " / ".join(distinct_vars) if distinct_vars else (first.get("variety_display") or first["variety"])
+    raw_vars = sorted(list(set(r["variety"] for r in cluster_rows if r.get("variety"))))
+    var = ", ".join(raw_vars)
 
     source_weeks = sorted(list(set(r["source_week"] for r in cluster_rows)))
     source_weeks_short = [format_short_week(w) for w in source_weeks]
@@ -1493,15 +1496,34 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     source_week_max = max(source_weeks)
     source_week_max_short = format_short_week(source_week_max)
 
-    tot_plants = sum(r["plants"] for r in cluster_rows)
-    tot_exportable = sum(r["exportable_stems"] for r in cluster_rows)
-    tot_prod = sum(r["total_production"] for r in cluster_rows)
-    tot_real = sum(r["real_stems"] for r in cluster_rows)
+    tot_plants = sum(r.get("plants", 0) for r in cluster_rows)
+    tot_exportable = sum(r.get("exportable_stems", r.get("real_stems", 0)) for r in cluster_rows)
+    tot_prod = sum(r.get("total_production", 0) for r in cluster_rows)
+    tot_real = sum(r.get("real_stems", 0) for r in cluster_rows)
     tot_dumps = sum(r.get("dump_stems", 0) for r in cluster_rows)
 
-    real_stems_pp = round(tot_prod / tot_plants, 1) if tot_plants > 0 else 0.0
-    ideal_stems_pp = first["ideal_stems_per_plant"]
+    real_stems_pp = round(tot_prod / tot_plants, 2) if tot_plants > 0 else 0.0
+    weighted_ideal_sum = sum(r["ideal_stems_per_plant"] * r["plants"] for r in cluster_rows)
+    ideal_stems_pp = round(weighted_ideal_sum / tot_plants, 2) if tot_plants > 0 else first["ideal_stems_per_plant"]
     is_below_target = (real_stems_pp < ideal_stems_pp)
+
+    # Per-variety sub-breakdown within this production wave
+    variety_breakdown = {}
+    for r in cluster_rows:
+        v_name = r.get("variety_display") or r["variety"]
+        if v_name not in variety_breakdown:
+            variety_breakdown[v_name] = {
+                "variety": v_name,
+                "plants": 0,
+                "production": 0,
+                "dump": 0,
+                "ideal_stems_pp": r.get("ideal_stems_per_plant", 0),
+            }
+        variety_breakdown[v_name]["plants"] += r["plants"]
+        variety_breakdown[v_name]["production"] += r["total_production"]
+        variety_breakdown[v_name]["dump"] += r.get("dump_stems", 0)
+    for v_info in variety_breakdown.values():
+        v_info["real_stems_pp"] = round(v_info["production"] / v_info["plants"], 2) if v_info["plants"] > 0 else 0.0
 
     # Consolidated harvest breakdown by harvest_week
     hw_map: dict[int, dict[str, Any]] = {}
@@ -1554,6 +1576,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         "product_master": pm,
         "variety": var,
         "variety_display": var_disp,
+        "variety_breakdown": list(variety_breakdown.values()),
         "block": block,
         "source_weeks": source_weeks,
         "source_weeks_short": source_weeks_short,
@@ -1572,8 +1595,8 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         "ideal_stems_per_plant": ideal_stems_pp,
         "is_below_target": is_below_target,
         "real_cycle_weeks": real_cycle_weeks,
-        "ideal_cycle_weeks": first["ideal_cycle_weeks"],
-        "waste_pct": first["waste_pct"],
+        "ideal_cycle_weeks": first.get("ideal_cycle_weeks", first.get("real_cycle_weeks", 0)),
+        "waste_pct": first.get("waste_pct", 0.0),
         "is_closed": is_closed,
         "status": status_label,
         "has_real_data": has_real,
@@ -1599,7 +1622,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
 
     for blk in sorted_blocks:
         rows = by_block[blk]
-        rows.sort(key=lambda x: (x["source_week"], x["activity"], x["product_master"], x["variety"]))
+        rows.sort(key=lambda x: (x["source_week"], x["activity"], x["product_master"]))
 
         productions: list[dict[str, Any]] = []
         current_cluster: list[dict[str, Any]] = []
@@ -1610,7 +1633,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             else:
                 prev = current_cluster[-1]
                 is_same_act = (r["activity"] == prev["activity"])
-                is_same_crop = (r["product_master"] == prev["product_master"] and r["variety"] == prev["variety"])
+                is_same_crop = (r["product_master"] == prev["product_master"])
                 is_close_week = (calculate_week_difference(prev["source_week"], r["source_week"]) <= 6)
 
                 if is_same_act and is_same_crop and is_close_week:
