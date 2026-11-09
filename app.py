@@ -2127,18 +2127,24 @@ def get_statistics_data(
             adj_agro_map = {a.harvest_week: a.agronomo_estimate for a in adjs if a.agronomo_estimate is not None}
             adj_dump_map = {a.harvest_week: (a.dump_stems or 0) for a in adjs}
 
-            # Build complete curve weeks
+            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot)
+
+            # Build complete curve weeks: if closed, ONLY real/agro/dump weeks are included; never fake model weeks
             all_hw_set = set()
             curve_hw_map = {}
-            for idx, pct in enumerate(c_def["curve"]):
-                hw = shift_week(sw, effective_cycle_weeks + idx)
-                all_hw_set.add(hw)
-                curve_hw_map[hw] = round(base_exportable * pct)
+            if not is_closed:
+                for idx, pct in enumerate(c_def["curve"]):
+                    hw = shift_week(sw, effective_cycle_weeks + idx)
+                    all_hw_set.add(hw)
+                    curve_hw_map[hw] = round(base_exportable * pct)
 
             for hw in adj_agro_map:
                 all_hw_set.add(hw)
             for hw in adj_real_map:
                 all_hw_set.add(hw)
+            for hw, d_val in adj_dump_map.items():
+                if d_val > 0:
+                    all_hw_set.add(hw)
 
             harvest_breakdown = []
             block_total_production = 0
@@ -2160,9 +2166,12 @@ def get_statistics_data(
                     src = "AGRONOMO"
                     if val > 0:
                         chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
-                else:
+                elif not is_closed:
                     val = curve_hw_map.get(hw, 0)
                     src = "MODELO"
+                else:
+                    val = 0
+                    src = "REAL"
 
                 d_stems = adj_dump_map.get(hw, 0)
                 hw_total = val + d_stems
@@ -2188,7 +2197,6 @@ def get_statistics_data(
             for item in harvest_breakdown:
                 item["pct_of_total"] = round((item["stems"] / block_total_production * 100.0), 1) if block_total_production > 0 else 0.0
 
-            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot)
             has_real_data = (block_real_stems > 0) or (block_dumps > 0)
 
             # Tallos por planta considera el total real producido (incluyendo dumps)
