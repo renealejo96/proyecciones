@@ -3338,10 +3338,6 @@
                 if (tableInfoEl) {
                     tableInfoEl.textContent = `${isClosed ? items.filter(i => (Number(i.stems) || 0) > 0).length : 0} semanas registradas${varSuffix}`;
                 }
-                }
-                if (tableContainer) {
-                    tableContainer.innerHTML = generateHarvestMiniTableHTML(validItems, true, act);
-                }
             }
         }
 
