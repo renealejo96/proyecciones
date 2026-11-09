@@ -1455,6 +1455,30 @@ def find_cycle_definition(
     }
 
 
+def format_week_range_display(weeks_list: list[str]) -> str:
+    """Formats a list of week numbers into a compact human-readable range, e.g., 'S15-S21 (7s)' or 'S15'."""
+    if not weeks_list:
+        return "-"
+    cleaned = [w.strip() for w in weeks_list if w and w.strip()]
+    if not cleaned:
+        return "-"
+    try:
+        sorted_weeks = sorted(list(set(cleaned)), key=lambda x: int(re.sub(r"[^\d]", "", x) or 0))
+    except Exception:
+        sorted_weeks = sorted(list(set(cleaned)))
+    if not sorted_weeks:
+        return "-"
+    if len(sorted_weeks) == 1:
+        w0 = sorted_weeks[0]
+        return f"S{w0}" if not str(w0).startswith("S") else str(w0)
+    w_first = sorted_weeks[0]
+    w_last = sorted_weeks[-1]
+    count = len(sorted_weeks)
+    prefix_first = f"S{w_first}" if not str(w_first).startswith("S") else str(w_first)
+    prefix_last = f"S{w_last}" if not str(w_last).startswith("S") else str(w_last)
+    return f"{prefix_first}-{prefix_last} ({count}s)"
+
+
 def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list[dict[str, Any]]) -> dict[str, Any]:
     first = cluster_rows[0]
     activity = first["activity"]
@@ -1465,6 +1489,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     source_weeks = sorted(list(set(r["source_week"] for r in cluster_rows)))
     source_weeks_short = [format_short_week(w) for w in source_weeks]
     source_weeks_str = ", ".join(source_weeks_short)
+    source_weeks_display = format_week_range_display(source_weeks_short)
     source_week_max = max(source_weeks)
     source_week_max_short = format_short_week(source_week_max)
 
@@ -1506,6 +1531,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         item["pct_of_total"] = round((item["stems"] / tot_prod * 100.0), 1) if tot_prod > 0 else 0.0
 
     harvest_weeks_str = ", ".join(i["harvest_week_short"] for i in sorted_hw_list)
+    harvest_weeks_display = format_week_range_display([i["harvest_week_short"] for i in sorted_hw_list])
 
     is_closed = any(r["is_closed"] for r in cluster_rows)
     has_real = any(r["has_real_data"] for r in cluster_rows)
@@ -1532,6 +1558,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         "source_weeks": source_weeks,
         "source_weeks_short": source_weeks_short,
         "source_weeks_str": source_weeks_str,
+        "source_weeks_display": source_weeks_display,
         "source_week_max": source_week_max,
         "source_week_max_short": source_week_max_short,
         "is_staggered": len(source_weeks) > 1,
@@ -1551,6 +1578,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         "status": status_label,
         "has_real_data": has_real,
         "harvest_weeks_str": harvest_weeks_str,
+        "harvest_weeks_display": harvest_weeks_display,
         "harvest_breakdown": sorted_hw_list,
     }
 
@@ -1628,16 +1656,22 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             acts_str = ", ".join(acts) if acts else "-"
             
         sw_list = []
+        sw_display_list = []
         for p in productions:
             act_prefix = "S" if p["activity"] == "SIEMBRA" else "P"
             sw_list.append(f"{act_prefix}:{p['source_weeks_str']}")
+            p_disp = p.get("source_weeks_display") or format_week_range_display(p.get("source_weeks_short", []))
+            clean_disp = p_disp.lstrip("S") if p_disp.startswith("S") and not p_disp.startswith("Sem") else p_disp
+            sw_display_list.append(f"{act_prefix}:{clean_disp}")
         source_weeks_summary = " | ".join(sw_list)
+        source_weeks_display = " | ".join(sw_display_list)
         
         avg_cycle = round(sum(p["real_cycle_weeks"] for p in productions) / len(productions), 1) if productions else 0.0
         avg_waste = round(sum(p["waste_pct"] for p in productions) / len(productions), 1) if productions else 0.0
         
         all_hw = sorted(list(set(hw.strip() for p in productions for hw in p.get("harvest_weeks_str", "").split(",") if hw.strip())))
         harvest_weeks_summary = ", ".join(all_hw)
+        harvest_weeks_display = format_week_range_display(all_hw)
         
         is_all_closed = all(p["is_closed"] for p in productions) if productions else False
         has_any_real = any(p.get("has_real_data") for p in productions) if productions else False
@@ -1655,6 +1689,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             "activities": acts,
             "activities_str": acts_str,
             "source_weeks_str": source_weeks_summary,
+            "source_weeks_display": source_weeks_display,
             "source_week_max_short": productions[-1]["source_week_max_short"] if productions else "",
             "total_plants": max_plants,
             "total_production": total_prod_sum,
@@ -1665,6 +1700,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             "avg_cycle_weeks": avg_cycle,
             "avg_waste_pct": avg_waste,
             "harvest_weeks_str": harvest_weeks_summary,
+            "harvest_weeks_display": harvest_weeks_display,
             "is_closed": is_all_closed,
             "has_real_data": has_any_real,
             "status": overall_status,
@@ -2101,6 +2137,7 @@ def get_statistics_data(
                 waste_list.append(effective_waste_rate * 100.0)
 
                 harvest_weeks_str = ", ".join(item["harvest_week_short"] for item in harvest_breakdown)
+                harvest_weeks_display = format_week_range_display([item["harvest_week_short"] for item in harvest_breakdown])
                 status_label = "CERRADO" if is_closed else ("EN COSECHA" if has_real_data else "PENDIENTE")
 
                 block_item = {
@@ -2126,6 +2163,7 @@ def get_statistics_data(
                     "status": status_label,
                     "has_real_data": has_real_data,
                     "harvest_weeks_str": harvest_weeks_str,
+                    "harvest_weeks_display": harvest_weeks_display,
                     "harvest_breakdown": harvest_breakdown,
                 }
                 flat_block_rows.append(block_item)

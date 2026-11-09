@@ -1114,15 +1114,18 @@
 
         .matrix-table-wrap {
             width: 100%;
-            overflow-x: auto;
+            max-width: 100%;
+            overflow-x: hidden;
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
+            box-sizing: border-box;
         }
 
         .matrix-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
-            font-size: 0.76rem;
+            font-size: 0.73rem;
             font-family: var(--font-pbi);
             color: var(--text-body);
         }
@@ -1132,22 +1135,32 @@
             color: #1e293b;
             font-weight: 800;
             text-align: right;
-            padding: 8px 10px;
+            padding: 7px 5px;
             border-bottom: 2px solid var(--kpi-blue);
             white-space: nowrap;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.01em;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .matrix-table th.col-left { text-align: left; }
 
         .matrix-table td {
-            padding: 6px 10px;
+            padding: 5px 6px;
             border-bottom: 1px solid var(--border-subtle);
             text-align: right;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .matrix-table td.col-left { text-align: left; }
+
+        .consolidated-detail-row td,
+        .group-harvest-row td {
+            white-space: normal !important;
+            overflow: visible !important;
+        }
 
         /* HIERARCHICAL ROW STYLING IN LIGHT MODE */
         .group-master-row {
@@ -1254,23 +1267,31 @@
         }
         .block-unified-segment {
             font-size: 0.74rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         .cycle-card {
             background: #ffffff;
             border: 1px solid #e9d5ff;
             border-radius: 8px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
             transition: box-shadow 0.18s ease, border-color 0.18s ease;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         .cycle-card:hover {
             border-color: #c084fc;
             box-shadow: 0 3px 10px rgba(147, 51, 234, 0.08);
         }
         .line-chart-container {
-            overflow-x: auto;
+            width: 100%;
             max-width: 100%;
-            -webkit-overflow-scrolling: touch;
+            overflow: hidden;
+            box-sizing: border-box;
         }
         .curve-node-group circle {
             transition: r 0.15s ease, stroke-width 0.15s ease;
@@ -1768,20 +1789,34 @@
 
                 <div class="matrix-table-wrap">
                     <table class="matrix-table" id="matrix-detail-table">
+                        <colgroup>
+                            <col style="width: 16%;">  <!-- Nivel / Estructura -->
+                            <col style="width: 14%;">  <!-- Variedad / Detalle -->
+                            <col style="width: 8%;">   <!-- Sem. Orig. -->
+                            <col style="width: 5%;">   <!-- Actividad -->
+                            <col style="width: 7.5%;"> <!-- Plantas -->
+                            <col style="width: 8%;">   <!-- Total Producción -->
+                            <col style="width: 6.5%;"> <!-- Real T/pl -->
+                            <col style="width: 6.5%;"> <!-- Ideal T/pl -->
+                            <col style="width: 6.5%;"> <!-- Ciclo Real -->
+                            <col style="width: 5.5%;"> <!-- Desp. % -->
+                            <col style="width: 9%;">   <!-- Semanas Cosecha -->
+                            <col style="width: 7.5%;"> <!-- Estado -->
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th class="col-left" style="width: 200px;">Nivel / Estructura</th>
-                                <th class="col-left" style="width: 170px;">Variedad / Detalle</th>
-                                <th style="width: 65px;">Sem. Orig.</th>
-                                <th style="width: 65px;">Actividad</th>
-                                <th>Plantas</th>
-                                <th>Total Producción</th>
-                                <th>Real T/pl</th>
-                                <th>Ideal T/pl</th>
-                                <th>Ciclo Real</th>
-                                <th>Desp. %</th>
-                                <th>Semanas Cosecha</th>
-                                <th>Estado</th>
+                                <th class="col-left" title="Nivel jerárquico o bloque físico">Nivel / Estructura</th>
+                                <th class="col-left" title="Variedad botánica">Variedad / Detalle</th>
+                                <th title="Semanas de origen (siembra o poda)">Sem. Orig.</th>
+                                <th style="text-align: center;" title="Actividad: Siembra (S) o Poda (P)">Act.</th>
+                                <th title="Total plantas físicas">Plantas</th>
+                                <th title="Producción total cosechada (tallos)">Total Prod.</th>
+                                <th title="Rendimiento real tallos por planta">Real T/pl</th>
+                                <th title="Meta ideal tallos por planta">Ideal T/pl</th>
+                                <th title="Semanas promedio de ciclo fenológico">Ciclo</th>
+                                <th title="Porcentaje de descarte / dump">Desp. %</th>
+                                <th title="Rango de semanas en que se cosechó flor">Sem. Cosecha</th>
+                                <th style="text-align: center;" title="Estado agronómico del bloque">Estado</th>
                             </tr>
                         </thead>
                         <tbody id="matrix-tbody">
@@ -1793,23 +1828,23 @@
                                         <span class="toggle-icon" id="icon-pm-{{ grp.product_master }}">{{ '−' if is_single_pm else '+' }}</span>
                                         <strong>{{ grp.product_master }}</strong>
                                     </td>
-                                    <td class="col-left" style="color: var(--text-muted); font-weight: 600;">
-                                        {{ grp.total_blocks }} bloques ({{ grp.closed_blocks_count }} cerrados)
+                                    <td class="col-left" style="color: var(--text-muted); font-weight: 600;" title="{{ grp.total_blocks }} bloques ({{ grp.closed_blocks_count }} cerrados)">
+                                        {{ grp.total_blocks }} blq ({{ grp.closed_blocks_count }} cerr.)
                                     </td>
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
                                     <td><strong>{{ '{:,}'.format(grp.total_plants) }}</strong></td>
                                     <td style="color: var(--kpi-green-text);"><strong>{{ '{:,}'.format(grp.total_production) }}</strong></td>
-                                    <td><span class="metric-real-pp {{ 'metric-optimal' if grp.avg_real_stems_pp >= grp.avg_ideal_stems_pp else 'metric-low' }}" style="font-size: 0.80rem;">{{ grp.avg_real_stems_pp }}</span></td>
+                                    <td><span class="metric-real-pp {{ 'metric-optimal' if grp.avg_real_stems_pp >= grp.avg_ideal_stems_pp else 'metric-low' }}" style="font-size: 0.74rem;">{{ grp.avg_real_stems_pp }}</span></td>
                                     <td style="color: var(--kpi-gold-text); font-weight: 700;">{{ grp.avg_ideal_stems_pp }}</td>
-                                    <td><strong>{{ grp.avg_cycle_weeks }} sem</strong></td>
+                                    <td><strong>{{ grp.avg_cycle_weeks }}s</strong></td>
                                     <td>{{ grp.avg_waste_pct }}%</td>
                                     <td style="text-align: center; color: var(--text-subtle);">-</td>
-                                    <td>
+                                    <td style="text-align: center;">
                                         {% if grp.closed_blocks_count == grp.total_blocks and grp.total_blocks > 0 %}
                                             <span class="badge-status-closed">Cerrado</span>
                                         {% else %}
-                                            <span class="badge-status-harvest">{{ grp.closed_blocks_count }}/{{ grp.total_blocks }} Cerrados</span>
+                                            <span class="badge-status-harvest">{{ grp.closed_blocks_count }}/{{ grp.total_blocks }} Cerr.</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -1824,27 +1859,27 @@
                                         data-week="{{ sw_group.source_week_short }}"
                                         data-activity="{{ sw_group.activity }}"
                                         onclick="toggleSwGroup('{{ sw_uid }}')">
-                                        <td class="col-left" style="padding-left: 18px;">
+                                        <td class="col-left" style="padding-left: 14px;">
                                             <span class="toggle-icon-sw" id="icon-sw-{{ sw_uid }}">+</span>
-                                            <strong>Sem. {{ sw_group.source_week_short }} ({{ sw_group.activity }})</strong>
+                                            <strong>Sem. {{ sw_group.source_week_short }}</strong>
                                         </td>
-                                        <td class="col-left" style="color: var(--kpi-blue); font-weight: 600;">
-                                            {{ sw_group.blocks_count }} bloque(s) sembrados
+                                        <td class="col-left" style="color: var(--kpi-blue); font-weight: 600;" title="{{ sw_group.blocks_count }} bloque(s) sembrados">
+                                            {{ sw_group.blocks_count }} blq
                                         </td>
                                         <td><code>{{ sw_group.source_week_short }}</code></td>
-                                        <td><span class="badge-ac {{ 'badge-s' if sw_group.activity == 'SIEMBRA' else 'badge-p' }}">{{ sw_group.activity }}</span></td>
+                                        <td style="text-align: center;"><span class="badge-ac {{ 'badge-s' if sw_group.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if sw_group.activity == 'SIEMBRA' else 'P' }}</span></td>
                                         <td><strong>{{ '{:,}'.format(sw_group.total_plants) }}</strong></td>
                                         <td style="color: var(--kpi-blue); font-weight: 800;">{{ '{:,}'.format(sw_group.total_production) }}</td>
                                         <td><span class="metric-real-pp {{ 'metric-optimal' if sw_group.avg_real_stems_pp >= sw_group.avg_ideal_stems_pp else 'metric-low' }}">{{ sw_group.avg_real_stems_pp }}</span></td>
                                         <td style="color: var(--kpi-gold-text); font-weight: 700;">{{ sw_group.avg_ideal_stems_pp }}</td>
-                                        <td><strong>{{ sw_group.avg_cycle_weeks }} sem</strong></td>
+                                        <td><strong>{{ sw_group.avg_cycle_weeks }}s</strong></td>
                                         <td>{{ sw_group.avg_waste_pct }}%</td>
                                         <td style="text-align: center; color: var(--text-subtle);">-</td>
-                                        <td>
+                                        <td style="text-align: center;">
                                             {% if sw_group.closed_blocks_count == sw_group.blocks_count and sw_group.blocks_count > 0 %}
                                                 <span class="badge-status-closed">Cerrado</span>
                                             {% else %}
-                                                <span class="badge-status-harvest">{{ sw_group.closed_blocks_count }}/{{ sw_group.blocks_count }} Cerrados</span>
+                                                <span class="badge-status-harvest">{{ sw_group.closed_blocks_count }}/{{ sw_group.blocks_count }} Cerr.</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -1868,23 +1903,23 @@
                                             data-production="{{ row.total_production }}"
                                             data-dump="{{ row.dump_stems or 0 }}"
                                             onclick="toggleBlockWeeks('{{ block_uid }}')">
-                                            <td class="col-left" style="padding-left: 36px;">
+                                            <td class="col-left" style="padding-left: 24px;">
                                                 {% if row.harvest_breakdown %}
                                                     <span class="toggle-icon-sm" id="icon-blk-{{ block_uid }}">+</span>
                                                 {% else %}
-                                                    <span style="display: inline-block; width: 18px;"></span>
+                                                    <span style="display: inline-block; width: 16px;"></span>
                                                 {% endif %}
                                                 <strong>Bloque {{ row.block }}</strong>
                                             </td>
-                                            <td class="col-left"><strong>{{ row.variety_display }}</strong></td>
+                                            <td class="col-left" title="{{ row.variety_display }}"><strong>{{ row.variety_display }}</strong></td>
                                             <td><code>{{ row.source_week_short }}</code></td>
-                                            <td><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ row.activity }}</span></td>
+                                            <td style="text-align: center;"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                             <td>{{ '{:,}'.format(row.plants) }}</td>
                                             <td style="color: var(--text-heading);">
                                                 <strong>{{ '{:,}'.format(row.total_production) }}</strong>
                                                 {% if row.dump_stems and row.dump_stems > 0 %}
-                                                    <div style="font-size: 0.62rem; color: #dc2626; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
-                                                        {{ '{:,}'.format(row.dump_stems) }} dump
+                                                    <div style="font-size: 0.60rem; color: #dc2626; font-weight: 700;" title="{{ row.dump_stems }} tallos fueron descartados como DUMP">
+                                                        {{ '{:,}'.format(row.dump_stems) }} dmp
                                                     </div>
                                                 {% endif %}
                                             </td>
@@ -1894,14 +1929,14 @@
                                                 </span>
                                             </td>
                                             <td style="color: var(--kpi-gold-text);">{{ row.ideal_stems_per_plant }}</td>
-                                            <td><strong>{{ row.real_cycle_weeks }} sem</strong></td>
+                                            <td><strong>{{ row.real_cycle_weeks }}s</strong></td>
                                             <td>{{ row.waste_pct }}%</td>
-                                            <td style="font-size: 0.68rem; color: var(--text-muted);">{{ row.harvest_weeks_str }}</td>
-                                            <td>
+                                            <td style="font-size: 0.68rem; color: var(--text-muted);" title="Semanas Cosecha: {{ row.harvest_weeks_str }}">{{ row.harvest_weeks_display or row.harvest_weeks_str }}</td>
+                                            <td style="text-align: center;">
                                                 {% if row.is_closed %}
                                                     <span class="badge-status-closed">CERRADO</span>
                                                 {% elif row.has_real_data %}
-                                                    <span class="badge-status-harvest">EN COSECHA</span>
+                                                    <span class="badge-status-harvest">COSECHA</span>
                                                 {% else %}
                                                     <span class="badge-status-pending">PENDIENTE</span>
                                                 {% endif %}
@@ -1912,7 +1947,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="12" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                                    <td colspan="12" style="text-align: center; padding: 24px; color: var(--text-muted);">
                                         No se encontraron registros de siembras o cosechas para los filtros seleccionados.
                                     </td>
                                 </tr>
@@ -1933,20 +1968,20 @@
                                         data-production="{{ cblock.total_production }}"
                                         data-dump="{{ cblock.total_dump or 0 }}"
                                         onclick="toggleConsolidatedBlock('{{ cblock.uid }}')">
-                                        <td class="col-left" style="padding-left: 20px;">
+                                        <td class="col-left" style="padding-left: 14px;">
                                             <span class="toggle-icon-sm" id="icon-blk-{{ cblock.uid }}" title="Clic para desplegar ciclos y curvas de cosecha">+</span>
                                             <strong>Bloque {{ cblock.block }}</strong>
-                                            <span class="badge-ac" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 0.65rem; margin-left: 6px;" title="Número de ciclos / producciones registradas">
-                                                {{ cblock.total_productions }} Ciclo{{ 's' if cblock.total_productions > 1 else '' }} ({{ cblock.activities_str }})
+                                            <span class="badge-ac" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 0.62rem; padding: 1px 4px; margin-left: 3px;" title="{{ cblock.total_productions }} Ciclo(s): {{ cblock.activities_str }}">
+                                                {{ cblock.total_productions }}C ({{ cblock.activities_str }})
                                             </span>
                                         </td>
-                                        <td class="col-left">
+                                        <td class="col-left" title="{{ cblock.variety_display }}">
                                             <strong>{{ cblock.variety_display }}</strong>
                                         </td>
-                                        <td>
-                                            <code>{{ cblock.source_weeks_str }}</code>
+                                        <td title="Sem. Origen: {{ cblock.source_weeks_str }}">
+                                            <code>{{ cblock.source_weeks_display or cblock.source_weeks_str }}</code>
                                         </td>
-                                        <td>
+                                        <td style="text-align: center;">
                                             {% for act in cblock.activities %}
                                                 <span class="badge-ac {{ 'badge-s' if act == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if act == 'SIEMBRA' else 'P' }}</span>
                                             {% endfor %}
@@ -1955,8 +1990,8 @@
                                         <td style="color: var(--kpi-green-text);">
                                             <strong>{{ '{:,}'.format(cblock.total_production) }}</strong>
                                             {% if cblock.total_dump and cblock.total_dump > 0 %}
-                                                <div style="font-size: 0.62rem; color: #dc2626; font-weight: 700;" title="{{ cblock.total_dump }} tallos descartados como DUMP">
-                                                    {{ '{:,}'.format(cblock.total_dump) }} dump
+                                                <div style="font-size: 0.60rem; color: #dc2626; font-weight: 700;" title="{{ cblock.total_dump }} tallos descartados como DUMP">
+                                                    {{ '{:,}'.format(cblock.total_dump) }} dmp
                                                 </div>
                                             {% endif %}
                                         </td>
@@ -1966,14 +2001,14 @@
                                             </span>
                                         </td>
                                         <td style="color: var(--kpi-gold-text); font-weight: 700;">{{ cblock.ideal_stems_per_plant }}</td>
-                                        <td><strong>{{ cblock.avg_cycle_weeks }} sem</strong></td>
+                                        <td><strong>{{ cblock.avg_cycle_weeks }}s</strong></td>
                                         <td>{{ cblock.avg_waste_pct }}%</td>
-                                        <td style="font-size: 0.68rem; color: var(--text-muted);">{{ cblock.harvest_weeks_str }}</td>
-                                        <td>
+                                        <td style="font-size: 0.68rem; color: var(--text-muted);" title="Semanas Cosecha: {{ cblock.harvest_weeks_str }}">{{ cblock.harvest_weeks_display or cblock.harvest_weeks_str }}</td>
+                                        <td style="text-align: center;">
                                             {% if cblock.is_closed %}
                                                 <span class="badge-status-closed">CERRADO</span>
                                             {% elif cblock.has_real_data %}
-                                                <span class="badge-status-harvest">EN COSECHA</span>
+                                                <span class="badge-status-harvest">COSECHA</span>
                                             {% else %}
                                                 <span class="badge-status-pending">PENDIENTE</span>
                                             {% endif %}
@@ -1985,46 +2020,46 @@
                                         style="display: none; background: #faf5ff;"
                                         data-block-uid="{{ cblock.uid }}"
                                         data-block="{{ cblock.block }}">
-                                        <td colspan="12" style="padding: 14px 20px 18px 36px; border-left: 4px solid #9333ea; background: #faf5ff;">
+                                        <td colspan="12" style="white-space: normal !important; overflow: hidden; padding: 10px 14px 14px; border-left: 4px solid #9333ea; background: #faf5ff;">
                                             <div class="block-unified-segment">
-                                                <div class="block-segment-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e9d5ff;">
-                                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                                        <span style="font-size: 0.85rem; font-weight: 800; color: #581c87;">
+                                                <div class="block-segment-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e9d5ff; gap: 6px;">
+                                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                                        <span style="font-size: 0.82rem; font-weight: 800; color: #581c87;">
                                                             🌾 Historial Productivo: Bloque {{ cblock.block }}
                                                         </span>
-                                                        <span style="font-size: 0.68rem; background: #f3e8ff; color: #7e22ce; padding: 2px 8px; border-radius: 9999px; font-weight: 700; border: 1px solid #d8b4fe;">
+                                                        <span style="font-size: 0.66rem; background: #f3e8ff; color: #7e22ce; padding: 1px 7px; border-radius: 9999px; font-weight: 700; border: 1px solid #d8b4fe;">
                                                             {{ cblock.product_master }} · {{ cblock.variety_display }}
                                                         </span>
                                                     </div>
-                                                    <div style="font-size: 0.72rem; color: #6b21a8; font-weight: 700;">
-                                                        Capacidad: {{ '{:,}'.format(cblock.total_plants) }} plantas | Total Histórico: {{ '{:,}'.format(cblock.total_production) }} tallos ({{ cblock.real_stems_per_plant }} T/pl)
+                                                    <div style="font-size: 0.70rem; color: #6b21a8; font-weight: 700;">
+                                                        Capacidad: {{ '{:,}'.format(cblock.total_plants) }} pl | Total: {{ '{:,}'.format(cblock.total_production) }} tallos ({{ cblock.real_stems_per_plant }} T/pl)
                                                     </div>
                                                 </div>
 
                                                 <!-- CYCLES LIST (SIEMBRA, PODA 1, PODA 2...) -->
-                                                <div class="cycles-container" style="display: flex; flex-direction: column; gap: 14px;">
+                                                <div class="cycles-container" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 100%; box-sizing: border-box;">
                                                     {% for prod in cblock.productions %}
                                                         <div class="cycle-card">
-                                                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                                                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                                                     <span class="badge-ac {{ 'badge-s' if prod.activity == 'SIEMBRA' else 'badge-p' }}">
                                                                         {{ 'S' if prod.activity == 'SIEMBRA' else 'P' }}
                                                                     </span>
-                                                                    <span style="font-size: 0.80rem; font-weight: 800; color: #3730a3;">
+                                                                    <span style="font-size: 0.78rem; font-weight: 800; color: #3730a3;">
                                                                         {{ prod.production_label }}
                                                                     </span>
-                                                                    <span style="font-size: 0.72rem; font-weight: 600; color: #475569;">
+                                                                    <span style="font-size: 0.70rem; font-weight: 600; color: #475569;">
                                                                         Variedad: <strong>{{ prod.variety_display }}</strong>
                                                                     </span>
-                                                                    <span style="font-size: 0.70rem; color: #64748b;">
-                                                                        (Sem. Origen: <code>{{ prod.source_weeks_str }}</code>)
+                                                                    <span style="font-size: 0.68rem; color: #64748b;">
+                                                                        (Sem. Origen: <code>{{ prod.source_weeks_display or prod.source_weeks_str }}</code>)
                                                                     </span>
                                                                 </div>
                                                                 <div>
                                                                     {% if prod.is_closed %}
                                                                         <span class="badge-status-closed">CERRADO</span>
                                                                     {% elif prod.has_real_data %}
-                                                                        <span class="badge-status-harvest">EN COSECHA</span>
+                                                                        <span class="badge-status-harvest">COSECHA</span>
                                                                     {% else %}
                                                                         <span class="badge-status-pending">PENDIENTE</span>
                                                                     {% endif %}
@@ -2032,48 +2067,48 @@
                                                             </div>
 
                                                             <!-- CYCLE METRICS ROW -->
-                                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #f1f5f9;">
+                                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #f1f5f9;">
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Plantas</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 800; color: #0f172a;">{{ '{:,}'.format(prod.plants) }}</div>
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Plantas</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 800; color: #0f172a;">{{ '{:,}'.format(prod.plants) }}</div>
                                                                 </div>
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Producción</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 800; color: #059669;">{{ '{:,}'.format(prod.total_production) }} tallos</div>
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Producción</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 800; color: #059669;">{{ '{:,}'.format(prod.total_production) }} tallos</div>
                                                                 </div>
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Rendimiento Real</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 800; color: {{ '#166534' if not prod.is_below_target else '#991b1b' }};">
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Rendimiento Real</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 800; color: {{ '#166534' if not prod.is_below_target else '#991b1b' }};">
                                                                         {{ prod.real_stems_per_plant }} T/pl
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Meta Ideal</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 700; color: #d97706;">{{ prod.ideal_stems_per_plant }} T/pl</div>
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Meta Ideal</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 700; color: #d97706;">{{ prod.ideal_stems_per_plant }} T/pl</div>
                                                                 </div>
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Ciclo Real</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 700; color: #334155;">{{ prod.real_cycle_weeks }} sem</div>
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Ciclo Real</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 700; color: #334155;">{{ prod.real_cycle_weeks }}s</div>
                                                                 </div>
                                                                 <div>
-                                                                    <div style="font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Descarte / Dump</div>
-                                                                    <div style="font-size: 0.78rem; font-weight: 700; color: {{ '#dc2626' if prod.dump_stems > 0 else '#64748b' }};">
+                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Descarte / Dump</div>
+                                                                    <div style="font-size: 0.76rem; font-weight: 700; color: {{ '#dc2626' if prod.dump_stems > 0 else '#64748b' }};">
                                                                         {{ prod.waste_pct }}% ({{ '{:,}'.format(prod.dump_stems or 0) }})
                                                                     </div>
                                                                 </div>
                                                             </div>
 
                                                             <!-- LINE CHART CONTAINER -->
-                                                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                                                <div style="display: flex; align-items: center; justify-content: space-between;">
-                                                                    <span style="font-size: 0.68rem; font-weight: 800; color: #475569; text-transform: uppercase;">
-                                                                        📈 Curva Agronómica de Producción (Distribución Semanal de Flor):
+                                                            <div style="display: flex; flex-direction: column; gap: 3px; width: 100%; max-width: 100%; box-sizing: border-box;">
+                                                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+                                                                    <span style="font-size: 0.66rem; font-weight: 800; color: #475569; text-transform: uppercase;">
+                                                                        📈 Curva Agronómica de Producción (Distribución Semanal):
                                                                     </span>
-                                                                    <span style="font-size: 0.62rem; color: #64748b;">
-                                                                        Semanas de Cosecha: {{ prod.harvest_weeks_str or 'Sin corte' }}
+                                                                    <span style="font-size: 0.60rem; color: #64748b;">
+                                                                        Cosecha: {{ prod.harvest_weeks_display or prod.harvest_weeks_str or 'Sin corte' }}
                                                                     </span>
                                                                 </div>
-                                                                <div class="js-prod-line-chart" data-prod-uid="{{ prod.uid }}" style="background: #faf5ff; border: 1px solid #f3e8ff; border-radius: 6px; padding: 6px 10px;">
+                                                                <div class="js-prod-line-chart" data-prod-uid="{{ prod.uid }}" style="width: 100%; max-width: 100%; box-sizing: border-box; background: #ffffff; border: 1px solid #f3e8ff; border-radius: 6px; padding: 4px 6px;">
                                                                     <!-- Line chart SVG injected by JS -->
                                                                 </div>
                                                             </div>
@@ -2567,24 +2602,24 @@
         // ---------------- LINE CHART SVG GENERATOR FOR HARVEST CURVES ----------------
         function generateLineChartSVG(items, chartId) {
             if (!items || !items.length) {
-                return `<div style="padding: 10px; color: #94a3b8; font-size: 0.72rem; font-style: italic;">Sin datos de cosecha registrados</div>`;
+                return `<div style="padding: 8px; color: #94a3b8; font-size: 0.70rem; font-style: italic;">Sin datos de cosecha registrados</div>`;
             }
 
-            const svgW = Math.max(280, items.length * 52);
-            const svgH = 95;
-            const padL = 28;
-            const padR = 28;
-            const padT = 24;
-            const padB = 26;
-            const uW = svgW - padL - padR;
-            const uH = svgH - padT - padB;
+            const viewBoxW = 800;
+            const viewBoxH = 75;
+            const padL = 26;
+            const padR = 26;
+            const padT = 18;
+            const padB = 22;
+            const uW = viewBoxW - padL - padR;
+            const uH = viewBoxH - padT - padB;
 
             const maxPct = Math.max(...items.map(i => i.pct || 0), 5);
 
             const points = items.map((hw, idx) => {
                 const x = padL + (items.length > 1 ? (idx / (items.length - 1)) * uW : uW / 2);
                 const y = padT + uH - ((hw.pct || 0) / maxPct) * uH;
-                return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, hw };
+                return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, hw, idx };
             });
 
             // Smooth bezier spline curve
@@ -2608,35 +2643,41 @@
 
             const safeId = String(chartId).replace(/[^a-zA-Z0-9_-]/g, '_');
 
+            const totalPts = points.length;
+            const showWeekStep = totalPts > 18 ? 3 : (totalPts > 12 ? 2 : 1);
+
             let guidesAndNodes = '';
-            points.forEach(p => {
+            points.forEach((p, idx) => {
                 const nodeColor = (p.hw.src === 'REAL') ? '#7e22ce' : (p.hw.src === 'AGRONOMO' ? '#059669' : '#2563eb');
                 const dumpBadge = (p.hw.dump && p.hw.dump > 0) ? ` | ${Number(p.hw.dump).toLocaleString()} dump` : '';
                 const titleText = `Semana ${p.hw.hw}: ${Number(p.hw.stems).toLocaleString()} tallos (${p.hw.pct}%) | ${p.hw.pp} T/pl${dumpBadge}`;
+
+                const showPct = totalPts <= 8 || (p.hw.pct >= 7) || (idx === 0) || (idx === totalPts - 1);
+                const showWeek = (idx % showWeekStep === 0) || (idx === totalPts - 1);
 
                 guidesAndNodes += `
                     <g class="curve-node-group">
                         <title>${titleText}</title>
                         <line x1="${p.x}" y1="${p.y}" x2="${p.x}" y2="${padT + uH}" stroke="#e2e8f0" stroke-dasharray="2,2" stroke-width="1"/>
-                        <circle cx="${p.x}" cy="${p.y}" r="4" fill="#ffffff" stroke="${nodeColor}" stroke-width="2.5" style="cursor: pointer;" />
-                        <text x="${p.x}" y="${p.y - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="${nodeColor}" font-family="var(--font-mono)">${p.hw.pct}%</text>
-                        <text x="${p.x}" y="${svgH - 8}" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b" font-family="var(--font-sans)">S${p.hw.hw}</text>
+                        <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#ffffff" stroke="${nodeColor}" stroke-width="2" style="cursor: pointer;" />
+                        ${showPct ? `<text x="${p.x}" y="${Math.max(10, p.y - 5)}" text-anchor="middle" font-size="8.5" font-weight="800" fill="${nodeColor}" font-family="var(--font-mono)">${p.hw.pct}%</text>` : ''}
+                        ${showWeek ? `<text x="${p.x}" y="${viewBoxH - 6}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#64748b" font-family="var(--font-sans)">S${p.hw.hw}</text>` : ''}
                     </g>
                 `;
             });
 
             return `
-                <div class="line-chart-container">
-                    <svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="display: block; overflow: visible;">
+                <div class="line-chart-container" style="width: 100%; max-width: 100%; overflow: hidden;">
+                    <svg viewBox="0 0 ${viewBoxW} ${viewBoxH}" preserveAspectRatio="none" style="width: 100%; height: 75px; display: block;">
                         <defs>
                             <linearGradient id="grad-${safeId}" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="${gradStart}"/>
                                 <stop offset="100%" stop-color="${gradEnd}"/>
                             </linearGradient>
                         </defs>
-                        <line x1="${padL - 10}" y1="${padT + uH}" x2="${svgW - padR + 10}" y2="${padT + uH}" stroke="#cbd5e1" stroke-width="1.2"/>
+                        <line x1="${padL - 10}" y1="${padT + uH}" x2="${viewBoxW - padR + 10}" y2="${padT + uH}" stroke="#cbd5e1" stroke-width="1"/>
                         <path d="${areaD}" fill="url(#grad-${safeId})" />
-                        <path d="${lineD}" fill="none" stroke="${primaryColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="${lineD}" fill="none" stroke="${primaryColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
                         ${guidesAndNodes}
                     </svg>
                 </div>
@@ -2669,17 +2710,19 @@
                     data-block="${blk}"
                     data-variety="${variety}"
                     data-week="${swShort}">
-                    <td colspan="12" style="padding: 10px 16px 12px 48px; border-left: 3px solid #9333ea; background: #faf5ff;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 0.74rem; font-weight: 800; color: #581c87; text-transform: uppercase; letter-spacing: 0.02em;">
-                                    📈 Curva Agronómica de Entrada a Cosecha (${items.length} sem):
-                                </span>
-                                <span style="font-size: 0.65rem; color: #7e22ce; background: #f3e8ff; padding: 2px 8px; border-radius: 9999px; font-weight: 600; border: 1px solid #e9d5ff;">
-                                    Campana de Recolección
-                                </span>
+                    <td colspan="12" style="white-space: normal !important; padding: 10px 14px 12px; border-left: 3px solid #9333ea; background: #faf5ff;">
+                        <div style="width: 100%; max-width: 100%; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 0.72rem; font-weight: 800; color: #581c87; text-transform: uppercase;">
+                                        📈 Curva Agronómica de Entrada a Cosecha (${items.length} sem):
+                                    </span>
+                                    <span style="font-size: 0.62rem; color: #7e22ce; background: #f3e8ff; padding: 1px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #e9d5ff;">
+                                        Campana de Recolección
+                                    </span>
+                                </div>
                             </div>
-                            <div style="background: #ffffff; border-radius: 8px; border: 1px solid #e9d5ff; box-shadow: 0 1px 3px rgba(0,0,0,0.03); padding: 4px 8px;">
+                            <div style="width: 100%; max-width: 100%; box-sizing: border-box; background: #ffffff; border-radius: 6px; border: 1px solid #e9d5ff; padding: 4px 6px;">
                                 ${lineChartHtml}
                             </div>
                         </div>
@@ -2689,16 +2732,16 @@
 
             items.forEach(hw => {
                 const dumpBadge = (hw.dump && hw.dump > 0)
-                    ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.62rem; font-weight: 700; border: 1px solid #fecaca;">${Number(hw.dump).toLocaleString()} Descarte</span>`
+                    ? `<span style="display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 4px; background: #fee2e2; color: #dc2626; font-size: 0.60rem; font-weight: 700;">${Number(hw.dump).toLocaleString()} dmp</span>`
                     : '';
                 const expBadge = (hw.dump && hw.dump > 0)
-                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">${Number(hw.stems - hw.dump).toLocaleString()} Exportables</span>`
+                    ? `&nbsp;|&nbsp; <span style="color: #059669; font-weight: 700;">${Number(hw.stems - hw.dump).toLocaleString()} exp</span>`
                     : '';
-                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">Curva Modelo</span>`;
+                let srcBadge = `<span class="badge-status-pending" style="font-size: 0.58rem;">Modelo</span>`;
                 if (hw.src === 'REAL') {
-                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">Real Cosechado</span>`;
+                    srcBadge = `<span class="badge-status-closed" style="font-size: 0.58rem;">Real</span>`;
                 } else if (hw.src === 'AGRONOMO') {
-                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">Estimado Agrónomo</span>`;
+                    srcBadge = `<span class="badge-status-harvest" style="font-size: 0.58rem;">Agrónomo</span>`;
                 }
 
                 html += `<tr class="group-harvest-row harvest-of-${blockUid} blk-child-of-${swUid} sw-grandchild-of-${pm}"
@@ -2707,15 +2750,15 @@
                              data-block="${blk}"
                              data-variety="${variety}"
                              data-week="${swShort}">
-                    <td class="col-left" style="padding-left: 56px; color: #7e22ce; font-weight: 700;">
-                        ↳ Sem. Cosecha ${hw.hw} ${dumpBadge}
+                    <td class="col-left" style="padding-left: 36px; color: #7e22ce; font-weight: 700;">
+                        ↳ Sem. ${hw.hw} ${dumpBadge}
                     </td>
                     <td class="col-left" style="color: var(--text-muted); font-size: 0.68rem;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 50px; height: 6px; background: #f3e8ff; border-radius: 4px; overflow: hidden; border: 1px solid #e9d5ff; display: inline-block;">
-                                <div style="width: ${Math.min(100, hw.pct)}%; height: 100%; background: linear-gradient(90deg, #a855f7, #7e22ce); border-radius: 3px;"></div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <div style="width: 40px; height: 5px; background: #f3e8ff; border-radius: 3px; overflow: hidden; display: inline-block;">
+                                <div style="width: ${Math.min(100, hw.pct)}%; height: 100%; background: #7e22ce; border-radius: 2px;"></div>
                             </div>
-                            <span>Aporte: <strong>${hw.pct}%</strong></span>
+                            <span>${hw.pct}%</span>
                             ${expBadge}
                         </div>
                     </td>
@@ -2728,7 +2771,7 @@
                     <td style="color: var(--text-subtle);">-</td>
                     <td style="color: var(--text-subtle);">-</td>
                     <td style="text-align: center; font-weight: 600; color: #7e22ce;">Sem ${hw.hw}</td>
-                    <td>${srcBadge}</td>
+                    <td style="text-align: center;">${srcBadge}</td>
                 </tr>`;
             });
 
