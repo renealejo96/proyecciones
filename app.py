@@ -1999,31 +1999,11 @@ def get_statistics_data(
         if block_filter.upper() in ("ALL", "TODOS", "(TODOS LOS BLOQUES)"):
             block_filter = ""
 
-        # 3. Query Block Closures with filters applied
+        # 3. Query Block Closures across all crops (unrestricted to preserve multi-crop lifecycle)
         closure_query = db.query(BlockClosureDB)
-        if selected_weeks_set:
-            closure_query = closure_query.filter(BlockClosureDB.source_week.in_(selected_weeks_set))
-        else:
-            if parsed_sw_from:
-                closure_query = closure_query.filter(BlockClosureDB.source_week >= parsed_sw_from)
-            if parsed_sw_to:
-                closure_query = closure_query.filter(BlockClosureDB.source_week <= parsed_sw_to)
-        if resolved_pm:
-            if "VERONICA" in resolved_pm.upper():
-                closure_query = closure_query.filter(BlockClosureDB.product_master_norm.like("%VERONICA%"))
-            else:
-                closure_query = closure_query.filter(BlockClosureDB.product_master_norm == normalize_text(resolved_pm))
-        if selected_varieties_norm:
-            closure_query = closure_query.filter(BlockClosureDB.variety_norm.in_(selected_varieties_norm))
-        if activity_filter:
-            closure_query = closure_query.filter(BlockClosureDB.activity == normalize_text(activity_filter))
-        if block_filter:
-            closure_query = closure_query.filter(BlockClosureDB.block_norm == normalize_text(block_filter))
-
         closures_list = closure_query.all()
         closed_blocks_set: set[tuple[str, str, int, str, str]] = set()
         closed_blocks_by_lot: set[tuple[str, int, str, str]] = set()
-        closed_sws_list: list[int] = []
         for c in closures_list:
             if c.is_closed:
                 c_pm = normalize_text(c.product_master_norm)
@@ -2032,85 +2012,12 @@ def get_statistics_data(
                 c_blk = normalize_text(c.block_norm or c.block)
                 closed_blocks_set.add((c_pm, c_var, c.source_week, c_ac, c_blk))
                 closed_blocks_by_lot.add((c_pm, c.source_week, c_ac, c_blk))
-                closed_sws_list.append(c.source_week)
 
-        # 4. Query TPSR records with filters
-        tpsr_query = db.query(TpsrRecord)
-        if resolved_year:
-            try:
-                y_int = int(resolved_year)
-                year_condition = (
-                    (TpsrRecord.year == y_int)
-                    | ((TpsrRecord.source_week >= y_int * 100) & (TpsrRecord.source_week < (y_int + 1) * 100))
-                )
-                if closed_sws_list:
-                    tpsr_query = tpsr_query.filter(year_condition | TpsrRecord.source_week.in_(closed_sws_list))
-                else:
-                    tpsr_query = tpsr_query.filter(year_condition)
-            except ValueError:
-                pass
-        if selected_weeks_set:
-            tpsr_query = tpsr_query.filter(TpsrRecord.source_week.in_(selected_weeks_set))
-        else:
-            if parsed_sw_from:
-                tpsr_query = tpsr_query.filter(TpsrRecord.source_week >= parsed_sw_from)
-            if parsed_sw_to:
-                tpsr_query = tpsr_query.filter(TpsrRecord.source_week <= parsed_sw_to)
+        # 4. Query TPSR records across all crops
+        tpsr_records = db.query(TpsrRecord).all()
 
-        if resolved_pm:
-            if "VERONICA" in resolved_pm.upper():
-                tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm.like("%VERONICA%"))
-            else:
-                norm_pm = normalize_text(resolved_pm)
-                tpsr_query = tpsr_query.filter(TpsrRecord.product_master_norm == norm_pm)
-
-        if selected_varieties_norm:
-            tpsr_query = tpsr_query.filter(TpsrRecord.variety_norm.in_(selected_varieties_norm))
-
-        if activity_filter:
-            norm_ac = normalize_text(activity_filter)
-            tpsr_query = tpsr_query.filter(TpsrRecord.activity == norm_ac)
-
-        if block_filter:
-            norm_blk = normalize_text(block_filter)
-            tpsr_query = tpsr_query.filter(TpsrRecord.block_norm == norm_blk)
-
-        tpsr_records = tpsr_query.all()
-
-        # 5. Query Week Adjustments with filters applied
-        week_adj_query = db.query(WeekAdjustmentDB)
-        if resolved_year:
-            try:
-                y_int = int(resolved_year)
-                year_condition_adj = (
-                    (WeekAdjustmentDB.source_week >= y_int * 100) & (WeekAdjustmentDB.source_week < (y_int + 1) * 100)
-                )
-                if closed_sws_list:
-                    week_adj_query = week_adj_query.filter(year_condition_adj | WeekAdjustmentDB.source_week.in_(closed_sws_list))
-                else:
-                    week_adj_query = week_adj_query.filter(year_condition_adj)
-            except ValueError:
-                pass
-        if selected_weeks_set:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week.in_(selected_weeks_set))
-        else:
-            if parsed_sw_from:
-                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week >= parsed_sw_from)
-            if parsed_sw_to:
-                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.source_week <= parsed_sw_to)
-        if resolved_pm:
-            if "VERONICA" in resolved_pm.upper():
-                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm.like("%VERONICA%"))
-            else:
-                week_adj_query = week_adj_query.filter(WeekAdjustmentDB.product_master_norm == normalize_text(resolved_pm))
-        if selected_varieties_norm:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.variety_norm.in_(selected_varieties_norm))
-        if activity_filter:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.activity == normalize_text(activity_filter))
-        if block_filter:
-            week_adj_query = week_adj_query.filter(WeekAdjustmentDB.block_norm == normalize_text(block_filter))
-
-        week_adjustments = week_adj_query.all()
+        # 5. Query Week Adjustments across all crops
+        week_adjustments = db.query(WeekAdjustmentDB).all()
         adj_map_by_block: dict[tuple[str, str, int, str, str], list[WeekAdjustmentDB]] = {}
         for adj in week_adjustments:
             adj_pm_norm = "VERONICA" if "VERONICA" in adj.product_master_norm else adj.product_master_norm
@@ -2141,25 +2048,8 @@ def get_statistics_data(
                 }
             grouped_block_lots[k]["plants"] += (r.plants or 0)
 
-        # 7. Process individual block rows and calculate metrics
-        flat_block_rows: list[dict[str, Any]] = []
-
-        total_production_sum = 0
-        total_real_closed_sum = 0
-        total_plants_sum = 0
-        total_dumps_sum = 0
-        real_stems_per_plant_list = []
-        cycle_real_list = []
-        waste_list = []
-        ideal_stems_per_plant_list = []
-
-        relative_curve_real_sums: dict[int, float] = {i: 0.0 for i in range(12)}
-        relative_curve_real_counts: dict[int, int] = {i: 0 for i in range(12)}
-        relative_curve_ideal_sums: dict[int, float] = {i: 0.0 for i in range(12)}
-        relative_curve_ideal_counts: dict[int, int] = {i: 0 for i in range(12)}
-
-        chronological_real_stems: dict[str, int] = {}
-        chronological_agronomo_stems: dict[str, int] = {}
+        # 7. Process individual block rows and calculate metrics for all lots
+        all_flat_block_rows: list[dict[str, Any]] = []
 
         for k, lot in grouped_block_lots.items():
             pm, var, sw, ac, blk = k
@@ -2215,7 +2105,6 @@ def get_statistics_data(
                     src = "REAL"
                     if val > 0:
                         block_real_stems += val
-                        chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
                 elif hw in adj_agro_map:
                     val = adj_agro_map[hw]
                     # Historical closures or weeks prior to week 2630 must always show as REAL
@@ -2223,11 +2112,8 @@ def get_statistics_data(
                         src = "REAL"
                         if val > 0:
                             block_real_stems += val
-                            chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + val
                     else:
                         src = "AGRONOMO"
-                        if val > 0:
-                            chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + val
                 elif not is_closed:
                     if hw < 202630:
                         val = 0
@@ -2264,45 +2150,16 @@ def get_statistics_data(
                 item["pct_of_total"] = round((item["stems"] / block_total_production * 100.0), 1) if block_total_production > 0 else 0.0
 
             has_real_data = (block_real_stems > 0) or (block_dumps > 0)
-
-            # Tallos por planta considera el total real producido (incluyendo dumps)
             block_t_pl = round(block_total_production / plants, 1) if plants > 0 else 0.0
             is_below_target = (block_t_pl < effective_stems_pp)
 
-            # Cycle calculation
             real_cycle_weeks = effective_cycle_weeks
             if adj_real_map:
                 min_hw = min(adj_real_map.keys())
                 real_cycle_weeks = max(1, calculate_week_difference(sw, min_hw))
-                cycle_real_list.append(real_cycle_weeks)
 
-            # Relative curve accumulation
-            if block_real_stems > 0 and adj_real_map:
-                sorted_hw = sorted(adj_real_map.keys())
-                start_hw = sorted_hw[0]
-                for hw, stems in adj_real_map.items():
-                    offset = max(0, min(11, calculate_week_difference(start_hw, hw)))
-                    pct = (stems / block_real_stems) * 100.0
-                    relative_curve_real_sums[offset] += pct
-                    relative_curve_real_counts[offset] += 1
-
-            ideal_curve = c_def["curve"]
-            for idx, pct in enumerate(ideal_curve):
-                if idx < 12:
-                    relative_curve_ideal_sums[idx] += (pct * 100.0)
-                    relative_curve_ideal_counts[idx] += 1
-
-            # Include block in summary
             if plants > 0:
                 block_dumps = sum(item["dump_stems"] for item in harvest_breakdown)
-                total_plants_sum += plants
-                total_production_sum += block_total_production
-                total_real_closed_sum += block_real_stems
-                total_dumps_sum += block_dumps
-                real_stems_per_plant_list.append(block_t_pl)
-                ideal_stems_per_plant_list.append(effective_stems_pp)
-                waste_list.append(effective_waste_rate * 100.0)
-
                 harvest_weeks_str = ", ".join(item["harvest_week_short"] for item in harvest_breakdown)
                 harvest_weeks_display = format_week_range_display([item["harvest_week_short"] for item in harvest_breakdown])
                 status_label = "CERRADO" if is_closed else ("EN COSECHA" if has_real_data else "PENDIENTE")
@@ -2333,7 +2190,119 @@ def get_statistics_data(
                     "harvest_weeks_display": harvest_weeks_display,
                     "harvest_breakdown": harvest_breakdown,
                 }
-                flat_block_rows.append(block_item)
+                all_flat_block_rows.append(block_item)
+
+        # Build consolidated productions per physical block across the entire farm
+        # (This ensures every physical block retains its complete multi-crop and multi-year lifecycle,
+        # without being truncated by active crop or week slicers)
+        consolidated_blocks, consolidated_productions = build_consolidated_block_productions(all_flat_block_rows)
+
+        # Filter block rows for Tab 1 (Visual Dashboard KPIs & Curves) and Tab 2 (Hierarchical Weekly Matrix)
+        flat_block_rows: list[dict[str, Any]] = []
+        chart_candidate_rows: list[dict[str, Any]] = []
+
+        total_production_sum = 0
+        total_real_closed_sum = 0
+        total_plants_sum = 0
+        total_dumps_sum = 0
+        real_stems_per_plant_list = []
+        cycle_real_list = []
+        waste_list = []
+        ideal_stems_per_plant_list = []
+
+        relative_curve_real_sums: dict[int, float] = {i: 0.0 for i in range(12)}
+        relative_curve_real_counts: dict[int, int] = {i: 0 for i in range(12)}
+        relative_curve_ideal_sums: dict[int, float] = {i: 0.0 for i in range(12)}
+        relative_curve_ideal_counts: dict[int, int] = {i: 0 for i in range(12)}
+
+        chronological_real_stems: dict[str, int] = {}
+        chronological_agronomo_stems: dict[str, int] = {}
+
+        for b in all_flat_block_rows:
+            # Crop match for Tab 1 & Tab 2
+            pm_matches = True
+            if resolved_pm:
+                if "VERONICA" in resolved_pm.upper():
+                    pm_matches = ("VERONICA" in b["product_master"].upper())
+                else:
+                    pm_matches = (b["product_master"] == resolved_pm)
+            if not pm_matches:
+                continue
+
+            # Variety match
+            if selected_varieties_norm and normalize_text(b["variety"]) not in selected_varieties_norm:
+                continue
+
+            # Activity match
+            if activity_filter and b["activity"] != activity_filter:
+                continue
+
+            # Block match
+            if block_filter and normalize_text(b["block"]) != normalize_text(block_filter):
+                continue
+
+            # Candidate for multi-year chart (across all available years for this crop/variety)
+            chart_candidate_rows.append(b)
+
+            # Year filter for operational active view
+            if resolved_year:
+                try:
+                    y_int = int(resolved_year)
+                    sw_val = b.get("source_week") or 0
+                    if not (b["is_closed"] or (y_int * 100 <= sw_val < (y_int + 1) * 100)):
+                        continue
+                except ValueError:
+                    pass
+
+            # Week range or list filter
+            if selected_weeks_set:
+                if b["source_week"] not in selected_weeks_set:
+                    continue
+            else:
+                if parsed_sw_from and b["source_week"] < parsed_sw_from:
+                    continue
+                if parsed_sw_to and b["source_week"] > parsed_sw_to:
+                    continue
+
+            flat_block_rows.append(b)
+
+            # Accumulate metrics for active filtered scope
+            total_plants_sum += b["plants"]
+            total_production_sum += b["total_production"]
+            total_real_closed_sum += b["real_stems"]
+            total_dumps_sum += b["dump_stems"]
+            real_stems_per_plant_list.append(b["real_stems_per_plant"])
+            ideal_stems_per_plant_list.append(b["ideal_stems_per_plant"])
+            waste_list.append(b["waste_pct"])
+            cycle_real_list.append(b["real_cycle_weeks"])
+
+            # Chronological harvest accumulation
+            for item in b.get("harvest_breakdown", []):
+                hw_short = item["harvest_week_short"]
+                if item["source"] == "REAL":
+                    chronological_real_stems[hw_short] = chronological_real_stems.get(hw_short, 0) + item["exportable_stems"]
+                elif item["source"] == "AGRONOMO":
+                    chronological_agronomo_stems[hw_short] = chronological_agronomo_stems.get(hw_short, 0) + item["exportable_stems"]
+
+            # Relative curve accumulation for closed blocks
+            if b["is_closed"] and b["real_stems"] > 0:
+                real_hws = [item for item in b.get("harvest_breakdown", []) if item["source"] == "REAL"]
+                if real_hws:
+                    start_hw = real_hws[0]["harvest_week"]
+                    for h_item in real_hws:
+                        offset = max(0, min(11, calculate_week_difference(start_hw, h_item["harvest_week"])))
+                        pct = (h_item["exportable_stems"] / b["real_stems"]) * 100.0 if b["real_stems"] > 0 else 0.0
+                        relative_curve_real_sums[offset] += pct
+                        relative_curve_real_counts[offset] += 1
+
+            pm_norm = normalize_text(b["product_master"])
+            var_norm = normalize_text(b["variety"])
+            ac_norm = normalize_text(b["activity"])
+            c_def_b = find_cycle_definition(cycles_map, pm_norm, var_norm, ac_norm)
+            for idx, pct in enumerate(c_def_b["curve"]):
+                if idx < 12:
+                    relative_curve_ideal_sums[idx] += (pct * 100.0)
+                    relative_curve_ideal_counts[idx] += 1
 
         flat_block_rows.sort(key=lambda x: (x["source_week"], x["product_master"], x["variety"], x["block"]))
 
@@ -2462,9 +2431,6 @@ def get_statistics_data(
         avg_waste = round(sum(closed_waste_list) / len(closed_waste_list), 1) if closed_waste_list else 10.0
         total_closed_blocks = len(closed_blocks)
 
-        # Build consolidated productions per block (accounting for staggered planting waves & subsequent cycles)
-        consolidated_blocks, consolidated_productions = build_consolidated_block_productions(flat_block_rows)
-
         # Chart 1: Relative Curve
         curve_labels = [f"Sem {i}" if i == 0 else f"Sem +{i}" for i in range(8)]
         chart_real_curve = []
@@ -2496,7 +2462,7 @@ def get_statistics_data(
         year_week_stems: dict[str, dict[int, dict[str, Any]]] = {}
         all_calendar_weeks_set: set[int] = set()
 
-        for b in flat_block_rows:
+        for b in chart_candidate_rows:
             if not b["is_closed"]:
                 continue
             sw_val = b.get("source_week")
@@ -2592,7 +2558,7 @@ def get_statistics_data(
         chart_hybrid_projected = [chronological_agronomo_stems.get(w, 0) for w in hybrid_weeks]
 
         harvest_breakdown_map: dict[str, list[dict[str, Any]]] = {}
-        for b in flat_block_rows:
+        for b in all_flat_block_rows:
             uid = f"{b['product_master']}-{b['source_week']}-{b['activity']}-{b['block']}"
             if b.get("harvest_breakdown"):
                 harvest_breakdown_map[uid] = [
