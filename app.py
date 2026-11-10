@@ -149,21 +149,48 @@ _STATS_CACHE: dict[tuple, Any] = {}
 
 def invalidate_snapshot_cache() -> None:
     bump_data_version()
+    _WORKER_CACHE["snapshots"] = {}
     _WORKER_CACHE["snapshot"] = None
     _WORKER_CACHE["version"] = -1
     _WORKER_CACHE["timestamp"] = 0.0
     _STATS_CACHE.clear()
 
 
-def build_projection_snapshot_from_db() -> dict[str, Any]:
+def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]:
     db = SessionLocal()
     try:
-        tpsr_recs = db.query(TpsrRecord).all()
+        tpsr_query = db.query(TpsrRecord)
+        if year:
+            tpsr_query = tpsr_query.filter(
+                (TpsrRecord.year == year) |
+                ((TpsrRecord.source_week >= year * 100) & (TpsrRecord.source_week < (year + 1) * 100))
+            )
+        tpsr_recs = tpsr_query.all()
         cycle_defs = db.query(CycleDefinitionDB).all()
-        row_adjs = db.query(RowAdjustmentDB).all()
+
+        row_adjs_query = db.query(RowAdjustmentDB)
+        if year:
+            row_adjs_query = row_adjs_query.filter(
+                (RowAdjustmentDB.source_week >= year * 100) & (RowAdjustmentDB.source_week < (year + 1) * 100)
+            )
+        row_adjs = row_adjs_query.all()
+
         mass_adjs = db.query(MassAdjustmentDB).all()
-        week_adjs = db.query(WeekAdjustmentDB).all()
-        block_closes = db.query(BlockClosureDB).all()
+
+        week_adjs_query = db.query(WeekAdjustmentDB)
+        if year:
+            week_adjs_query = week_adjs_query.filter(
+                ((WeekAdjustmentDB.source_week >= year * 100) & (WeekAdjustmentDB.source_week < (year + 1) * 100)) |
+                ((WeekAdjustmentDB.harvest_week >= year * 100) & (WeekAdjustmentDB.harvest_week < (year + 1) * 100))
+            )
+        week_adjs = week_adjs_query.all()
+
+        block_closes_query = db.query(BlockClosureDB)
+        if year:
+            block_closes_query = block_closes_query.filter(
+                (BlockClosureDB.source_week >= year * 100) & (BlockClosureDB.source_week < (year + 1) * 100)
+            )
+        block_closes = block_closes_query.all()
 
         cycle_map = {}
         cycle_map_by_var_act = {}
@@ -501,17 +528,25 @@ def build_projection_snapshot_from_db() -> dict[str, Any]:
         db.close()
 
 
-def get_snapshot(force_refresh: bool = False) -> dict[str, Any]:
+def get_snapshot(force_refresh: bool = False, year: int = 2026) -> dict[str, Any]:
     current_version = get_data_version()
     now = time.time()
     # Cache is strictly version-controlled with PostgreSQL data_version.
     # Fallback TTL is 600s (10 min) to avoid wasteful recalculations every 30s.
     cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 600.0
-    if force_refresh or cache_expired or _WORKER_CACHE["snapshot"] is None or _WORKER_CACHE["version"] != current_version:
-        _WORKER_CACHE["snapshot"] = build_projection_snapshot_from_db()
+    if force_refresh or cache_expired or _WORKER_CACHE.get("version") != current_version:
+        _WORKER_CACHE["snapshots"] = {}
+        _WORKER_CACHE["snapshot"] = None
         _WORKER_CACHE["version"] = current_version
         _WORKER_CACHE["timestamp"] = now
-    return _WORKER_CACHE["snapshot"]
+
+    if "snapshots" not in _WORKER_CACHE:
+        _WORKER_CACHE["snapshots"] = {}
+
+    if year not in _WORKER_CACHE["snapshots"]:
+        _WORKER_CACHE["snapshots"][year] = build_projection_snapshot_from_db(year=year)
+    _WORKER_CACHE["snapshot"] = _WORKER_CACHE["snapshots"][year]
+    return _WORKER_CACHE["snapshots"][year]
 
 
 def available_weeks(snapshot: dict[str, Any]) -> list[int]:
@@ -1152,6 +1187,12 @@ def eliminar_usuario_api(user_id: int):
 
 @app.route("/")
 def index() -> str:
+    requested_year_str = request.args.get("ano", request.args.get("year", "2026")).strip()
+    try:
+        requested_year = int(requested_year_str) if requested_year_str else 2026
+    except ValueError:
+        requested_year = 2026
+
     requested_week = request.args.get("semana", "")
     requested_horizon = request.args.get("horizonte", "")
     requested_horizon_back = request.args.get("horizonte_atras", "")
@@ -1160,7 +1201,7 @@ def index() -> str:
     if force_refresh:
         invalidate_snapshot_cache()
 
-    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh)
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
     selected_week = resolve_selected_week(requested_week, snapshot)
 
     prods = available_products(snapshot)
@@ -1192,6 +1233,8 @@ def index() -> str:
         page_mode="AGRONOMO",
         page_title="Llenado Agronomo",
         active_view="agro",
+        selected_year=str(requested_year),
+        year_options=["2026", "2025", "2024"],
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
@@ -1205,6 +1248,12 @@ def index() -> str:
 
 @app.route("/reales")
 def reales() -> str:
+    requested_year_str = request.args.get("ano", request.args.get("year", "2026")).strip()
+    try:
+        requested_year = int(requested_year_str) if requested_year_str else 2026
+    except ValueError:
+        requested_year = 2026
+
     requested_week = request.args.get("semana", "")
     requested_horizon = request.args.get("horizonte", "")
     requested_horizon_back = request.args.get("horizonte_atras", "")
@@ -1213,7 +1262,7 @@ def reales() -> str:
     if force_refresh:
         invalidate_snapshot_cache()
 
-    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh)
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
     selected_week = resolve_selected_week(requested_week, snapshot)
 
     prods = available_products(snapshot)
@@ -1245,6 +1294,8 @@ def reales() -> str:
         page_mode="REAL",
         page_title="Datos Reales",
         active_view="reales",
+        selected_year=str(requested_year),
+        year_options=["2026", "2025", "2024"],
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
@@ -2892,7 +2943,13 @@ def exportar_matriz_api():
     if not session.get("username"):
         return jsonify({"ok": False, "message": "Sesión requerida."}), 401
 
-    snapshot: dict[str, Any] = get_snapshot(force_refresh=False)
+    requested_year_str = request.args.get("ano", request.args.get("year", "2026")).strip()
+    try:
+        requested_year = int(requested_year_str) if requested_year_str else 2026
+    except ValueError:
+        requested_year = 2026
+
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=False, year=requested_year)
     prods = available_products(snapshot)
 
     requested_week = request.args.get("semana", "").strip()
@@ -3248,7 +3305,13 @@ def projections_api():
     requested_product_master = request.args.get("producto", "").strip()
     force_refresh = request.args.get("refresh", "0") == "1"
 
-    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh)
+    requested_year_str = request.args.get("ano", request.args.get("year", "2026")).strip()
+    try:
+        requested_year = int(requested_year_str) if requested_year_str else 2026
+    except ValueError:
+        requested_year = 2026
+
+    snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
     selected_week = resolve_selected_week(requested_week, snapshot)
     if requested_horizon and not requested_horizon_back and not requested_horizon_forward:
         horizon_weeks_back = max(0, min(20, int(requested_horizon or 4)))

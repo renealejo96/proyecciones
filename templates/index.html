@@ -1558,6 +1558,14 @@
 
             <form method="get" class="toolbar" id="filters-form">
                 <div class="field">
+                    <label for="ano">Año</label>
+                    <select id="ano" name="ano" style="width: 70px;" onchange="this.form.submit()">
+                        {% for yr in year_options %}
+                            <option value="{{ yr }}" {{ 'selected' if yr == (selected_year | string) else '' }}>{{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
                     <label for="semana">Semana corte</label>
                     <select id="semana" name="semana" style="width: 72px;">
                         {% for item in week_options %}
@@ -1591,7 +1599,7 @@
 
                 <div class="actions">
                     <button type="submit" class="btn-primary">Actualizar</button>
-                    <a href="{{ '/reales' if page_mode == 'REAL' else '/' }}?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}&refresh=1" class="btn-secondary">Recargar</a>
+                    <a href="{{ '/reales' if page_mode == 'REAL' else '/' }}?ano={{ selected_year }}&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}&horizonte_atras={{ weekly_view.horizon_weeks_back }}&horizonte_adelante={{ weekly_view.horizon_weeks_forward }}&refresh=1" class="btn-secondary">Recargar</a>
 
                     <!-- DROPDOWN OPERACIONES MENU -->
                     <div class="dropdown-wrapper">
@@ -1606,10 +1614,10 @@
                             <button type="button" class="dropdown-item" id="menu-save-all">Guardar Todo en Servidor</button>
                             <button type="button" class="dropdown-item" id="menu-toggle-params">Mostrar / Ocultar Parámetros</button>
                             <button type="button" class="dropdown-item" id="menu-audit-history">Historial y Restaurar Estimaciones</button>
-                            <button type="button" class="dropdown-item" onclick="location.href='/?refresh=1&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">Sincronizar PostgreSQL</button>
+                            <button type="button" class="dropdown-item" onclick="location.href='/?refresh=1&ano={{ selected_year }}&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}'">Sincronizar PostgreSQL</button>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="/?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Llenado Agrónomo</a>
-                            <a class="dropdown-item" href="/reales?semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Datos Reales</a>
+                            <a class="dropdown-item" href="/?ano={{ selected_year }}&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Llenado Agrónomo</a>
+                            <a class="dropdown-item" href="/reales?ano={{ selected_year }}&semana={{ weekly_view.selected_week }}&producto={{ weekly_view.selected_product_master }}">Vista Datos Reales</a>
                             <a class="dropdown-item" href="/estadistica">Vista Estadística</a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/parametros" target="_blank" rel="noopener">Configuración de Ciclos</a>
@@ -4565,6 +4573,9 @@
         function triggerMatrixExport(format) {
             const params = new URLSearchParams(window.location.search);
             params.set('formato', format);
+
+            const anoEl = document.getElementById('ano');
+            if (anoEl && anoEl.value) params.set('ano', anoEl.value);
 
             // Core toolbar inputs (take precedence over empty search params)
             const semEl = document.getElementById('semana');
