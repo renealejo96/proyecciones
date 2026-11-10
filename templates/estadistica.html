@@ -3122,7 +3122,7 @@
                         </div>
 
                         <!-- WEEKLY HARVEST MATRIX TABLE -->
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                        <div id="modal-matrix-table-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                             <div style="padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.70rem; font-weight: 700; color: #475569; display: flex; justify-content: space-between; align-items: center;">
                                 <span>Desglose Detallado Semanal: Tallos, % Aporte y T/pl</span>
                                 <span id="modal-table-summary-info" style="color: #64748b; font-size: 0.65rem;">-</span>
@@ -3644,7 +3644,24 @@
             if (c.includes('HYP')) return '🌾';
             if (c.includes('VER')) return '🌿';
             if (c.includes('SOL')) return '🌻';
+            if (c.includes('SUN') || c.includes('GIRASOL')) return '🌻';
             return '🌸';
+        }
+
+        function getCropEmoji(crop) {
+            return getCropIcon(crop);
+        }
+
+        function formatCurveWeekNode(w) {
+            if (!w) return '-';
+            const s = String(w).trim();
+            if (s.length === 4 && /^\d{4}$/.test(s)) {
+                return `S${parseInt(s.slice(2), 10)} ('${s.slice(0, 2)})`;
+            }
+            if (s.length === 6 && /^\d{6}$/.test(s)) {
+                return `S${parseInt(s.slice(4), 10)} ('${s.slice(2, 4)})`;
+            }
+            return String(s).startsWith('S') ? s : `S${s}`;
         }
 
         // Agrupa cronológicamente los ciclos del bloque por producto maestro (de más antiguo a más nuevo)
@@ -4014,7 +4031,7 @@
                 let stagesHtml = '';
                 if (stages.length > 0) {
                     stagesHtml = stages.slice(0, 3).map((stg, sIdx) => {
-                        const cropIcon = getCropEmoji(stg.product_master);
+                        const cropIcon = getCropIcon(stg.product_master);
                         const stgClosed = Boolean(stg.is_closed);
                         const stgTp = stg.real_stems_per_plant || '0.00';
                         const tpColor = (stgTp > 0) ? '#166534' : '#64748b';
@@ -4438,7 +4455,33 @@
                         vbItem = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
                     }
 
-                    const rawPItems = HARVEST_BREAKDOWN_MAP[pKey] || [];
+                    let rawPItems = HARVEST_BREAKDOWN_MAP[pKey] || [];
+                    if (!rawPItems.length) {
+                        if (vbItem && vbItem.harvest_breakdown && vbItem.harvest_breakdown.length) {
+                            rawPItems = vbItem.harvest_breakdown.map(h => ({
+                                hw: h.harvest_week_short,
+                                sw: prod.source_week_max_short,
+                                stems: h.stems,
+                                pp: h.stems_pp,
+                                dump: h.dump_stems || 0,
+                                pct: h.pct_of_total || 0,
+                                src: h.source || 'REAL',
+                                activity: prod.activity || 'SIEMBRA',
+                                variety: vbItem.variety
+                            }));
+                        } else if (prod.harvest_breakdown && prod.harvest_breakdown.length) {
+                            rawPItems = prod.harvest_breakdown.map(h => ({
+                                hw: h.harvest_week_short,
+                                sw: prod.source_week_max_short,
+                                stems: h.stems,
+                                pp: h.stems_pp,
+                                dump: h.dump_stems || 0,
+                                pct: h.pct_of_total || 0,
+                                src: h.source || 'REAL',
+                                activity: prod.activity || 'SIEMBRA'
+                            }));
+                        }
+                    }
                     const pItems = rawPItems.filter(i => (Number(i.stems) || 0) > 0);
                     if (!pItems.length && effectiveVar !== 'ALL') return;
 
@@ -4512,6 +4555,8 @@
                 });
 
                 if (curveContainer) curveContainer.innerHTML = multiCurvesHtml || `<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin datos de cosecha registrados para esta variedad</div>`;
+                const tableCard = document.getElementById(`${prefix}-matrix-table-card`);
+                if (tableCard) tableCard.style.display = 'none';
                 if (tableInfoEl) tableInfoEl.style.display = 'none';
                 if (tableContainer) tableContainer.style.display = 'none';
 
@@ -4519,6 +4564,9 @@
                 const currentProd = (selectedProdUid && selectedProdUid !== 'ALL') ? productions.find(p => p.uid === selectedProdUid) : (productions[0] || null);
                 const act = currentProd ? (currentProd.activity || 'SIEMBRA') : (cblock.activity || (items[0] && items[0].activity) || 'SIEMBRA');
                 const isClosed = currentProd ? Boolean(currentProd.is_closed) : Boolean(cblock.is_closed);
+
+                const tableCard = document.getElementById(`${prefix}-matrix-table-card`);
+                if (tableCard) tableCard.style.display = 'block';
 
                 if (!isClosed) {
                     if (curveContainer) {
@@ -4534,8 +4582,19 @@
                         if (effectiveVar && effectiveVar !== 'ALL') {
                             cKey = `${currentProd.uid}_var_${effectiveVar}`;
                         }
-                        if (HARVEST_BREAKDOWN_MAP[cKey]) {
+                        if (HARVEST_BREAKDOWN_MAP[cKey] && HARVEST_BREAKDOWN_MAP[cKey].length) {
                             pItems = HARVEST_BREAKDOWN_MAP[cKey];
+                        } else if (currentProd.harvest_breakdown && currentProd.harvest_breakdown.length) {
+                            pItems = currentProd.harvest_breakdown.map(h => ({
+                                hw: h.harvest_week_short,
+                                sw: currentProd.source_week_max_short,
+                                stems: h.stems,
+                                pp: h.stems_pp,
+                                dump: h.dump_stems || 0,
+                                pct: h.pct_of_total || 0,
+                                src: h.source || 'REAL',
+                                activity: currentProd.activity || 'SIEMBRA'
+                            }));
                         }
                     }
                     const validItems = pItems.filter(i => (Number(i.stems) || 0) > 0);
@@ -4611,7 +4670,7 @@
                         <line x1="${p.x}" y1="${p.y}" x2="${p.x}" y2="${padT + uH}" stroke="#e2e8f0" stroke-dasharray="2,2" stroke-width="1.2"/>
                         <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#ffffff" stroke="${nodeColor}" stroke-width="2.5" style="cursor: pointer;" />
                         <text x="${p.x}" y="${Math.max(12, p.y - 7)}" text-anchor="middle" font-size="9" font-weight="800" fill="${nodeColor}" font-family="var(--font-mono)">${p.hw.pct}%</text>
-                        <text x="${p.x}" y="${viewBoxH - 8}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#475569" font-family="var(--font-sans)">S${p.hw.hw}</text>
+                        <text x="${p.x}" y="${viewBoxH - 8}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#475569" font-family="var(--font-sans)">${formatCurveWeekNode(p.hw.hw)}</text>
                     </g>
                 `;
             });
@@ -4709,7 +4768,7 @@
                         <line x1="${p.x}" y1="${p.y}" x2="${p.x}" y2="${padT + uH}" stroke="#e2e8f0" stroke-dasharray="2,2" stroke-width="1"/>
                         <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#ffffff" stroke="${nodeColor}" stroke-width="2" style="cursor: pointer;" />
                         ${showPct ? `<text x="${p.x}" y="${Math.max(10, p.y - 5)}" text-anchor="middle" font-size="8.5" font-weight="800" fill="${nodeColor}" font-family="var(--font-mono)">${p.hw.pct}%</text>` : ''}
-                        ${showWeek ? `<text x="${p.x}" y="${viewBoxH - 6}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#64748b" font-family="var(--font-sans)">S${p.hw.hw}</text>` : ''}
+                        ${showWeek ? `<text x="${p.x}" y="${viewBoxH - 6}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#64748b" font-family="var(--font-sans)">${formatCurveWeekNode(p.hw.hw)}</text>` : ''}
                     </g>
                 `;
             });
@@ -4769,7 +4828,7 @@
 
                 rowsHtml += `
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; font-weight: 700; color: #475569; text-align: left;">Sem ${hw.hw}</td>
+                        <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; font-weight: 700; color: #475569; text-align: left;">${formatCurveWeekNode(hw.hw)}</td>
                         <td style="padding: ${isModal ? '5px 8px' : '3px 6px'}; text-align: right; font-weight: 700; color: #0f172a;">
                             ${stemsNum.toLocaleString()} ${dumpSpan}
                         </td>

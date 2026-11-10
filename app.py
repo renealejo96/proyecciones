@@ -2732,6 +2732,46 @@ def get_statistics_data(
                     item["pct"] = round((item["stems"] / cv_prod * 100.0), 1) if cv_prod > 0 else 0.0
                 harvest_breakdown_map[v_key] = sorted_vhw
 
+            # Also register per-crop combined breakdown across cycles of that crop in the block
+            cblock_crop_map: dict[str, dict[str, Any]] = {}
+            for prod in cblock["productions"]:
+                crop_name = prod.get("product_master") or "OTRO"
+                if crop_name not in cblock_crop_map:
+                    cblock_crop_map[crop_name] = {"plants": 0, "prod": 0, "hw": {}}
+                cblock_crop_map[crop_name]["plants"] += prod.get("plants", 0)
+                cblock_crop_map[crop_name]["prod"] += prod.get("total_production", 0)
+                for h in prod.get("harvest_breakdown", []):
+                    if h.get("stems", 0) <= 0:
+                        continue
+                    hws = h["harvest_week_short"]
+                    if hws not in cblock_crop_map[crop_name]["hw"]:
+                        cblock_crop_map[crop_name]["hw"][hws] = {
+                            "hw": hws,
+                            "sw": prod.get("source_week_max_short", ""),
+                            "stems": 0,
+                            "dump": 0,
+                            "src": h.get("source", "MODELO"),
+                            "activity": prod.get("activity", "SIEMBRA"),
+                            "product_master": crop_name,
+                        }
+                    entry = cblock_crop_map[crop_name]["hw"][hws]
+                    entry["stems"] += h["stems"]
+                    entry["dump"] += h.get("dump_stems", 0)
+                    if h.get("source") == "REAL":
+                        entry["src"] = "REAL"
+                    elif h.get("source") == "AGRONOMO" and entry["src"] != "REAL":
+                        entry["src"] = "AGRONOMO"
+
+            for crop_name, cc_info in cblock_crop_map.items():
+                crop_key = f"{cuid}_crop_{crop_name}"
+                sorted_chw = sorted(cc_info["hw"].values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
+                cc_plants = cc_info["plants"]
+                cc_prod = cc_info["prod"]
+                for item in sorted_chw:
+                    item["pp"] = round(item["stems"] / cc_plants, 2) if cc_plants > 0 else 0.0
+                    item["pct"] = round((item["stems"] / cc_prod * 100.0), 1) if cc_prod > 0 else 0.0
+                harvest_breakdown_map[crop_key] = sorted_chw
+
         res = {
             "kpis": {
                 "total_real_stems": closed_prod_sum,
