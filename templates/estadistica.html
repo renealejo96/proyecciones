@@ -1059,6 +1059,88 @@
             text-overflow: ellipsis;
         }
 
+        /* Stages / Segmentos de Cierre en Botonera Cards */
+        .b-card-stages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin: 4px 0 6px 0;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px;
+            min-height: 52px;
+        }
+        .b-card-stage-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            transition: all 0.12s ease;
+        }
+        .b-card-stage-row:hover {
+            border-color: #cbd5e1;
+            background: #f8faff;
+        }
+        .stg-name-box {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 62%;
+        }
+        .stg-tag {
+            font-size: 0.55rem;
+            font-weight: 800;
+            background: #e2e8f0;
+            color: #334155;
+            padding: 0 3px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .stg-name {
+            font-weight: 800;
+            color: #1e293b;
+            text-transform: uppercase;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .stg-metric-box {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .stg-tp {
+            font-family: var(--font-mono);
+            font-weight: 800;
+            font-size: 0.68rem;
+        }
+        .stg-badge {
+            font-size: 0.62rem;
+        }
+        .b-card-footer-info {
+            font-size: 0.60rem;
+            color: #64748b;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .b-card-more-link {
+            font-size: 0.60rem;
+            color: #2563eb;
+            font-weight: 700;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
         /* Contenedor del visor detallado del bloque activo */
         .botonera-viewer-card {
             background: #ffffff;
@@ -3919,78 +4001,71 @@
 
             let html = '';
             filtered.forEach(cblock => {
+                const stages = cblock.stages || [];
                 const productions = cblock.productions || [];
-                let latestProd = null;
-                if (botoneraSelectedStatus === 'CLOSED') {
-                    const closedProds = productions.filter(p => p.is_closed);
-                    latestProd = closedProds.length ? closedProds[closedProds.length - 1] : (productions[productions.length - 1] || null);
-                } else {
-                    latestProd = productions.length ? productions[productions.length - 1] : null;
-                }
-
-                const act = (latestProd?.activity || cblock.activity || 'SIEMBRA').toUpperCase();
-                const isPoda = (act === 'PODA');
-                const eventLabel = isPoda ? '✂️ Poda' : '🌱 Siembra';
-                const rawWeek = latestProd ? (latestProd.source_weeks_display || latestProd.source_weeks_str || '') : (cblock.source_weeks_display || '');
-                const eventWeek = String(rawWeek).startsWith('S') ? rawWeek : (rawWeek ? `S${rawWeek}` : '');
-                const eventCrop = latestProd ? (latestProd.product_master || cblock.product_master || '-') : (cblock.product_master || '-');
-                const eventVariety = latestProd ? (latestProd.variety_display || cblock.variety_display || '') : (cblock.variety_display || '');
-                const realPP = latestProd ? (latestProd.real_stems_per_plant || 0) : (cblock.real_stems_per_plant || 0);
-                const idealPP = latestProd ? (latestProd.ideal_stems_per_plant || 0) : (cblock.ideal_stems_per_plant || 0);
-                const stems = latestProd ? (latestProd.total_production || 0) : (cblock.total_production || 0);
-                const plants = latestProd ? (latestProd.plants || 0) : (cblock.total_plants || 0);
-                const isClosed = latestProd ? Boolean(latestProd.is_closed) : Boolean(cblock.is_closed);
-
-                const isOptimal = (realPP > 0 && idealPP > 0) ? (realPP >= idealPP) : isClosed;
-                const borderClass = (realPP > 0) ? (isOptimal ? 'optimal' : 'below') : (isClosed ? 'optimal' : 'below');
-                const tpColor = (realPP > 0) ? (isOptimal ? '#16a34a' : '#dc2626') : '#64748b';
+                const isClosed = Boolean(cblock.is_closed);
+                const hasReal = Boolean(cblock.has_real_data);
 
                 const statusPill = isClosed 
                     ? `<span class="b-pill b-pill-green">🔒 Cerrado</span>`
-                    : (cblock.has_real_data ? `<span class="b-pill b-pill-amber">🌱 Cosecha</span>` : `<span class="b-pill b-pill-gray">⏳ Pendiente</span>`);
+                    : (hasReal ? `<span class="b-pill b-pill-amber">🌱 Cosecha</span>` : `<span class="b-pill b-pill-gray">⏳ Pendiente</span>`);
 
-                const cyclePill = `<span class="b-pill b-pill-blue">${cblock.total_productions} Ciclo${cblock.total_productions > 1 ? 's' : ''}</span>`;
+                // Segments / Etapas de cultivo
+                let stagesHtml = '';
+                if (stages.length > 0) {
+                    stagesHtml = stages.slice(0, 3).map((stg, sIdx) => {
+                        const cropIcon = getCropEmoji(stg.product_master);
+                        const stgClosed = Boolean(stg.is_closed);
+                        const stgTp = stg.real_stems_per_plant || '0.00';
+                        const tpColor = (stgTp > 0) ? '#166534' : '#64748b';
+                        const numProds = stg.productions ? stg.productions.length : 1;
+                        const cycleText = `${numProds}c`;
+                        return `
+                            <div class="b-card-stage-row" title="Etapa ${sIdx + 1}: ${stg.product_master} (${stg.variety_display}) · ${Number(stg.total_production).toLocaleString()} tallos / ${Number(stg.total_plants).toLocaleString()} plantas (${cycleText})">
+                                <div class="stg-name-box">
+                                    <span class="stg-tag">E${sIdx + 1}</span>
+                                    <span class="stg-name">${cropIcon} ${stg.product_master}</span>
+                                </div>
+                                <div class="stg-metric-box">
+                                    <span class="stg-tp" style="color: ${tpColor};"><strong>${stgTp}</strong> <span style="font-size: 0.58rem; font-weight: 600; color: #64748b;">T/pl</span></span>
+                                    <span class="stg-badge">${stgClosed ? '🔒' : '🌱'}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    if (stages.length > 3) {
+                        stagesHtml += `
+                            <div style="font-size: 0.58rem; color: #6366f1; font-weight: 700; text-align: center; padding-top: 1px;">
+                                +${stages.length - 3} etapa(s) adicional(es)
+                            </div>
+                        `;
+                    }
+                } else {
+                    stagesHtml = `
+                        <div style="font-size: 0.62rem; color: #94a3b8; font-style: italic; text-align: center; padding: 6px;">
+                            Sin etapas registradas
+                        </div>
+                    `;
+                }
 
                 html += `
-                    <div class="b-card ${borderClass}" 
+                    <div class="b-card ${isClosed ? 'optimal' : 'below'}" 
                          id="bcard-${cblock.uid}" 
-                         title="Bloque ${cblock.block} · ${eventCrop} (${realPP} T/pl) · Haz clic para abrir Ficha y Curvas"
+                         title="Bloque ${cblock.block} · ${cblock.total_productions} Ciclos · Haz clic para abrir Ficha Técnica y Curvas"
                          onclick="openBlockDetailModal('${cblock.uid}')">
                         <div class="b-card-header">
                             <span class="b-card-title">BL  ${cblock.block}</span>
-                            <div class="b-card-circle-icon" title="Ver ficha técnica completa">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </div>
+                            ${statusPill}
                         </div>
 
-                        <!-- ÚLTIMO EVENTO REGISTRADO -->
-                        <div class="b-card-event-badge ${isPoda ? 'badge-poda' : 'badge-siembra'}">
-                            ${eventLabel} ${eventWeek}
-                        </div>
-
-                        <!-- RENDIMIENTO REAL T/PL (SIN % CONFUSO) -->
-                        <div class="b-card-tp-box">
-                            <span class="b-card-tp-value" style="color: ${tpColor};">${realPP}</span>
-                            <span class="b-card-tp-unit">T/pl</span>
-                            <div class="b-card-tp-sub">(${Number(stems).toLocaleString()} tll / ${Number(plants).toLocaleString()} pl)</div>
-                        </div>
-
-                        <!-- CULTIVO LIMPIO DEL EVENTO -->
-                        <div class="b-card-crop" title="${eventCrop} · ${eventVariety}">
-                            ${eventCrop}
-                        </div>
-
-                        <!-- VARIEDAD / META -->
-                        <div class="b-card-meta" title="${eventVariety || '-'}">
-                            ${eventVariety ? eventVariety : (cblock.avg_cycle_weeks ? `Ciclo ${cblock.avg_cycle_weeks} sem` : '-')}
+                        <!-- ETAPAS / SEGMENTOS DE CIERRE -->
+                        <div class="b-card-stages-list">
+                            ${stagesHtml}
                         </div>
 
                         <div class="b-card-footer">
-                            ${statusPill}
-                            ${cyclePill}
+                            <span class="b-card-footer-info">${cblock.total_productions} Ciclo${cblock.total_productions > 1 ? 's' : ''} · ${Number(cblock.total_plants).toLocaleString()} pl</span>
+                            <span class="b-card-more-link">Ficha & Curvas ➔</span>
                         </div>
                     </div>
                 `;
@@ -4396,35 +4471,49 @@
                         ? generateModalLineChartSVG(pItems, `${pKey}-${prefix}`, prod.activity)
                         : generateUnclosedCycleNoticeHTML(prod);
 
+                    const tableContentHtml = (isClosed && pItems.length)
+                        ? `<div style="margin-top: 8px;">${generateHarvestMiniTableHTML(pItems, true, prod.activity)}</div>`
+                        : '';
+
                     const statusPill = isClosed
                         ? `<span class="badge-status-closed" style="font-size: 0.60rem; padding: 1px 6px;">CERRADO</span>`
                         : `<span class="badge-status-harvest" style="font-size: 0.60rem; padding: 1px 6px;">EN COSECHA</span>`;
 
+                    const cyclePlants = (vbItem && vbItem.plants) ? vbItem.plants : (prod.plants || 0);
+
                     multiCurvesHtml += `
-                        <div style="background: ${actBg}; border: 1px solid ${actBorder}; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 4px;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 0.72rem; font-weight: 800; color: ${actColor}; text-transform: uppercase;">
+                        <div style="background: ${actBg}; border: 1.5px solid ${actBorder}; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.76rem; font-weight: 800; color: ${actColor}; text-transform: uppercase;">
                                         ${actIcon} ${prodName}
                                     </span>
                                     ${statusPill}
-                                    <span style="font-size: 0.62rem; color: #475569; background: #ffffff; padding: 1px 6px; border-radius: 4px; border: 1px solid ${actBorder}; font-weight: 600;">
-                                        Semanas: ${hwStr}
+                                    <span style="font-size: 0.65rem; color: #475569; background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid ${actBorder}; font-weight: 600;">
+                                        Semanas Cosecha: ${hwStr}
                                     </span>
                                 </div>
-                                <div style="font-size: 0.68rem; font-weight: 700; color: #334155;">
-                                    ${Number(cStems).toLocaleString()} tallos · <span style="color: ${actColor}; font-weight: 800;">${cPP} T/pl</span>
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.70rem; font-weight: 700; color: #334155;">
+                                    <span style="background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                        🌱 ${Number(cyclePlants).toLocaleString()} pl
+                                    </span>
+                                    <span style="background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                        📦 ${Number(cStems).toLocaleString()} tll
+                                    </span>
+                                    <span style="background: ${actBg}; color: ${actColor}; padding: 2px 8px; border-radius: 4px; border: 1px solid ${actBorder}; font-weight: 800; font-size: 0.76rem;">
+                                        🎯 ${cPP} T/pl
+                                    </span>
                                 </div>
                             </div>
                             ${curveContentHtml}
+                            ${tableContentHtml}
                         </div>
                     `;
                 });
 
                 if (curveContainer) curveContainer.innerHTML = multiCurvesHtml || `<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin datos de cosecha registrados para esta variedad</div>`;
-                const varSuffix = (effectiveVar !== 'ALL') ? ` · Variedad: ${effectiveVar}` : '';
-                if (tableInfoEl) tableInfoEl.textContent = `${productions.length} ciclos · Desglose Comparativo Siembra / Poda${varSuffix}`;
-                if (tableContainer) tableContainer.innerHTML = generateMultiCycleHarvestTableHTML(cblock, effectiveVar, productions);
+                if (tableInfoEl) tableInfoEl.style.display = 'none';
+                if (tableContainer) tableContainer.style.display = 'none';
 
             } else {
                 const currentProd = (selectedProdUid && selectedProdUid !== 'ALL') ? productions.find(p => p.uid === selectedProdUid) : (productions[0] || null);
@@ -4454,11 +4543,13 @@
                         curveContainer.innerHTML = generateModalLineChartSVG(validItems, `${chartId}-${prefix}`, act);
                     }
                     if (tableContainer) {
+                        tableContainer.style.display = 'block';
                         tableContainer.innerHTML = generateHarvestMiniTableHTML(validItems, true, act);
                     }
                 }
                 const varSuffix = (effectiveVar !== 'ALL') ? ` · ${effectiveVar}` : '';
                 if (tableInfoEl) {
+                    tableInfoEl.style.display = 'block';
                     tableInfoEl.textContent = `${isClosed ? items.filter(i => (Number(i.stems) || 0) > 0).length : 0} semanas registradas${varSuffix}`;
                 }
             }

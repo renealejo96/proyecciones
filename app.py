@@ -1727,8 +1727,8 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
                 prev = current_cluster[-1]
                 is_same_act = (r["activity"] == prev["activity"])
                 is_same_crop = (r["product_master"] == prev["product_master"])
-                # Staggered planting window for beds of the same crop and block is typically up to 16 weeks
-                window_weeks = 16 if (r["activity"] == "SIEMBRA") else 8
+                # Staggered planting window for beds of the same crop and block is up to 4 weeks
+                window_weeks = 4
                 is_close_week = (calculate_week_difference(prev["source_week"], r["source_week"]) <= window_weeks)
 
                 if is_same_act and is_same_crop and is_close_week:
@@ -1743,6 +1743,44 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             prod = consolidate_production_cluster(blk, len(productions) + 1, current_cluster)
             productions.append(prod)
             flat_productions.append(prod)
+
+        # Build chronological stages (Etapas de cultivo) for this physical block
+        stages: list[dict[str, Any]] = []
+        for p in productions:
+            pm_curr = p.get("product_master", "OTRO")
+            if not stages or stages[-1]["product_master"] != pm_curr:
+                stg = {
+                    "stage_num": len(stages) + 1,
+                    "product_master": pm_curr,
+                    "variety_display": p.get("variety_display", ""),
+                    "productions": [p],
+                    "total_plants": p.get("plants", 0),
+                    "total_production": p.get("total_production", 0),
+                    "is_closed": p.get("is_closed", False),
+                    "has_real_data": p.get("has_real_data", False),
+                    "source_weeks_display": p.get("source_weeks_display", ""),
+                }
+                stages.append(stg)
+            else:
+                stg = stages[-1]
+                stg["productions"].append(p)
+                stg["total_plants"] += p.get("plants", 0)
+                stg["total_production"] += p.get("total_production", 0)
+                if p.get("is_closed"):
+                    stg["is_closed"] = True
+                if p.get("has_real_data"):
+                    stg["has_real_data"] = True
+
+        for stg in stages:
+            stg_pl = stg["total_plants"]
+            stg_prod = stg["total_production"]
+            stg["real_stems_per_plant"] = round(stg_prod / stg_pl, 2) if stg_pl > 0 else 0.0
+            stg["status"] = "CERRADO" if stg["is_closed"] else ("EN COSECHA" if stg["has_real_data"] else "PENDIENTE")
+            d_vars = []
+            for p in stg["productions"]:
+                if p.get("variety_display") and p["variety_display"] not in d_vars:
+                    d_vars.append(p["variety_display"])
+            stg["variety_display"] = " / ".join(d_vars)
 
         # Consolidate block-level summary metrics across its productions
         total_prod_sum = sum(p["total_production"] for p in productions)
@@ -1842,6 +1880,8 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             "status": overall_status,
             "productions": productions,
             "total_productions": len(productions),
+            "stages": stages,
+            "total_stages": len(stages),
         })
 
     return consolidated_blocks, flat_productions
@@ -2030,8 +2070,6 @@ def get_statistics_data(
         for r in tpsr_records:
             pm = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else r.product_master
             var = r.variety
-            if valid_curve_pms and pm not in valid_curve_pms:
-                continue
 
             k = (pm, var, r.source_week, r.activity, r.block)
             if k not in grouped_block_lots:
@@ -2158,7 +2196,11 @@ def get_statistics_data(
                 min_hw = min(adj_real_map.keys())
                 real_cycle_weeks = max(1, calculate_week_difference(sw, min_hw))
 
-            if plants > 0:
+            if plants >= 50:
+                # Skip abandoned historical phantom lots (pre-2026 with no closure and no harvest stems)
+                if sw < 202601 and not is_closed and not has_real_data:
+                    continue
+
                 block_dumps = sum(item["dump_stems"] for item in harvest_breakdown)
                 harvest_weeks_str = ", ".join(item["harvest_week_short"] for item in harvest_breakdown)
                 harvest_weeks_display = format_week_range_display([item["harvest_week_short"] for item in harvest_breakdown])
