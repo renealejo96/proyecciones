@@ -1014,6 +1014,51 @@
         .b-pill-gray { border: 1px solid #cbd5e1; color: #64748b; background: #f8fafc; }
         .b-pill-purple { border: 1px solid #d8b4fe; color: #7e22ce; background: #faf5ff; }
 
+        .b-card-event-badge {
+            font-size: 0.62rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin: 2px auto 3px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .b-card-event-badge.badge-siembra {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .b-card-event-badge.badge-poda {
+            background: #faf5ff;
+            color: #6b21a8;
+            border: 1px solid #d8b4fe;
+        }
+
+        .b-card-tp-box {
+            margin: 2px 0 3px 0;
+            text-align: center;
+        }
+        .b-card-tp-value {
+            font-size: 1.15rem;
+            font-weight: 900;
+            line-height: 1.1;
+        }
+        .b-card-tp-unit {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-left: 2px;
+        }
+        .b-card-tp-sub {
+            font-size: 0.60rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Contenedor del visor detallado del bloque activo */
         .botonera-viewer-card {
             background: #ffffff;
@@ -1790,6 +1835,229 @@
             border-color: #d8b4fe #d8b4fe #ffffff;
             border-top: 2px solid #7e22ce;
             box-shadow: 0 -2px 5px rgba(126, 34, 206, 0.05);
+        }
+
+        /* ---------------- CRONOLOGÍA HORIZONTAL MULTI-CULTIVO EN MODAL ---------------- */
+        .modal-chronology-section {
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .modal-chronology-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #cbd5e1;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .timeline-hint {
+            font-size: 0.65rem;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: none;
+        }
+
+        .modal-timeline-flow {
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: thin;
+        }
+
+        .modal-timeline-flow::-webkit-scrollbar {
+            height: 4px;
+        }
+        .modal-timeline-flow::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .timeline-all-btn {
+            flex: 0 0 auto;
+            min-width: 110px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            user-select: none;
+        }
+
+        .timeline-all-btn:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+
+        .timeline-all-btn.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+        }
+
+        .timeline-all-btn .t-all-icon {
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+        .timeline-all-btn .t-all-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #1e3a8a;
+            white-space: nowrap;
+        }
+        .timeline-all-btn .t-all-sub {
+            font-size: 0.60rem;
+            color: #64748b;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .timeline-sep {
+            display: flex;
+            align-items: center;
+            color: #cbd5e1;
+            font-weight: 300;
+            font-size: 1.2rem;
+            user-select: none;
+            padding: 0 2px;
+        }
+
+        .timeline-stage-card {
+            flex: 0 0 auto;
+            min-width: 145px;
+            max-width: 185px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            user-select: none;
+        }
+
+        .timeline-stage-card:hover {
+            border-color: #9333ea;
+            background: #faf5ff;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(147, 51, 234, 0.12);
+        }
+
+        .timeline-stage-card.active {
+            border-color: #9333ea;
+            border-top: 3px solid #7e22ce;
+            background: #faf5ff;
+            box-shadow: 0 0 0 2px rgba(126, 34, 206, 0.25), 0 4px 10px rgba(126, 34, 206, 0.10);
+        }
+
+        .stage-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+
+        .stage-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .stage-status-pill {
+            font-size: 0.56rem;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .stage-status-pill.status-closed { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .stage-status-pill.status-harvest { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .stage-status-pill.status-pending { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+
+        .stage-crop-title {
+            font-size: 0.76rem;
+            font-weight: 900;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 2px 0;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stage-meta-info {
+            font-size: 0.60rem;
+            color: #64748b;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 3px;
+        }
+
+        .stage-perf-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding-top: 3px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        .stage-stems {
+            color: #334155;
+            font-size: 0.62rem;
+        }
+
+        .stage-pp.optimal { color: #16a34a; }
+        .stage-pp.below { color: #dc2626; }
+
+        .timeline-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 1.15rem;
+            font-weight: 900;
+            user-select: none;
+            padding: 0 2px;
+            animation: pulseArrow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseArrow {
+            0%, 100% { opacity: 0.6; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(2px); color: #7e22ce; }
         }
 
         /* METRIC BADGES & STATUSES */
@@ -2691,8 +2959,8 @@
                     
                     <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
                         <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Estado:</span>
-                        <button type="button" class="btn-pill-filter active" data-status="ALL" onclick="filterBotoneraStatus('ALL')">Todos</button>
-                        <button type="button" class="btn-pill-filter" data-status="CLOSED" onclick="filterBotoneraStatus('CLOSED')">🔒 Solo Cerrados</button>
+                        <button type="button" class="btn-pill-filter" data-status="ALL" onclick="filterBotoneraStatus('ALL')">Todos</button>
+                        <button type="button" class="btn-pill-filter active" data-status="CLOSED" onclick="filterBotoneraStatus('CLOSED')">🔒 Solo Cerrados</button>
                         <button type="button" class="btn-pill-filter" data-status="HARVEST" onclick="filterBotoneraStatus('HARVEST')">🌱 En Cosecha</button>
                     </div>
                 </div>
@@ -2734,6 +3002,9 @@
 
                 <!-- BODY -->
                 <div class="block-modal-body">
+                    <!-- CHRONOLOGICAL PIPELINE OF CROPS (PRODUCT MASTERS) -->
+                    <div id="modal-chronology-container" class="modal-chronology-section" style="display: none;"></div>
+
                     <!-- EXECUTIVE KPIS GRID -->
                     <div id="modal-kpis-grid" class="modal-kpi-grid">
                         <!-- Injected by JS -->
@@ -3283,6 +3554,161 @@
         let activeModalBlock = null;
         let activeModalProdUid = 'ALL';
         let activeModalVariety = 'ALL';
+        let activeModalCrop = 'ALL';
+
+        function getCropIcon(crop) {
+            const c = String(crop || '').toUpperCase();
+            if (c.includes('GYP')) return '🌱';
+            if (c.includes('HYP')) return '🌾';
+            if (c.includes('VER')) return '🌿';
+            if (c.includes('SOL')) return '🌻';
+            return '🌸';
+        }
+
+        // Agrupa cronológicamente los ciclos del bloque por producto maestro (de más antiguo a más nuevo)
+        function getChronologicalCropStages(cblock) {
+            if (!cblock || !cblock.productions || !cblock.productions.length) return [];
+            
+            const stages = [];
+            let currentStage = null;
+
+            cblock.productions.forEach(prod => {
+                const pm = prod.product_master || 'SIN CULTIVO';
+                if (!currentStage || currentStage.crop !== pm) {
+                    currentStage = {
+                        crop: pm,
+                        stage_index: stages.length + 1,
+                        productions: [prod],
+                        total_stems: prod.total_production || 0,
+                        total_dump: prod.dump_stems || 0,
+                        max_plants: prod.plants || 0,
+                        has_closed_data: Boolean(prod.is_closed),
+                        has_real_stems: (prod.total_production || 0) > 0,
+                        start_week: prod.source_weeks_short ? prod.source_weeks_short[0] : (prod.source_weeks_str || ''),
+                        end_week: prod.source_weeks_short ? prod.source_weeks_short[prod.source_weeks_short.length - 1] : (prod.source_weeks_str || ''),
+                        variety_list: prod.variety_display ? [prod.variety_display] : []
+                    };
+                    stages.push(currentStage);
+                } else {
+                    currentStage.productions.push(prod);
+                    currentStage.total_stems += (prod.total_production || 0);
+                    currentStage.total_dump += (prod.dump_stems || 0);
+                    currentStage.max_plants = Math.max(currentStage.max_plants, prod.plants || 0);
+                    if (prod.is_closed) currentStage.has_closed_data = true;
+                    if ((prod.total_production || 0) > 0) currentStage.has_real_stems = true;
+                    if (prod.source_weeks_short && prod.source_weeks_short.length) {
+                        currentStage.end_week = prod.source_weeks_short[prod.source_weeks_short.length - 1];
+                    }
+                    if (prod.variety_display && !currentStage.variety_list.includes(prod.variety_display)) {
+                        currentStage.variety_list.push(prod.variety_display);
+                    }
+                }
+            });
+
+            // Rendimiento ponderado por etapa
+            stages.forEach(stg => {
+                const totPl = stg.productions.reduce((acc, p) => acc + (p.plants || 0), 0);
+                if (totPl > 0) {
+                    const sumWeighted = stg.productions.reduce((acc, p) => acc + ((p.real_stems_per_plant || 0) * (p.plants || 0)), 0);
+                    stg.real_stems_pp = (sumWeighted / totPl).toFixed(2);
+                } else {
+                    stg.real_stems_pp = stg.max_plants > 0 ? (stg.total_stems / stg.max_plants).toFixed(2) : '0.00';
+                }
+                stg.ideal_stems_pp = (stg.productions[0]?.ideal_stems_per_plant || 0).toFixed(2);
+                stg.is_closed = stg.has_closed_data;
+                stg.status = stg.is_closed ? 'CERRADO' : (stg.has_real_stems ? 'EN COSECHA' : 'PENDIENTE');
+            });
+
+            return stages;
+        }
+
+        function renderModalChronologyTimeline(cblock, activeCrop) {
+            const container = document.getElementById('modal-chronology-container');
+            if (!container) return;
+
+            const stages = getChronologicalCropStages(cblock);
+            if (!stages || stages.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            const isAllActive = (activeCrop === 'ALL');
+
+            let html = `
+                <div class="modal-chronology-title">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.95rem;">🔄</span>
+                        <span>Cronología Productiva del Bloque (Transición de Cultivos)</span>
+                    </div>
+                    <span class="timeline-hint">De más antiguo a más reciente ➔</span>
+                </div>
+                <div class="modal-timeline-flow">
+                    <!-- 📊 Botón Todo el Bloque / Historial Completo -->
+                    <button type="button" 
+                            class="timeline-all-btn ${isAllActive ? 'active' : ''}" 
+                            onclick="selectModalCrop('ALL')" 
+                            title="Ver consolidado de todos los ciclos y cultivos históricos del bloque">
+                        <span class="t-all-icon">📊</span>
+                        <span class="t-all-title">Historial Completo</span>
+                        <span class="t-all-sub">${cblock.total_productions} Ciclos · ${Number(cblock.total_production || 0).toLocaleString()} tll</span>
+                    </button>
+                    <div class="timeline-sep">|</div>
+            `;
+
+            stages.forEach((stg, idx) => {
+                const isStageActive = (!isAllActive && activeCrop === stg.crop);
+                const cropIcon = getCropIcon(stg.crop);
+                const stageStatusPill = stg.is_closed 
+                    ? `<span class="stage-status-pill status-closed">🔒 Cerrado</span>`
+                    : (stg.has_real_stems ? `<span class="stage-status-pill status-harvest">🌱 En Cosecha</span>` : `<span class="stage-status-pill status-pending">⏳ Pendiente</span>`);
+
+                const fmtWk = w => (String(w || '').startsWith('S') ? String(w) : (w ? `S${w}` : '-'));
+                const rangeStr = (stg.start_week && stg.end_week && stg.start_week !== stg.end_week) 
+                    ? `${fmtWk(stg.start_week)} - ${fmtWk(stg.end_week)}` 
+                    : fmtWk(stg.start_week);
+
+                html += `
+                    <div class="timeline-stage-card ${isStageActive ? 'active' : ''}" 
+                         onclick="selectModalCrop('${stg.crop}')"
+                         title="Clic para ver detalles y curvas exclusivas de ${stg.crop}">
+                        <div class="stage-card-top">
+                            <span class="stage-badge">Etapa ${idx + 1}</span>
+                            ${stageStatusPill}
+                        </div>
+                        <div class="stage-crop-title">
+                            <span>${cropIcon}</span> <span>${stg.crop}</span>
+                        </div>
+                        <div class="stage-meta-info">
+                            ${rangeStr} · ${stg.productions.length} Ciclo${stg.productions.length > 1 ? 's' : ''}
+                        </div>
+                        <div class="stage-perf-row">
+                            <span class="stage-stems">${Number(stg.total_stems).toLocaleString()} tll</span>
+                            <span class="stage-pp ${Number(stg.real_stems_pp) >= Number(stg.ideal_stems_pp) ? 'optimal' : 'below'}">
+                                ${stg.real_stems_pp} T/pl
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                if (idx < stages.length - 1) {
+                    html += `<div class="timeline-arrow" title="Transición fenológica y cambio de cultivo">➔</div>`;
+                }
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function selectModalCrop(crop) {
+            activeModalCrop = crop;
+            activeModalVariety = 'ALL';
+            activeModalProdUid = 'ALL';
+            if (activeModalBlock) {
+                renderModalChronologyTimeline(activeModalBlock, activeModalCrop);
+                renderBlockDossier('modal', activeModalBlock, activeModalProdUid, activeModalVariety);
+            }
+        }
 
         function findBlockDossier(identifier) {
             if (!identifier) return null;
@@ -3314,7 +3740,7 @@
             return null;
         }
 
-        function openBlockDetailModal(identifier, initialProdUid = null) {
+        function openBlockDetailModal(identifier, initialCropOrProd = null) {
             const cblock = findBlockDossier(identifier);
             if (!cblock) {
                 console.warn('Block data not found for', identifier);
@@ -3322,13 +3748,47 @@
             }
 
             activeModalBlock = cblock;
-            activeModalProdUid = initialProdUid || 'ALL';
+            activeModalProdUid = 'ALL';
             activeModalVariety = 'ALL';
+
+            const stages = getChronologicalCropStages(cblock);
+
+            // Determinar cultivo activo por defecto
+            let targetCrop = null;
+            if (initialCropOrProd) {
+                const asCrop = stages.find(s => s.crop.toUpperCase() === String(initialCropOrProd).toUpperCase());
+                if (asCrop) {
+                    targetCrop = asCrop.crop;
+                } else {
+                    const prod = (cblock.productions || []).find(p => p.uid === initialCropOrProd);
+                    if (prod && prod.product_master) {
+                        targetCrop = prod.product_master;
+                        activeModalProdUid = prod.uid;
+                    }
+                }
+            } else {
+                const parts = String(identifier).split('-');
+                if (parts.length > 2 && stages.some(s => s.crop.toUpperCase() === parts[0].toUpperCase())) {
+                    targetCrop = stages.find(s => s.crop.toUpperCase() === parts[0].toUpperCase())?.crop;
+                }
+            }
+
+            if (!targetCrop) {
+                // Por defecto el cultivo más reciente que tenga datos cerrados con cosecha
+                const revStages = stages.slice().reverse();
+                const preferredStage = revStages.find(s => s.has_closed_data && s.has_real_stems)
+                                    || revStages.find(s => s.has_closed_data)
+                                    || stages[stages.length - 1];
+                targetCrop = preferredStage ? preferredStage.crop : 'ALL';
+            }
+
+            activeModalCrop = targetCrop;
 
             const modal = document.getElementById('block-detail-modal');
             if (!modal) return;
 
-            renderModalDossier(cblock, activeModalProdUid);
+            renderModalChronologyTimeline(cblock, activeModalCrop);
+            renderBlockDossier('modal', cblock, activeModalProdUid, activeModalVariety);
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
@@ -3355,7 +3815,7 @@
 
         let botoneraSearchQuery = '';
         let botoneraSelectedCrop = 'ALL';
-        let botoneraSelectedStatus = 'ALL';
+        let botoneraSelectedStatus = 'CLOSED';
         let botoneraSortBy = 'block_asc';
         let botoneraInitialized = false;
 
@@ -3459,23 +3919,31 @@
 
             let html = '';
             filtered.forEach(cblock => {
-                const hasProd = (cblock.real_stems_per_plant > 0);
-                const isOptimal = hasProd && (cblock.real_stems_per_plant >= (cblock.ideal_stems_per_plant || 0));
-                const isClosed = Boolean(cblock.is_closed || (cblock.status || '').toUpperCase() === 'CERRADO');
-                const borderClass = hasProd ? (isOptimal ? 'optimal' : 'below') : (isClosed ? 'optimal' : 'below');
-
-                let metricValHtml = '';
-                if (hasProd) {
-                    if (cblock.ideal_stems_per_plant > 0) {
-                        const pct = Math.round((cblock.real_stems_per_plant / cblock.ideal_stems_per_plant) * 100);
-                        const valColor = pct >= 100 ? '#16a34a' : (pct >= 80 ? '#d97706' : '#dc2626');
-                        metricValHtml = `<span style="font-size: 0.90rem; font-weight: 800; color: ${valColor};">${pct}%</span> <span style="font-size: 0.70rem; font-weight: 600; color: #64748b;">(${cblock.real_stems_per_plant}/${cblock.ideal_stems_per_plant})</span>`;
-                    } else {
-                        metricValHtml = `<span style="font-size: 0.90rem; font-weight: 800; color: #16a34a;">${cblock.real_stems_per_plant}</span> <span style="font-size: 0.70rem; font-weight: 600; color: #64748b;">T/pl</span>`;
-                    }
+                const productions = cblock.productions || [];
+                let latestProd = null;
+                if (botoneraSelectedStatus === 'CLOSED') {
+                    const closedProds = productions.filter(p => p.is_closed);
+                    latestProd = closedProds.length ? closedProds[closedProds.length - 1] : (productions[productions.length - 1] || null);
                 } else {
-                    metricValHtml = `<span style="font-size: 0.90rem; font-weight: 800; color: #dc2626;">0%</span> <span style="font-size: 0.70rem; font-weight: 600; color: #64748b;">(0/${cblock.ideal_stems_per_plant || '-'})</span>`;
+                    latestProd = productions.length ? productions[productions.length - 1] : null;
                 }
+
+                const act = (latestProd?.activity || cblock.activity || 'SIEMBRA').toUpperCase();
+                const isPoda = (act === 'PODA');
+                const eventLabel = isPoda ? '✂️ Poda' : '🌱 Siembra';
+                const rawWeek = latestProd ? (latestProd.source_weeks_display || latestProd.source_weeks_str || '') : (cblock.source_weeks_display || '');
+                const eventWeek = String(rawWeek).startsWith('S') ? rawWeek : (rawWeek ? `S${rawWeek}` : '');
+                const eventCrop = latestProd ? (latestProd.product_master || cblock.product_master || '-') : (cblock.product_master || '-');
+                const eventVariety = latestProd ? (latestProd.variety_display || cblock.variety_display || '') : (cblock.variety_display || '');
+                const realPP = latestProd ? (latestProd.real_stems_per_plant || 0) : (cblock.real_stems_per_plant || 0);
+                const idealPP = latestProd ? (latestProd.ideal_stems_per_plant || 0) : (cblock.ideal_stems_per_plant || 0);
+                const stems = latestProd ? (latestProd.total_production || 0) : (cblock.total_production || 0);
+                const plants = latestProd ? (latestProd.plants || 0) : (cblock.total_plants || 0);
+                const isClosed = latestProd ? Boolean(latestProd.is_closed) : Boolean(cblock.is_closed);
+
+                const isOptimal = (realPP > 0 && idealPP > 0) ? (realPP >= idealPP) : isClosed;
+                const borderClass = (realPP > 0) ? (isOptimal ? 'optimal' : 'below') : (isClosed ? 'optimal' : 'below');
+                const tpColor = (realPP > 0) ? (isOptimal ? '#16a34a' : '#dc2626') : '#64748b';
 
                 const statusPill = isClosed 
                     ? `<span class="b-pill b-pill-green">🔒 Cerrado</span>`
@@ -3486,7 +3954,7 @@
                 html += `
                     <div class="b-card ${borderClass}" 
                          id="bcard-${cblock.uid}" 
-                         title="Bloque ${cblock.block} · ${cblock.product_master} (${cblock.real_stems_per_plant} T/pl) · Haz clic para abrir Ficha y Curvas"
+                         title="Bloque ${cblock.block} · ${eventCrop} (${realPP} T/pl) · Haz clic para abrir Ficha y Curvas"
                          onclick="openBlockDetailModal('${cblock.uid}')">
                         <div class="b-card-header">
                             <span class="b-card-title">BL  ${cblock.block}</span>
@@ -3497,15 +3965,29 @@
                                 </svg>
                             </div>
                         </div>
-                        <div style="margin: 3px 0 2px 0;">
-                            ${metricValHtml}
+
+                        <!-- ÚLTIMO EVENTO REGISTRADO -->
+                        <div class="b-card-event-badge ${isPoda ? 'badge-poda' : 'badge-siembra'}">
+                            ${eventLabel} ${eventWeek}
                         </div>
-                        <div class="b-card-crop" title="${cblock.product_master || ''} · ${cblock.variety_display || ''}">
-                            ${cblock.product_master || '-'}
+
+                        <!-- RENDIMIENTO REAL T/PL (SIN % CONFUSO) -->
+                        <div class="b-card-tp-box">
+                            <span class="b-card-tp-value" style="color: ${tpColor};">${realPP}</span>
+                            <span class="b-card-tp-unit">T/pl</span>
+                            <div class="b-card-tp-sub">(${Number(stems).toLocaleString()} tll / ${Number(plants).toLocaleString()} pl)</div>
                         </div>
-                        <div class="b-card-meta" title="${Number(cblock.total_plants || 0).toLocaleString()} plantas">
-                            ${Number(cblock.total_plants || 0).toLocaleString()} pl ${cblock.avg_cycle_weeks ? `(${cblock.avg_cycle_weeks}s)` : `(${cblock.total_productions}c)`}
+
+                        <!-- CULTIVO LIMPIO DEL EVENTO -->
+                        <div class="b-card-crop" title="${eventCrop} · ${eventVariety}">
+                            ${eventCrop}
                         </div>
+
+                        <!-- VARIEDAD / META -->
+                        <div class="b-card-meta" title="${eventVariety || '-'}">
+                            ${eventVariety ? eventVariety : (cblock.avg_cycle_weeks ? `Ciclo ${cblock.avg_cycle_weeks} sem` : '-')}
+                        </div>
+
                         <div class="b-card-footer">
                             ${statusPill}
                             ${cyclePill}
@@ -3571,15 +4053,31 @@
             const switchCycleFn = isModal ? 'switchModalCycle' : 'switchInlineCycle';
             const selectVarFn = isModal ? 'selectModalVariety' : 'selectInlineVariety';
 
-            const productions = cblock.productions || [];
+            const rawProductions = cblock.productions || [];
+            let productions = rawProductions.slice();
 
-            // Reset variety if not present in the current production
+            // Filtrar por cultivo seleccionado en la cronología del modal
+            if (isModal && activeModalCrop && activeModalCrop !== 'ALL') {
+                const cropProds = productions.filter(p => (p.product_master || '').toUpperCase() === activeModalCrop.toUpperCase());
+                if (cropProds.length > 0) {
+                    productions = cropProds;
+                }
+            }
+
+            // Reset variety if not present in the current production scope
             let effectiveVar = activeVar;
             if (effectiveVar !== 'ALL') {
                 if (selectedProdUid && selectedProdUid !== 'ALL') {
                     const currentP = productions.find(p => p.uid === selectedProdUid);
                     const hasVar = currentP && (currentP.variety_breakdown || []).some(v => v.variety === effectiveVar);
                     if (!hasVar) {
+                        effectiveVar = 'ALL';
+                        if (isModal) activeModalVariety = 'ALL';
+                        else activeInlineVariety = 'ALL';
+                    }
+                } else {
+                    const hasVarInScope = productions.some(p => (p.variety_breakdown || []).some(v => v.variety === effectiveVar));
+                    if (!hasVarInScope) {
                         effectiveVar = 'ALL';
                         if (isModal) activeModalVariety = 'ALL';
                         else activeInlineVariety = 'ALL';
@@ -3594,13 +4092,32 @@
             const statusEl = document.getElementById(`${prefix}-status-badge`);
 
             if (titleEl) titleEl.textContent = `Bloque ${cblock.block}`;
-            if (pmEl) pmEl.textContent = cblock.product_master || '-';
-            if (varEl) varEl.textContent = (effectiveVar !== 'ALL') ? `${effectiveVar} (Bloque ${cblock.block})` : (cblock.variety_display || '-');
+            if (pmEl) {
+                pmEl.textContent = (isModal && activeModalCrop && activeModalCrop !== 'ALL') ? activeModalCrop : (cblock.product_master || '-');
+            }
+            if (varEl) {
+                if (effectiveVar !== 'ALL') {
+                    varEl.textContent = `${effectiveVar} (Bloque ${cblock.block})`;
+                } else {
+                    const distinctVars = [];
+                    productions.forEach(p => {
+                        (p.variety_breakdown || []).forEach(vb => {
+                            if (!distinctVars.includes(vb.variety)) distinctVars.push(vb.variety);
+                        });
+                        if (!distinctVars.length && p.variety_display && !distinctVars.includes(p.variety_display)) {
+                            distinctVars.push(p.variety_display);
+                        }
+                    });
+                    varEl.textContent = distinctVars.length ? distinctVars.join(' / ') : (cblock.variety_display || '-');
+                }
+            }
             if (statusEl) {
-                if (cblock.is_closed) {
+                const allClosed = productions.length > 0 && productions.every(p => p.is_closed);
+                const anyReal = productions.some(p => p.has_real_data || (p.total_production || 0) > 0);
+                if (allClosed) {
                     statusEl.className = 'badge-status-closed';
                     statusEl.textContent = 'CERRADO';
-                } else if (cblock.has_real_data) {
+                } else if (anyReal) {
                     statusEl.className = 'badge-status-harvest';
                     statusEl.textContent = 'EN COSECHA';
                 } else {
@@ -3616,7 +4133,7 @@
                     tabsContainer.style.display = 'flex';
                     let tabsHtml = `
                         <div class="modal-cycle-tab ${selectedProdUid === 'ALL' ? 'active' : ''}" onclick="${switchCycleFn}('ALL')">
-                            📊 Consolidado Completo (${productions.length} Ciclos)
+                            📊 Consolidado (${productions.length} Ciclos)
                         </div>
                     `;
                     productions.forEach(p => {
@@ -3633,26 +4150,26 @@
             }
 
             // Active Scope Metrics
-            let scopePlants = cblock.total_plants;
-            let scopeProd = cblock.total_production;
-            let scopeRealPP = cblock.real_stems_per_plant;
-            let scopeIdealPP = cblock.ideal_stems_per_plant;
-            let scopeCycle = cblock.avg_cycle_weeks;
-            let scopeWaste = cblock.avg_waste_pct;
-            let scopeDump = cblock.total_dump || 0;
-            let scopeHWRange = cblock.harvest_weeks_display || cblock.harvest_weeks_str || 'Sin corte';
+            let scopePlants = 0;
+            let scopeProd = 0;
+            let scopeRealPP = '0.00';
+            let scopeIdealPP = (productions[0]?.ideal_stems_per_plant || cblock.ideal_stems_per_plant || 0).toFixed(2);
+            let scopeCycle = 0;
+            let scopeWaste = 0;
+            let scopeDump = 0;
+            let scopeHWRange = 'Sin corte';
             let chartId = cblock.uid;
-            let items = HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
+            let items = [];
 
             if (selectedProdUid && selectedProdUid !== 'ALL') {
                 const prod = productions.find(p => p.uid === selectedProdUid);
                 if (prod) {
-                    scopePlants = prod.plants;
-                    scopeProd = prod.total_production;
-                    scopeRealPP = prod.real_stems_per_plant;
-                    scopeIdealPP = prod.ideal_stems_per_plant;
-                    scopeCycle = prod.real_cycle_weeks;
-                    scopeWaste = prod.waste_pct;
+                    scopePlants = prod.plants || 0;
+                    scopeProd = prod.total_production || 0;
+                    scopeRealPP = prod.real_stems_per_plant || '0.00';
+                    scopeIdealPP = (prod.ideal_stems_per_plant || 0).toFixed(2);
+                    scopeCycle = prod.real_cycle_weeks || 0;
+                    scopeWaste = prod.waste_pct || 0;
                     scopeDump = prod.dump_stems || 0;
                     scopeHWRange = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
                     chartId = prod.uid;
@@ -3661,10 +4178,10 @@
                     if (effectiveVar && effectiveVar !== 'ALL') {
                         const vb = (prod.variety_breakdown || []).find(v => v.variety === effectiveVar);
                         if (vb) {
-                            scopePlants = vb.plants;
-                            scopeProd = vb.production;
-                            scopeRealPP = vb.real_stems_pp;
-                            scopeIdealPP = vb.ideal_stems_pp || prod.ideal_stems_per_plant;
+                            scopePlants = vb.plants || 0;
+                            scopeProd = vb.production || 0;
+                            scopeRealPP = vb.real_stems_pp || '0.00';
+                            scopeIdealPP = (vb.ideal_stems_pp || prod.ideal_stems_per_plant || 0).toFixed(2);
                             scopeDump = vb.dump || 0;
                             scopeHWRange = vb.harvest_weeks_display || vb.harvest_weeks_str || scopeHWRange;
                             chartId = `${prod.uid}_var_${effectiveVar}`;
@@ -3673,11 +4190,43 @@
                     }
                 }
             } else {
-                if (effectiveVar && effectiveVar !== 'ALL') {
+                if (effectiveVar === 'ALL') {
+                    const varMaxPl = {};
+                    scopeProd = 0;
+                    scopeDump = 0;
+                    productions.forEach(p => {
+                        scopeProd += (p.total_production || 0);
+                        scopeDump += (p.dump_stems || 0);
+                        if (p.variety_breakdown && p.variety_breakdown.length) {
+                            p.variety_breakdown.forEach(vb => {
+                                varMaxPl[vb.variety] = Math.max(varMaxPl[vb.variety] || 0, vb.plants || 0);
+                            });
+                        } else {
+                            const vk = p.variety_display || 'default';
+                            varMaxPl[vk] = Math.max(varMaxPl[vk] || 0, p.plants || 0);
+                        }
+                    });
+                    scopePlants = Math.max(Object.values(varMaxPl).reduce((a, b) => a + b, 0), Math.max(...productions.map(p => p.plants || 0), 0));
+                    
+                    const totPlSum = productions.reduce((a, p) => a + (p.plants || 0), 0);
+                    if (totPlSum > 0) {
+                        const sumWeighted = productions.reduce((a, p) => a + ((p.real_stems_per_plant || 0) * (p.plants || 0)), 0);
+                        scopeRealPP = (sumWeighted / totPlSum).toFixed(2);
+                    } else {
+                        scopeRealPP = scopePlants > 0 ? (scopeProd / scopePlants).toFixed(2) : '0.00';
+                    }
+
+                    scopeCycle = productions.length ? (productions.reduce((a, p) => a + (p.real_cycle_weeks || 0), 0) / productions.length).toFixed(1) : 0;
+                    scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
+                    scopeHWRange = productions.map(p => p.harvest_weeks_display || p.harvest_weeks_str).filter(Boolean).join(' | ') || 'Sin corte';
+                    chartId = (isModal && activeModalCrop !== 'ALL') ? `${cblock.uid}_crop_${activeModalCrop}` : cblock.uid;
+                    items = HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
+                } else {
                     let vPlants = 0;
                     let vProd = 0;
                     let vDump = 0;
                     let vIdealWeighted = 0;
+                    let hwList = [];
                     productions.forEach(p => {
                         const vb = (p.variety_breakdown || []).find(v => v.variety === effectiveVar);
                         if (vb) {
@@ -3685,15 +4234,19 @@
                             vProd += (vb.production || 0);
                             vDump += (vb.dump || 0);
                             vIdealWeighted += ((vb.ideal_stems_pp || p.ideal_stems_per_plant || 0) * (vb.plants || 0));
+                            if (vb.harvest_weeks_display || vb.harvest_weeks_str) {
+                                hwList.push(vb.harvest_weeks_display || vb.harvest_weeks_str);
+                            }
                         }
                     });
-                    if (vPlants > 0 || vProd > 0) {
-                        scopePlants = vPlants;
-                        scopeProd = vProd;
-                        scopeDump = vDump;
-                        scopeRealPP = vPlants > 0 ? (vProd / vPlants).toFixed(2) : '0.00';
-                        scopeIdealPP = vPlants > 0 ? (vIdealWeighted / vPlants).toFixed(2) : scopeIdealPP;
-                    }
+                    scopePlants = vPlants;
+                    scopeProd = vProd;
+                    scopeDump = vDump;
+                    scopeRealPP = vPlants > 0 ? (vProd / vPlants).toFixed(2) : '0.00';
+                    scopeIdealPP = vPlants > 0 ? (vIdealWeighted / vPlants).toFixed(2) : scopeIdealPP;
+                    scopeCycle = productions.length ? (productions.reduce((a, p) => a + (p.real_cycle_weeks || 0), 0) / productions.length).toFixed(1) : 0;
+                    scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
+                    scopeHWRange = hwList.join(' | ') || 'Sin corte';
                     chartId = `${cblock.uid}_var_${effectiveVar}`;
                     items = HARVEST_BREAKDOWN_MAP[chartId] || [];
                 }
@@ -3871,10 +4424,10 @@
                 if (curveContainer) curveContainer.innerHTML = multiCurvesHtml || `<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin datos de cosecha registrados para esta variedad</div>`;
                 const varSuffix = (effectiveVar !== 'ALL') ? ` · Variedad: ${effectiveVar}` : '';
                 if (tableInfoEl) tableInfoEl.textContent = `${productions.length} ciclos · Desglose Comparativo Siembra / Poda${varSuffix}`;
-                if (tableContainer) tableContainer.innerHTML = generateMultiCycleHarvestTableHTML(cblock, effectiveVar);
+                if (tableContainer) tableContainer.innerHTML = generateMultiCycleHarvestTableHTML(cblock, effectiveVar, productions);
 
             } else {
-                const currentProd = productions.find(p => p.uid === selectedProdUid);
+                const currentProd = (selectedProdUid && selectedProdUid !== 'ALL') ? productions.find(p => p.uid === selectedProdUid) : (productions[0] || null);
                 const act = currentProd ? (currentProd.activity || 'SIEMBRA') : (cblock.activity || (items[0] && items[0].activity) || 'SIEMBRA');
                 const isClosed = currentProd ? Boolean(currentProd.is_closed) : Boolean(cblock.is_closed);
 
@@ -3886,7 +4439,17 @@
                         tableContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.72rem; font-style: italic; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">Cortes semanales en proceso. El desglose definitivo se consolida al cerrar el ciclo.</div>`;
                     }
                 } else {
-                    const validItems = items.filter(i => (Number(i.stems) || 0) > 0);
+                    let pItems = items;
+                    if (currentProd) {
+                        let cKey = currentProd.uid;
+                        if (effectiveVar && effectiveVar !== 'ALL') {
+                            cKey = `${currentProd.uid}_var_${effectiveVar}`;
+                        }
+                        if (HARVEST_BREAKDOWN_MAP[cKey]) {
+                            pItems = HARVEST_BREAKDOWN_MAP[cKey];
+                        }
+                    }
+                    const validItems = pItems.filter(i => (Number(i.stems) || 0) > 0);
                     if (curveContainer) {
                         curveContainer.innerHTML = generateModalLineChartSVG(validItems, `${chartId}-${prefix}`, act);
                     }
@@ -4188,8 +4751,9 @@
         }
 
         // ---------------- MULTI-CYCLE STRUCTURED HARVEST TABLE FOR MODAL ----------------
-        function generateMultiCycleHarvestTableHTML(cblock, activeVariety = 'ALL') {
-            if (!cblock || !cblock.productions || !cblock.productions.length) {
+        function generateMultiCycleHarvestTableHTML(cblock, activeVariety = 'ALL', productionsScope = null) {
+            const targetProds = (productionsScope && productionsScope.length) ? productionsScope : (cblock?.productions || []);
+            if (!cblock || !targetProds.length) {
                 return `<div style="padding: 6px; color: #94a3b8; font-size: 0.68rem; font-style: italic;">Sin datos de desglose multi-ciclo.</div>`;
             }
 
@@ -4198,7 +4762,7 @@
             let grandDump = 0;
             let grandWeeks = 0;
 
-            cblock.productions.forEach((prod, pIdx) => {
+            targetProds.forEach((prod, pIdx) => {
                 let pKey = prod.uid;
                 let vbItem = null;
                 if (activeVariety && activeVariety !== 'ALL') {
@@ -4346,11 +4910,27 @@
                 ? `<span style="color: #dc2626; font-size: 0.60rem; font-weight: 700; margin-left: 3px;">(${grandDump.toLocaleString()} dmp)</span>` 
                 : '';
             
-            let grandPlants = cblock.total_plants;
-            if (activeVariety !== 'ALL' && cblock.variety_breakdown && cblock.variety_breakdown.length) {
-                const vb = cblock.variety_breakdown.find(v => (v.variety || '').trim() === activeVariety.trim());
-                if (vb && vb.plants) grandPlants = vb.plants;
+            let grandPlants = 0;
+            if (activeVariety !== 'ALL') {
+                targetProds.forEach(p => {
+                    const vb = (p.variety_breakdown || []).find(v => (v.variety || '').trim() === activeVariety.trim());
+                    if (vb && vb.plants) grandPlants = Math.max(grandPlants, vb.plants);
+                });
+            } else {
+                const varMaxPl = {};
+                targetProds.forEach(p => {
+                    if (p.variety_breakdown && p.variety_breakdown.length) {
+                        p.variety_breakdown.forEach(vb => {
+                            varMaxPl[vb.variety] = Math.max(varMaxPl[vb.variety] || 0, vb.plants || 0);
+                        });
+                    } else {
+                        const vk = p.variety_display || 'default';
+                        varMaxPl[vk] = Math.max(varMaxPl[vk] || 0, p.plants || 0);
+                    }
+                });
+                grandPlants = Math.max(Object.values(varMaxPl).reduce((a, b) => a + b, 0), Math.max(...targetProds.map(p => p.plants || 0), 0));
             }
+            if (grandPlants === 0) grandPlants = cblock.total_plants || 1;
             const grandPP = grandPlants > 0 ? (grandStems / grandPlants).toFixed(2) : (cblock.real_stems_per_plant || '0.00');
 
             return `
