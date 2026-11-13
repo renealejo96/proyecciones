@@ -1517,6 +1517,97 @@ def find_cycle_definition(
     }
 
 
+_BLOCK_ZONES_CACHE: dict[str, str] = {}
+_AVAILABLE_ZONES_CACHE: list[str] = []
+
+
+def get_block_zones_map() -> tuple[dict[str, str], list[str]]:
+    """Loads and caches the block-to-zone mapping from bloquesZonas.csv."""
+    global _BLOCK_ZONES_CACHE, _AVAILABLE_ZONES_CACHE
+    if _BLOCK_ZONES_CACHE and _AVAILABLE_ZONES_CACHE:
+        return _BLOCK_ZONES_CACHE, _AVAILABLE_ZONES_CACHE
+
+    csv_path = Path(__file__).parent / "bloquesZonas.csv"
+    zone_map: dict[str, str] = {}
+    ordered_zones: list[str] = []
+    seen_zones: set[str] = set()
+
+    if csv_path.exists():
+        try:
+            with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f, delimiter=";")
+                for row in reader:
+                    if len(row) >= 2 and row[0].strip():
+                        zona = row[0].strip().upper()
+                        if zona == "ZONA":
+                            continue
+                        raw_blk = row[1].strip()
+                        if zona not in seen_zones:
+                            seen_zones.add(zona)
+                            ordered_zones.append(zona)
+
+                        clean_blk = re.sub(r"^BL\.?\s*", "", raw_blk, flags=re.I).strip().upper()
+                        norm_blk = re.sub(r"[^A-Z0-9]", "", clean_blk)
+                        if norm_blk:
+                            zone_map[norm_blk] = zona
+                            zone_map[clean_blk] = zona
+                            zone_map[raw_blk.upper()] = zona
+        except Exception as e:
+            print(f"Error cargando bloquesZonas.csv: {e}")
+
+    default_order = [
+        "PALMERAS1", "PALMERAS2", "PALMERAS3",
+        "STA TERESA1", "STA TERESA2", "STA TERESA3", "STA TERESA4",
+        "VIRGINIA",
+        "ZONA1", "ZONA2", "ZONA3", "ZONA4", "ZONA5"
+    ]
+    final_ordered = [z for z in default_order if z in seen_zones]
+    for z in ordered_zones:
+        if z not in final_ordered:
+            final_ordered.append(z)
+
+    _BLOCK_ZONES_CACHE = zone_map
+    _AVAILABLE_ZONES_CACHE = final_ordered if final_ordered else default_order
+    return _BLOCK_ZONES_CACHE, _AVAILABLE_ZONES_CACHE
+
+
+def get_block_zone(block_name: str) -> str:
+    """Returns the zone for a given block name, with heuristic fallback."""
+    if not block_name:
+        return "SIN ZONA"
+    b_str = str(block_name).strip().upper()
+    clean_b = re.sub(r"^BL\.?\s*", "", b_str, flags=re.I).strip()
+    norm_clean = re.sub(r"[^A-Z0-9]", "", clean_b)
+
+    zmap, _ = get_block_zones_map()
+    if norm_clean in zmap:
+        return zmap[norm_clean]
+    if clean_b in zmap:
+        return zmap[clean_b]
+    if b_str in zmap:
+        return zmap[b_str]
+
+    # Heuristic fallback based on numeric block ranges
+    m = re.match(r"^(\d+)", norm_clean)
+    if m:
+        num = int(m.group(1))
+        if 11 <= num <= 19: return "ZONA1"
+        if 21 <= num <= 29: return "ZONA2"
+        if 31 <= num <= 39: return "ZONA3"
+        if 41 <= num <= 49: return "ZONA4"
+        if 51 <= num <= 59: return "ZONA5"
+        if 71 <= num <= 79: return "PALMERAS1"
+        if 80 <= num <= 88: return "PALMERAS3"
+        if 89 <= num <= 99: return "PALMERAS2"
+        if 100 <= num <= 108: return "STA TERESA1"
+        if 109 <= num <= 125: return "STA TERESA2"
+        if 126 <= num <= 149: return "STA TERESA3"
+        if 150 <= num <= 199: return "STA TERESA4"
+        if num >= 200: return "VIRGINIA"
+
+    return "OTRA"
+
+
 def format_week_range_display(weeks_list: list[str]) -> str:
     """Formats a list of week numbers into a compact human-readable range, e.g., 'S15-S21 (7s)' or 'S15'."""
     if not weeks_list:
@@ -1875,6 +1966,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
         consolidated_blocks.append({
             "block": blk,
             "uid": block_uid,
+            "zona": get_block_zone(blk),
             "product_master": ", ".join(pms),
             "variety": ", ".join(vars_raw),
             "variety_display": " / ".join(var_disps),
@@ -2230,6 +2322,7 @@ def get_statistics_data(
                     "variety": var,
                     "variety_display": lot["variety_display"],
                     "block": blk,
+                    "zona": get_block_zone(blk),
                     "source_week": sw,
                     "source_week_short": lot["source_week_short"],
                     "activity": ac,
@@ -2872,6 +2965,7 @@ def get_statistics_data(
             "available_pms": available_pms,
             "available_varieties": available_varieties,
             "available_blocks": available_blocks,
+            "available_zones": get_block_zones_map()[1],
             "pm_varieties_map": pm_varieties_map,
             "pm_blocks_map": pm_blocks_map,
             "year_weeks_map": year_weeks_map,

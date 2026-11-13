@@ -852,6 +852,160 @@
             border-radius: 4px;
         }
 
+        /* Zonas Toolbar & Grouping */
+        .botonera-zones-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 7px 12px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .zone-tabs-inline {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.28rem;
+            background: #fef08a; /* Sol llamativo */
+            border: 1.5px solid #eab308;
+            border-radius: 6px;
+            padding: 0.18rem 0.45rem;
+        }
+
+        .zone-label-tag {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #000000;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding-right: 0.20rem;
+        }
+
+        .zone-tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.30rem;
+            padding: 0.20rem 0.50rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-decoration: none;
+            border: 1px solid #d97706;
+            background: #ffffff;
+            color: #000000;
+            white-space: nowrap;
+            line-height: 1.2;
+            cursor: pointer;
+            transition: all 0.12s ease-in-out;
+        }
+
+        .zone-tab-btn:hover {
+            background: #fef9c3;
+            color: #000000;
+            border-color: #b45309;
+            transform: translateY(-1px);
+        }
+
+        .zone-tab-btn.active {
+            background: #f59e0b !important;
+            color: #000000 !important;
+            border: 2px solid #b45309 !important;
+            box-shadow: 0 1px 4px rgba(180, 83, 9, 0.4);
+            font-weight: 800;
+        }
+
+        .zone-tab-badge {
+            font-size: 0.62rem;
+            font-weight: 800;
+            padding: 0.05rem 0.25rem;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.08);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .zone-group-card {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            width: 100%;
+        }
+
+        .zone-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border-bottom: 1.5px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .zone-group-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.02em;
+        }
+
+        .zone-group-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 9999px;
+            border: 1px solid #c7d2fe;
+        }
+
+        .zone-group-kpis {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.70rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .zone-group-deck {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 10px;
+        }
+
+        .zone-toggle-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+        .zone-toggle-box:hover {
+            background: #e2e8f0;
+        }
+
         /* Card individual matching uploaded_media_1794269505204.png */
         .b-card {
             flex: 0 0 calc(12.5% - 10px);
@@ -3277,6 +3431,28 @@
                 </div>
             </div>
 
+            <!-- BARRA DE ZONAS (ESTILO FENOGRAMA / OPERARIOS) -->
+            <div class="botonera-zones-bar">
+                <div class="zone-tabs-inline" role="tablist" aria-label="Zonas de Finca">
+                    <span class="zone-label-tag"><i class="fa-solid fa-map-location-dot"></i> ZONAS:</span>
+                    <button type="button" class="zone-tab-btn active" id="btn-zone-ALL" data-zone="ALL" onclick="filterBotoneraZone('ALL')">
+                        TODAS <span class="zone-tab-badge" id="badge-zone-count-all">...</span>
+                    </button>
+                    {% for z in (stats.available_zones or []) %}
+                    <button type="button" class="zone-tab-btn" id="btn-zone-{{ z }}" data-zone="{{ z }}" onclick="filterBotoneraZone('{{ z }}')">
+                        {{ z }} <span class="zone-tab-badge" id="badge-zone-count-{{ z }}"></span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="zone-toggle-box" title="Agrupa las tarjetas bajo encabezados por zona">
+                        <input type="checkbox" id="toggle-group-by-zone" checked onchange="toggleBotoneraGroupByZone(this.checked)">
+                        <span>📁 Agrupar por Zonas</span>
+                    </label>
+                </div>
+            </div>
+
             <!-- BOTONERA DE BLOQUES (GRID / DECK DE TARJETAS AL ESTILO ADJUNTO) -->
             <div id="botonera-deck" class="botonera-deck">
                 <!-- Rendered dynamically by JavaScript from CONSOLIDATED_BLOCKS_DATA -->
@@ -3377,6 +3553,7 @@
         const yearWeeksMap = {{ stats.year_weeks_map | tojson if stats.year_weeks_map else '{}' }};
         const availableWeeks = {{ stats.available_weeks | tojson }};
         const selectedWeeks = {{ stats.selected_weeks | tojson }};
+        const availableZones = {{ (stats.available_zones or []) | tojson }};
 
         // ROADMAP 3-SUBTAB SWITCHING WITH LOCALSTORAGE PERSISTENCE
         function switchSubTab(tabName) {
@@ -4132,6 +4309,8 @@
         let botoneraSearchQuery = '';
         let botoneraSelectedCrop = 'ALL';
         let botoneraSelectedStatus = 'CLOSED';
+        let botoneraSelectedZone = 'ALL';
+        let botoneraGroupByZone = true;
         let botoneraSortBy = 'block_asc';
         let botoneraInitialized = false;
 
@@ -4157,10 +4336,143 @@
             renderBotoneraDeck();
         }
 
+        function filterBotoneraZone(zone) {
+            botoneraSelectedZone = zone;
+            document.querySelectorAll('.zone-tab-btn[data-zone]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-zone') === zone);
+            });
+            renderBotoneraDeck();
+        }
+
+        function toggleBotoneraGroupByZone(checked) {
+            botoneraGroupByZone = Boolean(checked);
+            renderBotoneraDeck();
+        }
+
         function sortBotoneraCards() {
             const select = document.getElementById('botonera-sort');
             botoneraSortBy = select?.value || 'block_asc';
             renderBotoneraDeck();
+        }
+
+        function renderSingleBlockCard(cblock) {
+            const stages = cblock.stages || [];
+            const productions = cblock.productions || [];
+            const isClosed = Boolean(cblock.is_closed);
+            const hasReal = Boolean(cblock.has_real_data);
+
+            const latestStage = stages.length > 0 ? stages[stages.length - 1] : null;
+            const cropName = latestStage ? latestStage.product_master : (cblock.crops_display || 'CULTIVO');
+            const varietyName = latestStage ? latestStage.variety_display : '';
+            const cropDisplay = varietyName ? `${cropName}, ${varietyName}` : cropName;
+
+            let tpVal = 0.0;
+            if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
+                tpVal = Number(cblock.real_stems_per_plant);
+            } else if (latestStage && Number(latestStage.real_stems_per_plant) > 0) {
+                tpVal = Number(latestStage.real_stems_per_plant);
+            }
+            const idealVal = Number(cblock.ideal_stems_per_plant || (latestStage ? latestStage.ideal_stems_pp : 0) || 0);
+
+            let stateClass = 'state-PENDIENTE';
+            let barColor = '#94a3b8';
+            if (isClosed) {
+                if (tpVal >= idealVal && tpVal > 0) {
+                    stateClass = 'state-ALTO optimal';
+                    barColor = '#16a34a';
+                } else {
+                    stateClass = 'state-BAJO below';
+                    barColor = '#ef4444';
+                }
+            } else if (hasReal) {
+                stateClass = 'state-MEDIO harvest';
+                barColor = '#f59e0b';
+            }
+
+            let progressPct = 0;
+            if (idealVal > 0 && tpVal > 0) {
+                progressPct = Math.min(100, Math.round((tpVal / idealVal) * 100));
+            } else if (tpVal > 0) {
+                progressPct = 100;
+            }
+
+            let pill1Text = '';
+            let pill1Class = 'stage-veg';
+            let pill1Title = '';
+            let pill2Text = '';
+            let pill2Class = 'stage-prod';
+            let pill2Title = '';
+
+            const siemProds = productions.filter(p => p.activity === 'SIEMBRA');
+            const podaProds = productions.filter(p => p.activity === 'PODA');
+
+            if (siemProds.length > 0 && podaProds.length > 0) {
+                const sLast = siemProds[siemProds.length - 1];
+                const pLast = podaProds[podaProds.length - 1];
+                pill1Text = `Siem ${sLast.real_stems_per_plant || '0.00'}`;
+                pill1Title = `Siembra: ${sLast.real_stems_per_plant || 0} T/pl (${Number(sLast.plants || 0).toLocaleString()} pl)`;
+                pill2Text = `Poda ${pLast.real_stems_per_plant || '0.00'}`;
+                pill2Title = `Poda: ${pLast.real_stems_per_plant || 0} T/pl (${Number(pLast.plants || 0).toLocaleString()} pl)`;
+            } else if (stages.length >= 2) {
+                const stg1 = stages[0];
+                const stg2 = stages[1];
+                pill1Text = `E1 ${stg1.real_stems_per_plant || '0.00'}`;
+                pill1Title = `Etapa 1 (${stg1.product_master}): ${stg1.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `E2 ${stg2.real_stems_per_plant || '0.00'}`;
+                pill2Title = `Etapa 2 (${stg2.product_master}): ${stg2.real_stems_per_plant || 0} T/pl`;
+            } else if (productions.length > 0) {
+                const pr = productions[0];
+                const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
+                pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
+                pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `${cblock.total_productions}c`;
+                pill2Title = `${cblock.total_productions} ciclo(s) registrado(s)`;
+            } else {
+                pill1Text = 'Sin datos';
+                pill2Text = '0.00 T/pl';
+            }
+
+            const totalPlantsDisplay = Number(cblock.total_plants || 0).toLocaleString();
+            const bedsDisplay = cblock.total_productions ? `${cblock.total_productions}c` : '';
+            const blkZona = cblock.zona || 'OTRA';
+
+            return `
+                <div class="b-card ${stateClass}" 
+                     id="bcard-${cblock.uid}" 
+                     data-zona="${blkZona}"
+                     title="Bloque ${cblock.block} (${blkZona}) · ${cblock.total_productions} Ciclos · ${totalPlantsDisplay} plantas · Haz clic para abrir Ficha Técnica y Curvas"
+                     onclick="openBlockDetailModal('${cblock.uid}')">
+
+                    <!-- ROW 1: BL CODE & EDIT ICON -->
+                    <div class="blq-tile-row1">
+                        <span class="blq-code">BL ${cblock.block}</span>
+                        <span class="blq-edited-badge" title="Ficha Técnica y Curvas"><i class="fa-solid fa-pen-to-square"></i></span>
+                    </div>
+
+                    <!-- ROW 2: T/PL METRIC & CYCLES -->
+                    <div class="blq-tile-row2">
+                        <div class="d-flex align-items-center justify-content-center gap-1">
+                            <span class="blq-pct">${tpVal.toFixed(2)}</span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.65rem;">(${cblock.total_productions}c)</span>
+                        </div>
+                        <div class="blq-prod-name" title="${cropDisplay}">${cropDisplay}</div>
+                        <div class="blq-meta-line" title="Plantas: ${totalPlantsDisplay}">
+                            ${totalPlantsDisplay} pl ${bedsDisplay ? `<span class="text-muted fw-normal">(${bedsDisplay})</span>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- ROW 3: MINI STAGE GRID (SIEMBRA / PODA / ETAPAS) -->
+                    <div class="blq-mini-stage-grid">
+                        <div class="blq-mini-stage-box ${pill1Class}" title="${pill1Title}">${pill1Text}</div>
+                        <div class="blq-mini-stage-box ${pill2Class}" title="${pill2Title}">${pill2Text}</div>
+                    </div>
+
+                    <!-- ROW 4: MINI PROGRESS BAR TRACK -->
+                    <div class="blq-bar-track">
+                        <div class="blq-bar-fill" style="width: ${progressPct}%; background: ${barColor};"></div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderBotoneraDeck() {
@@ -4194,12 +4506,31 @@
                     const blkStr = String(b.block || '').toLowerCase();
                     const pmStr = String(b.product_master || '').toLowerCase();
                     const varStr = String(b.variety_display || '').toLowerCase();
-                    return blkStr.includes(q) || pmStr.includes(q) || varStr.includes(q);
+                    const zStr = String(b.zona || '').toLowerCase();
+                    return blkStr.includes(q) || pmStr.includes(q) || varStr.includes(q) || zStr.includes(q);
                 });
             }
 
-            // 4. Sort
-            filtered.sort((a, b) => {
+            // 4. Update zone button badges with matching counts
+            const zoneCounts = {};
+            filtered.forEach(b => {
+                const z = b.zona || 'OTRA';
+                zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+            });
+            const allBadge = document.getElementById('badge-zone-count-all');
+            if (allBadge) allBadge.textContent = `(${filtered.length})`;
+            (availableZones || []).forEach(z => {
+                const el = document.getElementById(`badge-zone-count-${z}`);
+                if (el) el.textContent = `(${zoneCounts[z] || 0})`;
+            });
+
+            // 5. Zone filter (if a specific zone is selected)
+            if (botoneraSelectedZone && botoneraSelectedZone !== 'ALL') {
+                filtered = filtered.filter(b => (b.zona || 'OTRA').toUpperCase() === botoneraSelectedZone.toUpperCase());
+            }
+
+            // 6. Sort function
+            const sortFn = (a, b) => {
                 if (botoneraSortBy === 'pp_desc') {
                     return (b.real_stems_per_plant || 0) - (a.real_stems_per_plant || 0);
                 } else if (botoneraSortBy === 'pp_asc') {
@@ -4218,10 +4549,13 @@
                     if (numA !== numB) return numA - numB;
                     return String(a.block).localeCompare(String(b.block));
                 }
-            });
+            };
+
+            filtered.sort(sortFn);
 
             if (counterBadge) {
-                counterBadge.textContent = `Mostrando ${filtered.length} de ${CONSOLIDATED_BLOCKS_DATA.length} bloques`;
+                const zText = (botoneraSelectedZone && botoneraSelectedZone !== 'ALL') ? ` en ${botoneraSelectedZone}` : '';
+                counterBadge.textContent = `Mostrando ${filtered.length} de ${CONSOLIDATED_BLOCKS_DATA.length} bloques${zText}`;
             }
 
             if (!filtered.length) {
@@ -4233,132 +4567,85 @@
                 return;
             }
 
-            let html = '';
-            filtered.forEach(cblock => {
-                const stages = cblock.stages || [];
-                const productions = cblock.productions || [];
-                const isClosed = Boolean(cblock.is_closed);
-                const hasReal = Boolean(cblock.has_real_data);
+            // 7. Grouping by Zone
+            if (botoneraGroupByZone && botoneraSelectedZone === 'ALL') {
+                // Group blocks by zone
+                const groupsMap = {};
+                filtered.forEach(b => {
+                    const z = b.zona || 'OTRA';
+                    if (!groupsMap[z]) groupsMap[z] = [];
+                    groupsMap[z].push(b);
+                });
 
-                // Latest stage / crop
-                const latestStage = stages.length > 0 ? stages[stages.length - 1] : null;
-                const cropName = latestStage ? latestStage.product_master : (cblock.crops_display || 'CULTIVO');
-                const varietyName = latestStage ? latestStage.variety_display : '';
-                const cropDisplay = varietyName ? `${cropName}, ${varietyName}` : cropName;
+                // Order of zones matching availableZones
+                const orderedZonesList = (availableZones || []).slice();
+                Object.keys(groupsMap).forEach(z => {
+                    if (!orderedZonesList.includes(z)) orderedZonesList.push(z);
+                });
 
-                // Real stems per plant for the card:
-                let tpVal = 0.0;
-                if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
-                    tpVal = Number(cblock.real_stems_per_plant);
-                } else if (latestStage && Number(latestStage.real_stems_per_plant) > 0) {
-                    tpVal = Number(latestStage.real_stems_per_plant);
-                }
-                const idealVal = Number(cblock.ideal_stems_per_plant || (latestStage ? latestStage.ideal_stems_pp : 0) || 0);
+                let html = '';
+                orderedZonesList.forEach(z => {
+                    const zBlocks = groupsMap[z];
+                    if (!zBlocks || !zBlocks.length) return;
 
-                // State determination matching operarios.html
-                let stateClass = 'state-PENDIENTE';
-                let barColor = '#94a3b8';
-                if (isClosed) {
-                    if (tpVal >= idealVal && tpVal > 0) {
-                        stateClass = 'state-ALTO optimal';
-                        barColor = '#16a34a';
-                    } else {
-                        stateClass = 'state-BAJO below';
-                        barColor = '#ef4444';
-                    }
-                } else if (hasReal) {
-                    stateClass = 'state-MEDIO harvest';
-                    barColor = '#f59e0b';
-                }
+                    zBlocks.sort(sortFn);
+                    const zCount = zBlocks.length;
+                    const zPlants = zBlocks.reduce((sum, b) => sum + (b.total_plants || 0), 0);
+                    const zProd = zBlocks.reduce((sum, b) => sum + (b.total_production || 0), 0);
+                    const zTp = zPlants > 0 ? (zProd / zPlants).toFixed(2) : '0.00';
 
-                // Progress % for bar track
-                let progressPct = 0;
-                if (idealVal > 0 && tpVal > 0) {
-                    progressPct = Math.min(100, Math.round((tpVal / idealVal) * 100));
-                } else if (tpVal > 0) {
-                    progressPct = 100;
-                }
-
-                // Mini stage pills (matching [Veg 77.1%] [Prod 22.9%] from uploaded screenshot):
-                let pill1Text = '';
-                let pill1Class = 'stage-veg';
-                let pill1Title = '';
-                let pill2Text = '';
-                let pill2Class = 'stage-prod';
-                let pill2Title = '';
-
-                // Check if productions have SIEMBRA and PODA
-                const siemProds = productions.filter(p => p.activity === 'SIEMBRA');
-                const podaProds = productions.filter(p => p.activity === 'PODA');
-
-                if (siemProds.length > 0 && podaProds.length > 0) {
-                    const sLast = siemProds[siemProds.length - 1];
-                    const pLast = podaProds[podaProds.length - 1];
-                    pill1Text = `Siem ${sLast.real_stems_per_plant || '0.00'}`;
-                    pill1Title = `Siembra: ${sLast.real_stems_per_plant || 0} T/pl (${Number(sLast.plants || 0).toLocaleString()} pl)`;
-                    pill2Text = `Poda ${pLast.real_stems_per_plant || '0.00'}`;
-                    pill2Title = `Poda: ${pLast.real_stems_per_plant || 0} T/pl (${Number(pLast.plants || 0).toLocaleString()} pl)`;
-                } else if (stages.length >= 2) {
-                    const stg1 = stages[0];
-                    const stg2 = stages[1];
-                    pill1Text = `E1 ${stg1.real_stems_per_plant || '0.00'}`;
-                    pill1Title = `Etapa 1 (${stg1.product_master}): ${stg1.real_stems_per_plant || 0} T/pl`;
-                    pill2Text = `E2 ${stg2.real_stems_per_plant || '0.00'}`;
-                    pill2Title = `Etapa 2 (${stg2.product_master}): ${stg2.real_stems_per_plant || 0} T/pl`;
-                } else if (productions.length > 0) {
-                    const pr = productions[0];
-                    const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
-                    pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
-                    pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
-                    pill2Text = `${cblock.total_productions}c`;
-                    pill2Title = `${cblock.total_productions} ciclo(s) registrado(s)`;
-                } else {
-                    pill1Text = 'Sin datos';
-                    pill2Text = '0.00 T/pl';
-                }
-
-                const totalPlantsDisplay = Number(cblock.total_plants || 0).toLocaleString();
-                const bedsDisplay = cblock.total_productions ? `${cblock.total_productions}c` : '';
-
-                html += `
-                    <div class="b-card ${stateClass}" 
-                         id="bcard-${cblock.uid}" 
-                         title="Bloque ${cblock.block} · ${cblock.total_productions} Ciclos · ${totalPlantsDisplay} plantas · Haz clic para abrir Ficha Técnica y Curvas"
-                         onclick="openBlockDetailModal('${cblock.uid}')">
-
-                        <!-- ROW 1: BL CODE & EDIT ICON -->
-                        <div class="blq-tile-row1">
-                            <span class="blq-code">BL ${cblock.block}</span>
-                            <span class="blq-edited-badge" title="Ficha Técnica y Curvas"><i class="fa-solid fa-pen-to-square"></i></span>
-                        </div>
-
-                        <!-- ROW 2: T/PL METRIC & CYCLES -->
-                        <div class="blq-tile-row2">
-                            <div class="d-flex align-items-center justify-content-center gap-1">
-                                <span class="blq-pct">${tpVal.toFixed(2)}</span>
-                                <span class="text-muted fw-semibold" style="font-size: 0.65rem;">(${cblock.total_productions}c)</span>
+                    html += `
+                        <div class="zone-group-card" id="zone-group-${z}">
+                            <div class="zone-group-header">
+                                <div class="zone-group-title">
+                                    <i class="fa-solid fa-map-location-dot" style="color: #f59e0b;"></i>
+                                    <span>${z}</span>
+                                    <span class="zone-group-badge">${zCount} bloque${zCount > 1 ? 's' : ''}</span>
+                                </div>
+                                <div class="zone-group-kpis">
+                                    <span>🌱 <strong>${Number(zPlants).toLocaleString()}</strong> pl</span>
+                                    <span>📦 <strong>${Number(zProd).toLocaleString()}</strong> tll</span>
+                                    <span>🎯 Prom: <strong>${zTp}</strong> T/pl</span>
+                                </div>
                             </div>
-                            <div class="blq-prod-name" title="${cropDisplay}">${cropDisplay}</div>
-                            <div class="blq-meta-line" title="Plantas: ${totalPlantsDisplay}">
-                                ${totalPlantsDisplay} pl ${bedsDisplay ? `<span class="text-muted fw-normal">(${bedsDisplay})</span>` : ''}
+                            <div class="zone-group-deck">
+                                ${zBlocks.map(b => renderSingleBlockCard(b)).join('')}
                             </div>
                         </div>
-
-                        <!-- ROW 3: MINI STAGE GRID (SIEMBRA / PODA / ETAPAS) -->
-                        <div class="blq-mini-stage-grid">
-                            <div class="blq-mini-stage-box ${pill1Class}" title="${pill1Title}">${pill1Text}</div>
-                            <div class="blq-mini-stage-box ${pill2Class}" title="${pill2Title}">${pill2Text}</div>
+                    `;
+                });
+                deck.innerHTML = html;
+            } else {
+                // Single zone or flat list
+                let headerHtml = '';
+                if (botoneraSelectedZone && botoneraSelectedZone !== 'ALL') {
+                    const zCount = filtered.length;
+                    const zPlants = filtered.reduce((sum, b) => sum + (b.total_plants || 0), 0);
+                    const zProd = filtered.reduce((sum, b) => sum + (b.total_production || 0), 0);
+                    const zTp = zPlants > 0 ? (zProd / zPlants).toFixed(2) : '0.00';
+                    headerHtml = `
+                        <div class="zone-group-header" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+                            <div class="zone-group-title">
+                                <i class="fa-solid fa-map-location-dot" style="color: #f59e0b;"></i>
+                                <span>${botoneraSelectedZone}</span>
+                                <span class="zone-group-badge">${zCount} bloque${zCount > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="zone-group-kpis">
+                                <span>🌱 <strong>${Number(zPlants).toLocaleString()}</strong> pl</span>
+                                <span>📦 <strong>${Number(zProd).toLocaleString()}</strong> tll</span>
+                                <span>🎯 Prom: <strong>${zTp}</strong> T/pl</span>
+                            </div>
                         </div>
+                    `;
+                }
 
-                        <!-- ROW 4: MINI PROGRESS BAR TRACK -->
-                        <div class="blq-bar-track">
-                            <div class="blq-bar-fill" style="width: ${progressPct}%; background: ${barColor};"></div>
-                        </div>
+                deck.innerHTML = `
+                    ${headerHtml}
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%;">
+                        ${filtered.map(b => renderSingleBlockCard(b)).join('')}
                     </div>
                 `;
-            });
-
-            deck.innerHTML = html;
+            }
         }
 
         function initBotoneraIfNeeded() {
