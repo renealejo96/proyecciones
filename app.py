@@ -2599,7 +2599,7 @@ def get_statistics_data(
         p_cycle = round(sum(r["real_cycle_weeks"] for r in p_closed) / len(p_closed), 1) if p_closed else 0.0
         p_waste = round(sum(r["waste_pct"] for r in p_closed) / len(p_closed), 1) if p_closed else 0.0
 
-        # Chart 1: Relative Curve
+        # Chart 1: Relative Curve (Exact 100.0% constraint for Real and Model / Base Curves)
         curve_labels = [f"Sem {i}" if i == 0 else f"Sem +{i}" for i in range(8)]
         chart_real_curve = []
         chart_ideal_curve = []
@@ -2609,9 +2609,19 @@ def get_statistics_data(
             chart_real_curve.append(round(r_val, 1))
             chart_ideal_curve.append(round(i_val, 1))
 
-        r_sum = sum(chart_real_curve)
-        if r_sum > 0:
-            chart_real_curve = [round((v / r_sum) * 100.0, 1) for v in chart_real_curve]
+        def normalize_curve_100(curve: list[float]) -> list[float]:
+            total = sum(curve)
+            if total <= 0:
+                return [0.0] * len(curve)
+            norm = [round((v / total) * 100.0, 1) for v in curve]
+            residue = round(100.0 - sum(norm), 1)
+            if residue != 0.0 and any(v > 0 for v in norm):
+                max_idx = max(range(len(norm)), key=lambda k: norm[k])
+                norm[max_idx] = round(norm[max_idx] + residue, 1)
+            return norm
+
+        chart_real_curve = normalize_curve_100(chart_real_curve)
+        chart_ideal_curve = normalize_curve_100(chart_ideal_curve)
 
         # Chart 2: Chronological Harvest Evolution with Secondary Axis (% Variation / Fulfillment)
         sorted_chrono_weeks = sorted(list(set(list(chronological_real_stems.keys()) + list(chronological_agronomo_stems.keys()))))[-16:]

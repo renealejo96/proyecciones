@@ -1711,14 +1711,14 @@
             align-items: stretch;
         }
         .chart-relative-canvas-box {
-            flex: 1 1 58%;
-            min-width: 250px;
+            flex: 1 1 54%;
+            min-width: 240px;
             height: 100%;
             position: relative;
         }
         .chart-relative-table-box {
-            flex: 0 0 215px;
-            width: 215px;
+            flex: 0 0 290px;
+            width: 290px;
             border-left: 1px solid #e2e8f0;
             padding-left: 10px;
             display: flex;
@@ -1726,8 +1726,8 @@
             justify-content: space-between;
             overflow: hidden;
             background: #fafbfc;
-            border-radius: 6px;
-            padding: 6px 8px;
+            border-radius: 8px;
+            padding: 6px 10px;
         }
         .relative-table-header {
             margin-bottom: 4px;
@@ -1796,8 +1796,9 @@
             z-index: 2;
         }
         .relative-matrix-table td {
-            padding: 2px 4px;
+            padding: 2.5px 4px;
             border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
         }
         .relative-matrix-table .td-sem-label {
             font-weight: 700;
@@ -1808,21 +1809,67 @@
             text-align: right;
             font-weight: 700;
             color: #059669;
+            white-space: nowrap;
         }
         .relative-matrix-table .td-val-model {
             text-align: right;
             color: #d97706;
             font-weight: 600;
+            white-space: nowrap;
         }
-        .relative-matrix-table .td-val-dif {
-            text-align: right;
+        .matrix-bars-legend {
+            font-size: 0.58rem;
+            font-weight: 600;
+            color: #64748b;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .relative-bar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+            width: 100%;
+            min-width: 75px;
+            padding: 1px 0;
+        }
+        .relative-bar-track {
+            width: 100%;
+            height: 5.5px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        .relative-bar-fill-real {
+            height: 100%;
+            background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .relative-bar-fill-mod {
+            height: 100%;
+            background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .relative-total-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 0.62rem;
             font-weight: 700;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
         }
-        .relative-matrix-table .dif-positive {
+        .total-check-icon {
+            font-weight: 900;
             color: #059669;
-        }
-        .relative-matrix-table .dif-negative {
-            color: #dc2626;
         }
         .relative-matrix-table tr.tr-total {
             background: #e2e8f0;
@@ -1831,6 +1878,7 @@
         }
         .relative-matrix-table tr.tr-total td {
             padding: 3px 4px;
+            vertical-align: middle;
         }
         @media (max-width: 640px) {
             .chart-relative-layout {
@@ -3089,10 +3137,18 @@
                                 <table class="relative-matrix-table">
                                     <thead>
                                         <tr>
-                                            <th>Sem</th>
-                                            <th style="text-align: right;">% Real</th>
-                                            <th style="text-align: right;">% Mod</th>
-                                            <th style="text-align: right;">Dif</th>
+                                            <th style="width: 44px;">Sem</th>
+                                            <th style="text-align: right; width: 44px;">% Real</th>
+                                            <th style="text-align: right; width: 44px;">% Mod</th>
+                                            <th style="text-align: left; padding-left: 6px;">
+                                                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                    <span>Curva en Barras</span>
+                                                    <span class="matrix-bars-legend">
+                                                        <span style="color: #059669; font-weight: 900;">■</span> Real 
+                                                        <span style="color: #d97706; font-weight: 900; margin-left: 3px;">■</span> Mod
+                                                    </span>
+                                                </div>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody id="relative-matrix-tbody">
@@ -3104,8 +3160,15 @@
                                                 <td class="td-sem-label">{{ stats.chart_relative.labels[i] }}</td>
                                                 <td class="td-val-real">{{ '%.1f'|format(r_val) }}%</td>
                                                 <td class="td-val-model">{{ '%.1f'|format(m_val) }}%</td>
-                                                <td class="td-val-dif {{ 'dif-positive' if dif >= 0 else 'dif-negative' }}">
-                                                    {{ '+' if dif > 0 else '' }}{{ '%.1f'|format(dif) }}%
+                                                <td class="td-val-bars" title="{{ stats.chart_relative.labels[i] }} · Real: {{ '%.1f'|format(r_val) }}% | Mod: {{ '%.1f'|format(m_val) }}% (Dif: {{ '+' if dif > 0 else '' }}{{ '%.1f'|format(dif) }}%)">
+                                                    <div class="relative-bar-group">
+                                                        <div class="relative-bar-track" title="Real: {{ '%.1f'|format(r_val) }}%">
+                                                            <div class="relative-bar-fill-real" style="width: {{ [r_val, 100.0]|min if r_val > 0 else 0 }}%;"></div>
+                                                        </div>
+                                                        <div class="relative-bar-track" title="Modelo: {{ '%.1f'|format(m_val) }}%">
+                                                            <div class="relative-bar-fill-mod" style="width: {{ [m_val, 100.0]|min if m_val > 0 else 0 }}%;"></div>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -3113,13 +3176,22 @@
                                     <tfoot>
                                         {% set sum_r = (stats.chart_relative.real_curve|sum)|round(1) %}
                                         {% set sum_m = (stats.chart_relative.ideal_curve|sum)|round(1) %}
-                                        {% set sum_dif = (sum_r - sum_m)|round(1) %}
                                         <tr class="tr-total">
                                             <td><strong>Total</strong></td>
                                             <td class="td-val-real"><strong>{{ '%.1f'|format(sum_r) }}%</strong></td>
                                             <td class="td-val-model"><strong>{{ '%.1f'|format(sum_m) }}%</strong></td>
-                                            <td class="td-val-dif {{ 'dif-positive' if sum_dif >= 0 else 'dif-negative' }}">
-                                                <strong>{{ '+' if sum_dif > 0 else '' }}{{ '%.1f'|format(sum_dif) }}%</strong>
+                                            <td class="td-total-bars" style="text-align: left; padding-left: 6px;">
+                                                {% if sum_r > 0 and sum_m > 0 %}
+                                                    <div class="relative-total-badge" title="Curvas normalizadas y cuadradas exactamente al 100.0%">
+                                                        <span class="total-check-icon">✓</span> 100% Cuadrado
+                                                    </div>
+                                                {% elif sum_m > 0 %}
+                                                    <div class="relative-total-badge" style="background: #fffbeb; color: #92400e; border-color: #fde68a;" title="Modelo 100% | Sin cosecha real registrada">
+                                                        <span>ℹ</span> Mod 100%
+                                                    </div>
+                                                {% else %}
+                                                    <span style="color: #94a3b8; font-size: 0.62rem;">-</span>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     </tfoot>
