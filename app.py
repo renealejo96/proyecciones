@@ -476,6 +476,9 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                     exportable_stems = int(week_override["real_closed"])
                     if exportable_stems > 0:
                         weekly_status = "REAL"
+                elif block_closed:
+                    exportable_stems = 0
+                    weekly_status = "REAL"
                 if is_dump:
                     weekly_status = "DUMP"
 
@@ -2291,7 +2294,8 @@ def get_statistics_data(
                 try:
                     y_int = int(resolved_year)
                     sw_val = b.get("source_week") or 0
-                    if not (b["is_closed"] or (y_int * 100 <= sw_val < (y_int + 1) * 100)):
+                    b_year = b.get("year") or (sw_val // 100)
+                    if b_year != y_int:
                         continue
                 except ValueError:
                     pass
@@ -2472,6 +2476,22 @@ def get_statistics_data(
         avg_cycle = round(sum(closed_cycle_list) / len(closed_cycle_list), 1) if closed_cycle_list else 0.0
         avg_waste = round(sum(closed_waste_list) / len(closed_waste_list), 1) if closed_waste_list else 10.0
         total_closed_blocks = len(closed_blocks)
+
+        # Siembra vs Poda individual breakdown for closed blocks
+        s_closed = [r for r in closed_blocks if r.get("activity") == "SIEMBRA"]
+        p_closed = [r for r in closed_blocks if r.get("activity") == "PODA"]
+
+        s_plants = sum(r["plants"] for r in s_closed)
+        s_prod = sum(r["total_production"] for r in s_closed)
+        s_tp = round(s_prod / s_plants, 2) if s_plants > 0 else 0.0
+        s_cycle = round(sum(r["real_cycle_weeks"] for r in s_closed) / len(s_closed), 1) if s_closed else 0.0
+        s_waste = round(sum(r["waste_pct"] for r in s_closed) / len(s_closed), 1) if s_closed else 0.0
+
+        p_plants = sum(r["plants"] for r in p_closed)
+        p_prod = sum(r["total_production"] for r in p_closed)
+        p_tp = round(p_prod / p_plants, 2) if p_plants > 0 else 0.0
+        p_cycle = round(sum(r["real_cycle_weeks"] for r in p_closed) / len(p_closed), 1) if p_closed else 0.0
+        p_waste = round(sum(r["waste_pct"] for r in p_closed) / len(p_closed), 1) if p_closed else 0.0
 
         # Chart 1: Relative Curve
         curve_labels = [f"Sem {i}" if i == 0 else f"Sem +{i}" for i in range(8)]
@@ -2783,6 +2803,22 @@ def get_statistics_data(
                 "total_dumps": closed_dumps_sum,
                 "total_lots": len(flat_block_rows),
                 "total_closed_blocks": total_closed_blocks,
+                "siembra": {
+                    "plants": s_plants,
+                    "production": s_prod,
+                    "stems_per_plant": s_tp,
+                    "cycle_weeks": s_cycle,
+                    "waste_pct": s_waste,
+                    "count": len(s_closed),
+                },
+                "poda": {
+                    "plants": p_plants,
+                    "production": p_prod,
+                    "stems_per_plant": p_tp,
+                    "cycle_weeks": p_cycle,
+                    "waste_pct": p_waste,
+                    "count": len(p_closed),
+                },
             },
             "table_rows": flat_block_rows,
             "consolidated_blocks": consolidated_blocks,

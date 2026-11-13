@@ -1370,6 +1370,33 @@
             font-weight: 600;
         }
 
+        .kpi-breakdown-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            margin-top: 6px;
+            padding-top: 5px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.35);
+            font-size: 0.68rem;
+            font-weight: 600;
+        }
+        .kpi-breakdown-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .kpi-siembra-tag {
+            color: #047857;
+        }
+        .kpi-poda-tag {
+            color: #1d4ed8;
+        }
+        .kpi-breakdown-sep {
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
         /* ---------------- 2-COLUMN DUAL CHARTS GRID ---------------- */
         .analytics-grid-2 {
             display: grid;
@@ -2392,6 +2419,17 @@
                     </div>
                     <div class="kpi-value kpi-val-emerald" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
                     <div class="kpi-sub">{{ '{:,}'.format(stats.kpis.total_plants) }} plantas en <strong>{{ stats.kpis.total_closed_blocks }}</strong> bloques cerrados</div>
+                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Tallos y Plantas en Siembra">
+                            🌱 <strong>Siembra:</strong> {{ '{:,}'.format(stats.kpis.siembra.production) }} tll
+                        </span>
+                        <span class="kpi-breakdown-sep">|</span>
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Tallos y Plantas en Poda">
+                            ✂️ <strong>Poda:</strong> {{ '{:,}'.format(stats.kpis.poda.production) }} tll
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- 2. DORADO - RENDIMIENTO DE PLANTA -->
@@ -2409,6 +2447,17 @@
                         {{ stats.kpis.avg_real_stems_per_plant }} <span style="font-size: 0.85rem; font-weight: 700;">T/pl</span>
                     </div>
                     <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
+                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Rendimiento promedio en Siembra">
+                            🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.stems_per_plant }} T/pl
+                        </span>
+                        <span class="kpi-breakdown-sep">|</span>
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Rendimiento promedio en Poda">
+                            ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.stems_per_plant }} T/pl
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- 3. AZUL - BLOQUES -->
@@ -2426,6 +2475,17 @@
                         {{ stats.kpis.total_closed_blocks }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">/ {{ stats.kpis.total_lots }}</span>
                     </div>
                     <div class="kpi-sub"><strong>{{ stats.kpis.total_closed_blocks }}</strong> cerrados | <strong>{{ stats.kpis.total_lots - stats.kpis.total_closed_blocks }}</strong> en cosecha o pendientes</div>
+                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Bloques cerrados de Siembra">
+                            🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.count }} blq
+                        </span>
+                        <span class="kpi-breakdown-sep">|</span>
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Bloques cerrados de Poda">
+                            ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.count }} blq
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- 4. GRIS OSCURO / METALICO - CICLO PROMEDIO -->
@@ -2443,6 +2503,17 @@
                         {{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span>
                     </div>
                     <div class="kpi-sub">Tiempo promedio desde origen a corte</div>
+                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Duración ciclo en Siembra">
+                            🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.cycle_weeks }} sem
+                        </span>
+                        <span class="kpi-breakdown-sep">|</span>
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Duración ciclo en Poda">
+                            ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.cycle_weeks }} sem
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- 5. AZUL BRILLANTE - DESPERDICIO PROMEDIO (SIN ESFERA) -->
@@ -2458,6 +2529,17 @@
                     </div>
                     <div class="kpi-value kpi-val-cyan" id="kpi-waste">{{ stats.kpis.avg_waste_pct }}%</div>
                     <div class="kpi-sub">Tasa de merma estimada en ciclo</div>
+                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Merma promedio en Siembra">
+                            🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.waste_pct }}%
+                        </span>
+                        <span class="kpi-breakdown-sep">|</span>
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Merma promedio en Poda">
+                            ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.waste_pct }}%
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- 6. TALLOS DUMP DESCARTADOS -->
