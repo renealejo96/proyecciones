@@ -806,9 +806,11 @@
         }
 
         .btn-pill-crop-gyp.active { background: #059669; border-color: #047857; color: #ffffff; }
+        .btn-pill-crop-sun.active { background: #f59e0b; border-color: #d97706; color: #ffffff; }
         .btn-pill-crop-hyp.active { background: #d97706; border-color: #b45309; color: #ffffff; }
         .btn-pill-crop-sol.active { background: #eab308; border-color: #ca8a04; color: #713f12; }
         .btn-pill-crop-ver.active { background: #7c3aed; border-color: #6d28d9; color: #ffffff; }
+        .btn-pill-year.active { background: #0284c7; border-color: #0369a1; color: #ffffff; }
 
         .botonera-sort-select {
             padding: 5px 10px;
@@ -2691,6 +2693,13 @@
             </button>
         </div>
 
+        {% if stats.kpis.total_closed_blocks == 0 and stats.selected_year and stats.selected_pm %}
+        <div class="active-filter-banner" style="background: #eff6ff; border-color: #3b82f6; color: #1e40af; margin-bottom: 12px;">
+            <span>ℹ️ En el año <strong>{{ stats.selected_year }}</strong> no se registran cosechas cerradas para <strong>{{ stats.selected_pm }}</strong>. Los cultivos con cosechas registradas en {{ stats.selected_year }} son: <strong>Sunflower (Girasol), Veronica, Hypericum y Solidago</strong>.</span>
+            <a href="/estadistica?year={{ stats.selected_year }}" class="active-filter-clear" style="background: #3b82f6; color: #ffffff; border-color: #2563eb;" title="Ver todos los cultivos de {{ stats.selected_year }}">Ver Todos los Cultivos de {{ stats.selected_year }}</a>
+        </div>
+        {% endif %}
+
         <!-- SUBTAB 1: VISUAL DASHBOARD -->
         <div id="subtab-content-dashboard">
             <!-- ROUNDED KPI CARDS WITH LUMINOUS BORDERS & WHITE BACKGROUNDS -->
@@ -3402,9 +3411,17 @@
                     <input type="text" id="botonera-search" class="botonera-search-input" placeholder="🔍 Buscar por bloque (ej: 71, 13A, 101, 31B)..." oninput="filterBotoneraCards()">
                     
                     <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
+                        <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Año:</span>
+                        <button type="button" class="btn-pill-filter btn-pill-year active" data-year="ALL" onclick="filterBotoneraYear('ALL')">Todos</button>
+                        <button type="button" class="btn-pill-filter btn-pill-year" data-year="2026" onclick="filterBotoneraYear('2026')">2026</button>
+                        <button type="button" class="btn-pill-filter btn-pill-year" data-year="2025" onclick="filterBotoneraYear('2025')">2025</button>
+                    </div>
+
+                    <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
                         <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Cultivo:</span>
                         <button type="button" class="btn-pill-filter active" data-crop="ALL" onclick="filterBotoneraCrop('ALL')">Todos</button>
                         <button type="button" class="btn-pill-filter btn-pill-crop-gyp" data-crop="GYPSOPHILA" onclick="filterBotoneraCrop('GYPSOPHILA')">Gypsophila</button>
+                        <button type="button" class="btn-pill-filter btn-pill-crop-sun" data-crop="SUNFLOWER" onclick="filterBotoneraCrop('SUNFLOWER')">Girasol</button>
                         <button type="button" class="btn-pill-filter btn-pill-crop-hyp" data-crop="HYPERICUM" onclick="filterBotoneraCrop('HYPERICUM')">Hypericum</button>
                         <button type="button" class="btn-pill-filter btn-pill-crop-sol" data-crop="SOLIDAGO" onclick="filterBotoneraCrop('SOLIDAGO')">Solidago</button>
                         <button type="button" class="btn-pill-filter btn-pill-crop-ver" data-crop="VERONICA" onclick="filterBotoneraCrop('VERONICA')">Veronica</button>
@@ -3718,6 +3735,14 @@
             varietyClearAll.addEventListener('click', () => {
                 document.querySelectorAll('.pbi-variety-cb').forEach(cb => cb.checked = false);
                 updateVarietyDropdownButtonText();
+            });
+        }
+
+        const yearSelect = document.getElementById('slicer-year');
+        if (yearSelect) {
+            yearSelect.addEventListener('change', () => {
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => cb.checked = false);
+                document.getElementById('slicers-form')?.submit();
             });
         }
 
@@ -4267,12 +4292,27 @@
             }
 
             if (!targetCrop) {
-                // Por defecto el cultivo más reciente que tenga datos cerrados con cosecha
-                const revStages = stages.slice().reverse();
-                const preferredStage = revStages.find(s => s.has_closed_data && s.has_real_stems)
-                                    || revStages.find(s => s.has_closed_data)
-                                    || stages[stages.length - 1];
-                targetCrop = preferredStage ? preferredStage.crop : 'ALL';
+                if (botoneraSelectedYear && botoneraSelectedYear !== 'ALL') {
+                    const yrStr = String(botoneraSelectedYear).slice(-2);
+                    const yrFull = String(botoneraSelectedYear);
+                    const yrStage = stages.find(s => {
+                        return (s.productions || []).some(p => {
+                            const swStr = String(p.source_week_max || p.source_week_max_short || '');
+                            const hwStr = String(p.harvest_weeks_str || '');
+                            return swStr.startsWith(yrFull) || swStr.startsWith(yrStr) || hwStr.includes(yrStr);
+                        });
+                    });
+                    if (yrStage) targetCrop = yrStage.crop;
+                }
+
+                if (!targetCrop) {
+                    // Por defecto el cultivo más reciente que tenga datos cerrados con cosecha
+                    const revStages = stages.slice().reverse();
+                    const preferredStage = revStages.find(s => s.has_closed_data && s.has_real_stems)
+                                        || revStages.find(s => s.has_closed_data)
+                                        || stages[stages.length - 1];
+                    targetCrop = preferredStage ? preferredStage.crop : 'ALL';
+                }
             }
 
             activeModalCrop = targetCrop;
@@ -4307,6 +4347,7 @@
         let activeInlineVariety = 'ALL';
 
         let botoneraSearchQuery = '';
+        let botoneraSelectedYear = 'ALL';
         let botoneraSelectedCrop = 'ALL';
         let botoneraSelectedStatus = 'CLOSED';
         let botoneraSelectedZone = 'ALL';
@@ -4317,6 +4358,14 @@
         function filterBotoneraCards() {
             const searchInput = document.getElementById('botonera-search');
             botoneraSearchQuery = (searchInput?.value || '').trim().toLowerCase();
+            renderBotoneraDeck();
+        }
+
+        function filterBotoneraYear(year) {
+            botoneraSelectedYear = year;
+            document.querySelectorAll('.btn-pill-filter[data-year]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-year') === year);
+            });
             renderBotoneraDeck();
         }
 
@@ -4358,21 +4407,53 @@
         function renderSingleBlockCard(cblock) {
             const stages = cblock.stages || [];
             const productions = cblock.productions || [];
-            const isClosed = Boolean(cblock.is_closed);
-            const hasReal = Boolean(cblock.has_real_data);
 
-            const latestStage = stages.length > 0 ? stages[stages.length - 1] : null;
-            const cropName = latestStage ? latestStage.product_master : (cblock.crops_display || 'CULTIVO');
-            const varietyName = latestStage ? latestStage.variety_display : '';
+            let targetStage = null;
+            let targetProds = productions;
+
+            if (botoneraSelectedYear && botoneraSelectedYear !== 'ALL') {
+                const yrStr = String(botoneraSelectedYear).slice(-2);
+                const yrFull = String(botoneraSelectedYear);
+                targetProds = productions.filter(p => {
+                    const swStr = String(p.source_week_max || p.source_week_max_short || '');
+                    const hwStr = String(p.harvest_weeks_str || '');
+                    return swStr.startsWith(yrFull) || swStr.startsWith(yrStr) || hwStr.includes(yrStr);
+                });
+                if (targetProds.length > 0) {
+                    const matchingPm = targetProds[0].product_master;
+                    targetStage = stages.find(s => s.product_master === matchingPm && s.productions.some(p => targetProds.includes(p)));
+                }
+            } else if (botoneraSelectedCrop && botoneraSelectedCrop !== 'ALL') {
+                const selCrop = botoneraSelectedCrop.toUpperCase();
+                targetStage = stages.find(s => {
+                    const pmStr = (s.product_master || '').toUpperCase();
+                    return selCrop === 'VERONICA' ? pmStr.includes('VERONICA') : pmStr.includes(selCrop);
+                });
+                if (targetStage) {
+                    targetProds = targetStage.productions || productions;
+                }
+            }
+
+            if (!targetStage) {
+                targetStage = stages.length > 0 ? stages[stages.length - 1] : null;
+            }
+
+            const isClosed = targetProds.length > 0 ? targetProds.some(p => p.is_closed) : Boolean(cblock.is_closed);
+            const hasReal = targetProds.length > 0 ? targetProds.some(p => p.has_real_data) : Boolean(cblock.has_real_data);
+
+            const cropName = targetStage ? targetStage.product_master : (cblock.crops_display || 'CULTIVO');
+            const varietyName = targetStage ? targetStage.variety_display : '';
             const cropDisplay = varietyName ? `${cropName}, ${varietyName}` : cropName;
 
             let tpVal = 0.0;
-            if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
+            if (targetStage && Number(targetStage.real_stems_per_plant) > 0) {
+                tpVal = Number(targetStage.real_stems_per_plant);
+            } else if (targetProds.length > 0 && Number(targetProds[targetProds.length - 1].real_stems_per_plant) > 0) {
+                tpVal = Number(targetProds[targetProds.length - 1].real_stems_per_plant);
+            } else if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
                 tpVal = Number(cblock.real_stems_per_plant);
-            } else if (latestStage && Number(latestStage.real_stems_per_plant) > 0) {
-                tpVal = Number(latestStage.real_stems_per_plant);
             }
-            const idealVal = Number(cblock.ideal_stems_per_plant || (latestStage ? latestStage.ideal_stems_pp : 0) || 0);
+            const idealVal = Number(cblock.ideal_stems_per_plant || (targetStage ? targetStage.ideal_stems_pp : 0) || 0);
 
             let stateClass = 'state-PENDIENTE';
             let barColor = '#94a3b8';
@@ -4403,8 +4484,8 @@
             let pill2Class = 'stage-prod';
             let pill2Title = '';
 
-            const siemProds = productions.filter(p => p.activity === 'SIEMBRA');
-            const podaProds = productions.filter(p => p.activity === 'PODA');
+            const siemProds = targetProds.filter(p => p.activity === 'SIEMBRA');
+            const podaProds = targetProds.filter(p => p.activity === 'PODA');
 
             if (siemProds.length > 0 && podaProds.length > 0) {
                 const sLast = siemProds[siemProds.length - 1];
@@ -4413,6 +4494,20 @@
                 pill1Title = `Siembra: ${sLast.real_stems_per_plant || 0} T/pl (${Number(sLast.plants || 0).toLocaleString()} pl)`;
                 pill2Text = `Poda ${pLast.real_stems_per_plant || '0.00'}`;
                 pill2Title = `Poda: ${pLast.real_stems_per_plant || 0} T/pl (${Number(pLast.plants || 0).toLocaleString()} pl)`;
+            } else if (targetProds.length > 1) {
+                const p1 = targetProds[0];
+                const p2 = targetProds[1];
+                pill1Text = `${p1.activity === 'PODA' ? 'Poda' : 'Siem'} ${p1.real_stems_per_plant || '0.00'}`;
+                pill1Title = `${p1.production_label || p1.activity}: ${p1.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `${p2.activity === 'PODA' ? 'Poda' : 'Siem'} ${p2.real_stems_per_plant || '0.00'}`;
+                pill2Title = `${p2.production_label || p2.activity}: ${p2.real_stems_per_plant || 0} T/pl`;
+            } else if (targetProds.length === 1) {
+                const pr = targetProds[0];
+                const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
+                pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
+                pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `${pr.plants ? Number(pr.plants).toLocaleString() + ' pl' : '1c'}`;
+                pill2Title = `${Number(pr.plants || 0).toLocaleString()} plantas`;
             } else if (stages.length >= 2) {
                 const stg1 = stages[0];
                 const stg2 = stages[1];
@@ -4420,20 +4515,14 @@
                 pill1Title = `Etapa 1 (${stg1.product_master}): ${stg1.real_stems_per_plant || 0} T/pl`;
                 pill2Text = `E2 ${stg2.real_stems_per_plant || '0.00'}`;
                 pill2Title = `Etapa 2 (${stg2.product_master}): ${stg2.real_stems_per_plant || 0} T/pl`;
-            } else if (productions.length > 0) {
-                const pr = productions[0];
-                const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
-                pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
-                pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
-                pill2Text = `${cblock.total_productions}c`;
-                pill2Title = `${cblock.total_productions} ciclo(s) registrado(s)`;
             } else {
                 pill1Text = 'Sin datos';
                 pill2Text = '0.00 T/pl';
             }
 
-            const totalPlantsDisplay = Number(cblock.total_plants || 0).toLocaleString();
-            const bedsDisplay = cblock.total_productions ? `${cblock.total_productions}c` : '';
+            const targetPlants = targetProds.length > 0 ? targetProds.reduce((sum, p) => sum + (p.plants || 0), 0) : (cblock.total_plants || 0);
+            const totalPlantsDisplay = Number(targetPlants).toLocaleString();
+            const bedsDisplay = targetProds.length ? `${targetProds.length}c` : (cblock.total_productions ? `${cblock.total_productions}c` : '');
             const blkZona = cblock.zona || 'OTRA';
 
             return `
@@ -4481,6 +4570,19 @@
             if (!deck) return;
 
             let filtered = CONSOLIDATED_BLOCKS_DATA.slice();
+
+            // 0. Year filter
+            if (botoneraSelectedYear && botoneraSelectedYear !== 'ALL') {
+                const yrStr = String(botoneraSelectedYear).slice(-2);
+                const yrFull = String(botoneraSelectedYear);
+                filtered = filtered.filter(b => {
+                    return (b.productions || []).some(p => {
+                        const swStr = String(p.source_week_max || p.source_week_max_short || '');
+                        const hwStr = String(p.harvest_weeks_str || '');
+                        return swStr.startsWith(yrFull) || swStr.startsWith(yrStr) || hwStr.includes(yrStr);
+                    });
+                });
+            }
 
             // 1. Crop filter
             if (botoneraSelectedCrop && botoneraSelectedCrop !== 'ALL') {
