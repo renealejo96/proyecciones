@@ -3140,34 +3140,20 @@
                                             <th style="width: 44px;">Sem</th>
                                             <th style="text-align: right; width: 44px;">% Real</th>
                                             <th style="text-align: right; width: 44px;">% Mod</th>
-                                            <th style="text-align: left; padding-left: 6px;">
-                                                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                                    <span>Curva en Barras</span>
-                                                    <span class="matrix-bars-legend">
-                                                        <span style="color: #059669; font-weight: 900;">■</span> Real 
-                                                        <span style="color: #d97706; font-weight: 900; margin-left: 3px;">■</span> Mod
-                                                    </span>
-                                                </div>
-                                            </th>
+                                            <th style="text-align: left; padding-left: 8px;">Curva (% Real)</th>
                                         </tr>
                                     </thead>
                                     <tbody id="relative-matrix-tbody">
                                         {% for i in range(stats.chart_relative.labels|length) %}
                                             {% set r_val = stats.chart_relative.real_curve[i] if i < stats.chart_relative.real_curve|length else 0.0 %}
                                             {% set m_val = stats.chart_relative.ideal_curve[i] if i < stats.chart_relative.ideal_curve|length else 0.0 %}
-                                            {% set dif = (r_val - m_val)|round(1) %}
                                             <tr>
                                                 <td class="td-sem-label">{{ stats.chart_relative.labels[i] }}</td>
                                                 <td class="td-val-real">{{ '%.1f'|format(r_val) }}%</td>
                                                 <td class="td-val-model">{{ '%.1f'|format(m_val) }}%</td>
-                                                <td class="td-val-bars" title="{{ stats.chart_relative.labels[i] }} · Real: {{ '%.1f'|format(r_val) }}% | Mod: {{ '%.1f'|format(m_val) }}% (Dif: {{ '+' if dif > 0 else '' }}{{ '%.1f'|format(dif) }}%)">
-                                                    <div class="relative-bar-group">
-                                                        <div class="relative-bar-track" title="Real: {{ '%.1f'|format(r_val) }}%">
-                                                            <div class="relative-bar-fill-real" style="width: {{ [r_val, 100.0]|min if r_val > 0 else 0 }}%;"></div>
-                                                        </div>
-                                                        <div class="relative-bar-track" title="Modelo: {{ '%.1f'|format(m_val) }}%">
-                                                            <div class="relative-bar-fill-mod" style="width: {{ [m_val, 100.0]|min if m_val > 0 else 0 }}%;"></div>
-                                                        </div>
+                                                <td class="td-val-bars" title="{{ stats.chart_relative.labels[i] }} · Real: {{ '%.1f'|format(r_val) }}% (Modelo: {{ '%.1f'|format(m_val) }}%)">
+                                                    <div class="relative-bar-track" style="height: 8px;" title="Real: {{ '%.1f'|format(r_val) }}%">
+                                                        <div class="relative-bar-fill-real" style="width: {{ [r_val, 100.0]|min if r_val > 0 else 0 }}%; height: 100%;"></div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -3536,7 +3522,7 @@
                                         data-plants="{{ cblock.total_plants }}"
                                         data-production="{{ cblock.total_production }}"
                                         data-dump="{{ cblock.total_dump or 0 }}"
-                                        onclick="toggleConsolidatedBlock('{{ cblock.uid }}')">
+                                        onclick="openBlockDetailModal('{{ cblock.uid }}')">
                                         <td class="col-left" style="padding-left: 14px;">
                                             <span class="toggle-icon-sm" id="icon-blk-{{ cblock.uid }}" title="Clic para desplegar ciclos y curvas de cosecha">+</span>
                                             <strong>Bloque {{ cblock.block }}</strong>
@@ -3587,149 +3573,6 @@
                                         </td>
                                     </tr>
 
-                                    <!-- ROW 2: UNIFIED BLOCK DETAIL SEGMENT -->
-                                    <tr class="consolidated-detail-row harvest-of-{{ cblock.uid }}"
-                                        style="display: none; background: #faf5ff;"
-                                        data-block-uid="{{ cblock.uid }}"
-                                        data-block="{{ cblock.block }}">
-                                        <td colspan="12" style="white-space: normal !important; overflow: hidden; padding: 10px 14px 14px; border-left: 4px solid #9333ea; background: #faf5ff;">
-                                            <div class="block-unified-segment">
-                                                <div class="block-segment-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e9d5ff; gap: 6px;">
-                                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                                        <span style="font-size: 0.82rem; font-weight: 800; color: #581c87;">
-                                                            🌾 Historial Productivo: Bloque {{ cblock.block }}
-                                                        </span>
-                                                        <button type="button" class="btn-ficha-modal" onclick="openBlockDetailModal('{{ cblock.uid }}');" style="margin-left: 4px;">
-                                                            🔍 Ver Ficha Completa
-                                                        </button>
-                                                        <span style="font-size: 0.66rem; background: #f3e8ff; color: #7e22ce; padding: 1px 7px; border-radius: 9999px; font-weight: 700; border: 1px solid #d8b4fe;">
-                                                            {{ cblock.product_master }} · {{ cblock.variety_display }}
-                                                        </span>
-                                                    </div>
-                                                    <div style="font-size: 0.70rem; color: #6b21a8; font-weight: 700;">
-                                                        Capacidad: {{ '{:,}'.format(cblock.total_plants) }} pl | Total: {{ '{:,}'.format(cblock.total_production) }} tallos ({{ cblock.real_stems_per_plant }} T/pl)
-                                                    </div>
-                                                </div>
-
-                                                <!-- CYCLES LIST (SIEMBRA, PODA 1, PODA 2...) -->
-                                                <div class="cycles-container" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 100%; box-sizing: border-box;">
-                                                    {% for prod in cblock.productions %}
-                                                        {% if loop.index0 > 0 %}
-                                                            <div style="text-align: center; margin: 2px 0 6px; padding: 4px 12px; background: #fdf4ff; border: 1px dashed #d8b4fe; border-radius: 6px; font-size: 0.68rem; color: #7e22ce; font-weight: 700;">
-                                                                ✂️ Transición entre ciclos: Poda realizada en Semana S{{ prod.source_weeks_display or prod.source_weeks_str }} (Intervalo vegetativo hasta el nuevo corte)
-                                                            </div>
-                                                        {% endif %}
-                                                        <div class="cycle-card" style="{{ 'border-color: #86efac; box-shadow: 0 1px 4px rgba(5,150,105,0.06);' if prod.activity == 'SIEMBRA' else 'border-color: #d8b4fe; box-shadow: 0 1px 4px rgba(126,34,206,0.06);' }}">
-                                                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                                                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                                                    <span class="badge-ac {{ 'badge-s' if prod.activity == 'SIEMBRA' else 'badge-p' }}">
-                                                                        {{ '🌱 S' if prod.activity == 'SIEMBRA' else '✂️ P' }}
-                                                                    </span>
-                                                                    <span style="font-size: 0.78rem; font-weight: 800; color: {{ '#065f46' if prod.activity == 'SIEMBRA' else '#581c87' }};">
-                                                                        {{ '🌱 ' if prod.activity == 'SIEMBRA' else '✂️ ' }}{{ prod.production_label }}
-                                                                    </span>
-                                                                    <span style="font-size: 0.70rem; font-weight: 600; color: #475569;">
-                                                                        Variedad: <strong>{{ prod.variety_display }}</strong>
-                                                                    </span>
-                                                                    <span style="font-size: 0.68rem; color: #64748b;">
-                                                                        (Sem. Origen: <code>{{ prod.source_weeks_display or prod.source_weeks_str }}</code>)
-                                                                    </span>
-                                                                </div>
-                                                                <div>
-                                                                    {% if prod.is_closed %}
-                                                                        <span class="badge-status-closed">CERRADO</span>
-                                                                    {% elif prod.has_real_data %}
-                                                                        <span class="badge-status-harvest">COSECHA</span>
-                                                                    {% else %}
-                                                                        <span class="badge-status-pending">PENDIENTE</span>
-                                                                    {% endif %}
-                                                                </div>
-                                                            </div>
-
-                                                            {% if prod.variety_breakdown and (prod.variety_breakdown | length) > 1 %}
-                                                                <div class="prod-variety-filter-bar" data-prod-uid="{{ prod.uid }}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 10px; background: #f5f3ff; border-radius: 8px; border: 1px solid #ddd6fe;">
-                                                                    <span style="font-size: 0.66rem; font-weight: 800; color: #5b21b6; display: flex; align-items: center; gap: 4px;">
-                                                                        🌾 Variedad:
-                                                                    </span>
-                                                                    <button type="button" 
-                                                                            class="btn-var-chip active" 
-                                                                            data-prod-uid="{{ prod.uid }}" 
-                                                                            data-variety="ALL" 
-                                                                            onclick="filterInlineCycleVariety('{{ prod.uid }}', 'ALL', this)"
-                                                                            title="Ver curva consolidada de todas las variedades">
-                                                                        Todas (Consolidado)
-                                                                    </button>
-                                                                    {% for vb in prod.variety_breakdown %}
-                                                                        <button type="button" 
-                                                                                class="btn-var-chip" 
-                                                                                data-prod-uid="{{ prod.uid }}" 
-                                                                                data-variety="{{ vb.variety }}" 
-                                                                                onclick="filterInlineCycleVariety('{{ prod.uid }}', '{{ vb.variety }}', this)"
-                                                                                title="Clic para ver la curva y producción exclusiva de {{ vb.variety }}">
-                                                                            <strong>{{ vb.variety }}</strong>: {{ '{:,}'.format(vb.plants) }} pl · {{ '{:,}'.format(vb.production) }} t (<strong>{{ vb.real_stems_pp }}</strong> T/pl)
-                                                                        </button>
-                                                                    {% endfor %}
-                                                                </div>
-                                                            {% endif %}
-
-                                                            <!-- CYCLE METRICS ROW -->
-                                                            <div class="prod-metrics-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #f1f5f9;">
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Plantas</div>
-                                                                    <div class="js-metric-plants" style="font-size: 0.76rem; font-weight: 800; color: #0f172a;">{{ '{:,}'.format(prod.plants) }}</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Producción</div>
-                                                                    <div class="js-metric-prod" style="font-size: 0.76rem; font-weight: 800; color: #059669;">{{ '{:,}'.format(prod.total_production) }} tallos</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Rendimiento Real</div>
-                                                                    <div class="js-metric-pp" style="font-size: 0.76rem; font-weight: 800; color: {{ '#166534' if not prod.is_below_target else '#991b1b' }};">
-                                                                        {{ prod.real_stems_per_plant }} T/pl
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Meta Ideal</div>
-                                                                    <div class="js-metric-target" style="font-size: 0.76rem; font-weight: 700; color: #d97706;">{{ prod.ideal_stems_per_plant }} T/pl</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Ciclo Real</div>
-                                                                    <div class="js-metric-cycle" style="font-size: 0.76rem; font-weight: 700; color: #334155;">{{ prod.real_cycle_weeks }}s</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div style="font-size: 0.60rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Descarte / Dump</div>
-                                                                    <div class="js-metric-dump" style="font-size: 0.76rem; font-weight: 700; color: {{ '#dc2626' if prod.dump_stems > 0 else '#64748b' }};">
-                                                                        {{ prod.waste_pct }}% ({{ '{:,}'.format(prod.dump_stems or 0) }})
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- LINE CHART & MINI TABLE CONTAINER -->
-                                                            <div style="display: flex; flex-direction: column; gap: 4px; max-width: 600px; width: 100%; margin: 0 auto; box-sizing: border-box;">
-                                                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-                                                                    <span class="js-prod-chart-title" data-prod-uid="{{ prod.uid }}" style="font-size: 0.66rem; font-weight: 800; color: #475569; text-transform: uppercase;">
-                                                                        📈 Curva Agronómica de Producción (Distribución Semanal):
-                                                                    </span>
-                                                                    <span class="js-prod-harvest-range" data-prod-uid="{{ prod.uid }}" style="font-size: 0.60rem; color: #64748b;">
-                                                                        Cosecha: {{ prod.harvest_weeks_display or prod.harvest_weeks_str or 'Sin corte' }}
-                                                                    </span>
-                                                                </div>
-                                                                <div id="inline-chart-{{ prod.uid }}" 
-                                                                     class="js-prod-line-chart" 
-                                                                     data-prod-uid="{{ prod.uid }}" 
-                                                                     data-activity="{{ prod.activity }}" 
-                                                                     data-is-closed="{{ 'true' if prod.is_closed else 'false' }}"
-                                                                     data-status="{{ prod.status }}"
-                                                                     style="width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box;">
-                                                                    <!-- Line chart SVG & Mini-table injected by JS -->
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
                                 {% endfor %}
                             {% endif %}
                         </tbody>
@@ -3910,6 +3753,26 @@
         const selectedWeeks = {{ stats.selected_weeks | tojson }};
         const availableZones = {{ (stats.available_zones or []) | tojson }};
 
+        const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
+        const CONSOLIDATED_BLOCKS_DATA = JSON.parse(document.getElementById('consolidated-blocks-json')?.textContent || '[]');
+
+        // Global State for Botonera and Modals
+        let botoneraSearchQuery = '';
+        let botoneraSelectedYear = 'ALL';
+        let botoneraSelectedCrop = 'ALL';
+        let botoneraSelectedStatus = 'CLOSED';
+        let botoneraSelectedZone = 'ALL';
+        let botoneraGroupByZone = true;
+        let botoneraSortBy = 'block_asc';
+        let botoneraInitialized = false;
+
+        let activeModalBlock = null;
+        let activeModalProdUid = 'ALL';
+        let activeModalVariety = 'ALL';
+        let activeModalCrop = 'ALL';
+        let activeInlineProdUid = null;
+        let activeInlineVariety = 'ALL';
+
         // ROADMAP 3-SUBTAB SWITCHING WITH LOCALSTORAGE PERSISTENCE
         function switchSubTab(tabName) {
             if (tabName === 'desglose') tabName = 'semanas';
@@ -3940,19 +3803,6 @@
                 localStorage.setItem('estadistica_active_tab', 'dashboard');
             }
         }
-
-        // Restore tab on load
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedTab = localStorage.getItem('estadistica_active_tab');
-            if (savedTab === 'semanas' || savedTab === 'desglose') {
-                switchSubTab('semanas');
-            } else if (savedTab === 'bloques') {
-                switchSubTab('bloques');
-            } else {
-                switchSubTab('dashboard');
-            }
-            initBotoneraIfNeeded();
-        });
 
         // CASCADING PM -> VARIETIES AND BLOCKS IN SLICERS
         const pmSelect = document.getElementById('slicer-pm');
@@ -4382,15 +4232,7 @@
             applyTableFilters();
         }
 
-        const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
-        const CONSOLIDATED_BLOCKS_DATA = JSON.parse(document.getElementById('consolidated-blocks-json')?.textContent || '[]');
-
         // ---------------- MODAL LOGIC: FICHA TÉCNICA Y CURVA DE COSECHA ----------------
-        let activeModalBlock = null;
-        let activeModalProdUid = 'ALL';
-        let activeModalVariety = 'ALL';
-        let activeModalCrop = 'ALL';
-
         function getCropIcon(crop) {
             const c = String(crop || '').toUpperCase();
             if (c.includes('GYP')) return '🌱';
@@ -4429,8 +4271,10 @@
                 if (!currentStage || currentStage.crop !== pm) {
                     currentStage = {
                         crop: pm,
+                        product_master: pm,
                         stage_index: stages.length + 1,
                         productions: [prod],
+                        production_uids: [prod.uid],
                         total_stems: prod.total_production || 0,
                         total_dump: prod.dump_stems || 0,
                         max_plants: prod.plants || 0,
@@ -4443,6 +4287,8 @@
                     stages.push(currentStage);
                 } else {
                     currentStage.productions.push(prod);
+                    if (!currentStage.production_uids) currentStage.production_uids = [];
+                    currentStage.production_uids.push(prod.uid);
                     currentStage.total_stems += (prod.total_production || 0);
                     currentStage.total_dump += (prod.dump_stems || 0);
                     currentStage.max_plants = Math.max(currentStage.max_plants, prod.plants || 0);
@@ -4467,6 +4313,8 @@
                     stg.real_stems_pp = stg.max_plants > 0 ? (stg.total_stems / stg.max_plants).toFixed(2) : '0.00';
                 }
                 stg.ideal_stems_pp = (stg.productions[0]?.ideal_stems_per_plant || 0).toFixed(2);
+                stg.product_master = stg.crop;
+                stg.variety_display = stg.variety_list.join(' / ');
                 stg.is_closed = stg.has_closed_data;
                 stg.status = stg.is_closed ? 'CERRADO' : (stg.has_real_stems ? 'EN COSECHA' : 'PENDIENTE');
             });
@@ -4676,19 +4524,6 @@
             if (e.key === 'Escape') closeBlockModal();
         });
 
-        let activeInlineBlock = null;
-        let activeInlineProdUid = 'ALL';
-        let activeInlineVariety = 'ALL';
-
-        let botoneraSearchQuery = '';
-        let botoneraSelectedYear = 'ALL';
-        let botoneraSelectedCrop = 'ALL';
-        let botoneraSelectedStatus = 'CLOSED';
-        let botoneraSelectedZone = 'ALL';
-        let botoneraGroupByZone = true;
-        let botoneraSortBy = 'block_asc';
-        let botoneraInitialized = false;
-
         function filterBotoneraCards() {
             const searchInput = document.getElementById('botonera-search');
             botoneraSearchQuery = (searchInput?.value || '').trim().toLowerCase();
@@ -4739,8 +4574,8 @@
         }
 
         function renderSingleBlockCard(cblock) {
-            const stages = cblock.stages || [];
             const productions = cblock.productions || [];
+            const stages = (cblock.stages && cblock.stages.length) ? cblock.stages : getChronologicalCropStages(cblock);
 
             let targetStage = null;
             let targetProds = productions;
@@ -4755,16 +4590,27 @@
                 });
                 if (targetProds.length > 0) {
                     const matchingPm = targetProds[0].product_master;
-                    targetStage = stages.find(s => s.product_master === matchingPm && s.productions.some(p => targetProds.includes(p)));
+                    targetStage = stages.find(s => {
+                        const sPm = (s.product_master || s.crop || '').toUpperCase();
+                        const pmMatch = (sPm === matchingPm.toUpperCase()) || (matchingPm.toUpperCase().includes(sPm));
+                        if (!pmMatch) return false;
+                        if (s.productions && s.productions.some(p => targetProds.includes(p))) return true;
+                        if (s.production_uids && s.production_uids.some(uid => targetProds.some(p => p.uid === uid))) return true;
+                        return true;
+                    });
                 }
             } else if (botoneraSelectedCrop && botoneraSelectedCrop !== 'ALL') {
                 const selCrop = botoneraSelectedCrop.toUpperCase();
                 targetStage = stages.find(s => {
-                    const pmStr = (s.product_master || '').toUpperCase();
+                    const pmStr = (s.product_master || s.crop || '').toUpperCase();
                     return selCrop === 'VERONICA' ? pmStr.includes('VERONICA') : pmStr.includes(selCrop);
                 });
                 if (targetStage) {
-                    targetProds = targetStage.productions || productions;
+                    if (targetStage.productions && targetStage.productions.length) {
+                        targetProds = targetStage.productions;
+                    } else if (targetStage.production_uids && targetStage.production_uids.length) {
+                        targetProds = productions.filter(p => targetStage.production_uids.includes(p.uid));
+                    }
                 }
             }
 
@@ -5258,7 +5104,7 @@
                     scopeDump = prod.dump_stems || 0;
                     scopeHWRange = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
                     chartId = prod.uid;
-                    items = HARVEST_BREAKDOWN_MAP[prod.uid] || [];
+                    items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[prod.uid]) || prod.harvest_breakdown || [];
 
                     if (effectiveVar && effectiveVar !== 'ALL') {
                         const vb = (prod.variety_breakdown || []).find(v => v.variety === effectiveVar);
@@ -5270,7 +5116,7 @@
                             scopeDump = vb.dump || 0;
                             scopeHWRange = vb.harvest_weeks_display || vb.harvest_weeks_str || scopeHWRange;
                             chartId = `${prod.uid}_var_${effectiveVar}`;
-                            items = HARVEST_BREAKDOWN_MAP[chartId] || [];
+                            items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || vb.harvest_breakdown || [];
                         }
                     }
                 }
@@ -5305,7 +5151,38 @@
                     scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
                     scopeHWRange = productions.map(p => p.harvest_weeks_display || p.harvest_weeks_str).filter(Boolean).join(' | ') || 'Sin corte';
                     chartId = (isModal && activeModalCrop !== 'ALL') ? `${cblock.uid}_crop_${activeModalCrop}` : cblock.uid;
-                    items = HARVEST_BREAKDOWN_MAP[chartId] || HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
+                    items = (HARVEST_BREAKDOWN_MAP && (HARVEST_BREAKDOWN_MAP[chartId] || HARVEST_BREAKDOWN_MAP[cblock.uid])) || [];
+                    if (!items.length) {
+                        const combinedHw = {};
+                        productions.forEach(p => {
+                            (p.harvest_breakdown || []).forEach(h => {
+                                const hw = h.harvest_week_short || String((h.harvest_week || 0) % 100);
+                                if (!hw) return;
+                                if (!combinedHw[hw]) {
+                                    combinedHw[hw] = {
+                                        hw: hw,
+                                        sw: cblock.source_week_max_short,
+                                        stems: 0,
+                                        pp: 0,
+                                        dump: 0,
+                                        pct: 0,
+                                        src: h.source || 'REAL',
+                                        activity: p.activity || 'SIEMBRA'
+                                    };
+                                }
+                                combinedHw[hw].stems += (h.stems || 0);
+                                combinedHw[hw].dump += (h.dump_stems || h.dump || 0);
+                                if (h.source === 'REAL') combinedHw[hw].src = 'REAL';
+                            });
+                        });
+                        const sortedHw = Object.values(combinedHw).sort((a,b) => (parseInt(a.hw)||0) - (parseInt(b.hw)||0));
+                        const totSt = sortedHw.reduce((acc, x) => acc + x.stems, 0);
+                        sortedHw.forEach(x => {
+                            x.pct = totSt > 0 ? parseFloat(((x.stems / totSt) * 100).toFixed(1)) : 0;
+                            x.pp = scopePlants > 0 ? parseFloat((x.stems / scopePlants).toFixed(2)) : 0;
+                        });
+                        items = sortedHw;
+                    }
                 } else {
                     let vPlants = 0;
                     let vProd = 0;
@@ -5333,7 +5210,42 @@
                     scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
                     scopeHWRange = hwList.join(' | ') || 'Sin corte';
                     chartId = `${cblock.uid}_var_${effectiveVar}`;
-                    items = HARVEST_BREAKDOWN_MAP[chartId] || [];
+                    items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || [];
+                    if (!items.length) {
+                        const combinedHw = {};
+                        productions.forEach(p => {
+                            const vb = (p.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
+                            if (vb && vb.harvest_breakdown) {
+                                vb.harvest_breakdown.forEach(h => {
+                                    const hw = h.harvest_week_short || String((h.harvest_week || 0) % 100);
+                                    if (!hw) return;
+                                    if (!combinedHw[hw]) {
+                                        combinedHw[hw] = {
+                                            hw: hw,
+                                            sw: cblock.source_week_max_short,
+                                            stems: 0,
+                                            pp: 0,
+                                            dump: 0,
+                                            pct: 0,
+                                            src: h.source || 'REAL',
+                                            activity: p.activity || 'SIEMBRA',
+                                            variety: effectiveVar
+                                        };
+                                    }
+                                    combinedHw[hw].stems += (h.stems || 0);
+                                    combinedHw[hw].dump += (h.dump_stems || h.dump || 0);
+                                    if (h.source === 'REAL') combinedHw[hw].src = 'REAL';
+                                });
+                            }
+                        });
+                        const sortedHw = Object.values(combinedHw).sort((a,b) => (parseInt(a.hw)||0) - (parseInt(b.hw)||0));
+                        const totSt = sortedHw.reduce((acc, x) => acc + x.stems, 0);
+                        sortedHw.forEach(x => {
+                            x.pct = totSt > 0 ? parseFloat(((x.stems / totSt) * 100).toFixed(1)) : 0;
+                            x.pp = scopePlants > 0 ? parseFloat((x.stems / scopePlants).toFixed(2)) : 0;
+                        });
+                        items = sortedHw;
+                    }
                 }
             }
 
@@ -5913,7 +5825,32 @@
                     vbItem = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === activeVariety.trim());
                 }
 
-                const rawPItems = HARVEST_BREAKDOWN_MAP[pKey] || [];
+                let rawPItems = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[pKey]) || [];
+                if (!rawPItems.length) {
+                    if (vbItem && vbItem.harvest_breakdown) {
+                        rawPItems = vbItem.harvest_breakdown.map(h => ({
+                            hw: h.harvest_week_short || String((h.harvest_week || 0) % 100),
+                            sw: prod.source_week_max_short,
+                            stems: h.stems,
+                            pp: h.stems_pp,
+                            dump: h.dump_stems || h.dump || 0,
+                            pct: h.pct_of_total || 0,
+                            src: h.source || 'REAL',
+                            activity: prod.activity || 'SIEMBRA'
+                        }));
+                    } else if (prod.harvest_breakdown) {
+                        rawPItems = prod.harvest_breakdown.map(h => ({
+                            hw: h.harvest_week_short || String((h.harvest_week || 0) % 100),
+                            sw: prod.source_week_max_short,
+                            stems: h.stems,
+                            pp: h.stems_pp,
+                            dump: h.dump_stems || h.dump || 0,
+                            pct: h.pct_of_total || 0,
+                            src: h.source || 'REAL',
+                            activity: prod.activity || 'SIEMBRA'
+                        }));
+                    }
+                }
                 let pItems = rawPItems.filter(i => (Number(i.stems) || 0) > 0);
                 const isClosed = Boolean(prod.is_closed);
 
@@ -6365,7 +6302,35 @@
                 lookupKey = `${prodUid}_var_${variety}`;
             }
 
-            const rawItems = HARVEST_BREAKDOWN_MAP[lookupKey] || [];
+            let rawItems = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[lookupKey]) || [];
+            if (!rawItems.length && foundProd) {
+                if (variety && variety !== 'ALL' && foundProd.variety_breakdown) {
+                    const vb = foundProd.variety_breakdown.find(v => (v.variety || '').trim() === String(variety).trim());
+                    if (vb && vb.harvest_breakdown) {
+                        rawItems = vb.harvest_breakdown.map(h => ({
+                            hw: h.harvest_week_short || String((h.harvest_week || 0) % 100),
+                            sw: foundProd.source_week_max_short,
+                            stems: h.stems,
+                            pp: h.stems_pp,
+                            dump: h.dump_stems || h.dump || 0,
+                            pct: h.pct_of_total || 0,
+                            src: h.source || 'REAL',
+                            activity: foundProd.activity || 'SIEMBRA'
+                        }));
+                    }
+                } else if (foundProd.harvest_breakdown) {
+                    rawItems = foundProd.harvest_breakdown.map(h => ({
+                        hw: h.harvest_week_short || String((h.harvest_week || 0) % 100),
+                        sw: foundProd.source_week_max_short,
+                        stems: h.stems,
+                        pp: h.stems_pp,
+                        dump: h.dump_stems || h.dump || 0,
+                        pct: h.pct_of_total || 0,
+                        src: h.source || 'REAL',
+                        activity: foundProd.activity || 'SIEMBRA'
+                    }));
+                }
+            }
             const items = rawItems.filter(i => (Number(i.stems) || 0) > 0);
 
             if (titleEl) {
@@ -7199,6 +7164,19 @@
                 plugins: [closedCutoffPlugin]
             });
         }
+
+        // Restore tab and initialize components on DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTab = localStorage.getItem('estadistica_active_tab');
+            if (savedTab === 'semanas' || savedTab === 'desglose') {
+                switchSubTab('semanas');
+            } else if (savedTab === 'bloques') {
+                switchSubTab('bloques');
+            } else {
+                switchSubTab('dashboard');
+            }
+            initBotoneraIfNeeded();
+        });
     </script>
 </body>
 </html>

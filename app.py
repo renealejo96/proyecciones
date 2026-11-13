@@ -1854,18 +1854,20 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
                 stg = {
                     "stage_num": len(stages) + 1,
                     "product_master": pm_curr,
+                    "crop": pm_curr,
                     "variety_display": p.get("variety_display", ""),
-                    "productions": [p],
+                    "production_uids": [p["uid"]],
                     "total_plants": p.get("plants", 0),
                     "total_production": p.get("total_production", 0),
                     "is_closed": p.get("is_closed", False),
                     "has_real_data": p.get("has_real_data", False),
                     "source_weeks_display": p.get("source_weeks_display", ""),
+                    "ideal_stems_pp": p.get("ideal_stems_per_plant", 0.0),
                 }
                 stages.append(stg)
             else:
                 stg = stages[-1]
-                stg["productions"].append(p)
+                stg["production_uids"].append(p["uid"])
                 stg["total_plants"] += p.get("plants", 0)
                 stg["total_production"] += p.get("total_production", 0)
                 if p.get("is_closed"):
@@ -1878,11 +1880,6 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
             stg_prod = stg["total_production"]
             stg["real_stems_per_plant"] = round(stg_prod / stg_pl, 2) if stg_pl > 0 else 0.0
             stg["status"] = "CERRADO" if stg["is_closed"] else ("EN COSECHA" if stg["has_real_data"] else "PENDIENTE")
-            d_vars = []
-            for p in stg["productions"]:
-                if p.get("variety_display") and p["variety_display"] not in d_vars:
-                    d_vars.append(p["variety_display"])
-            stg["variety_display"] = " / ".join(d_vars)
 
         # Consolidate block-level summary metrics across its productions
         total_prod_sum = sum(p["total_production"] for p in productions)
@@ -1909,7 +1906,7 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
         latest_stage = stages[-1] if stages else None
         if latest_stage and latest_stage.get("real_stems_per_plant", 0) > 0:
             real_stems_pp = latest_stage["real_stems_per_plant"]
-            ideal_stems_pp = latest_stage.get("productions", [{}])[0].get("ideal_stems_per_plant") or 0.0
+            ideal_stems_pp = latest_stage.get("ideal_stems_pp") or 0.0
             if not ideal_stems_pp and productions:
                 ideal_stems_pp = productions[-1].get("ideal_stems_per_plant") or 0.0
         elif tot_plants_all_cycles > 0:
@@ -2031,6 +2028,11 @@ def get_statistics_data(
 
     db = SessionLocal()
     try:
+        # Available PMs: Filter out non-commercial / cover crops (e.g. BRILLANTINA, MOSTAZA CALIENTE, VICIA-AVENA, PROD.NUEVOS)
+        valid_pm_norms = set(c[0] for c in db.query(CycleDefinitionDB.product_master_norm).distinct().all() if c[0])
+        valid_closure_pms = set(c[0] for c in db.query(BlockClosureDB.product_master_norm).distinct().all() if c[0])
+        allowed_pm_norms = valid_pm_norms.union(valid_closure_pms)
+
         # 1. Base mappings for cascading selectors
         pm_var_blk_rows = db.query(TpsrRecord.product_master, TpsrRecord.variety, TpsrRecord.block).distinct().all()
         pm_varieties_map: dict[str, list[str]] = {}
@@ -2038,6 +2040,9 @@ def get_statistics_data(
         for pm, var, blk in pm_var_blk_rows:
             if pm:
                 pm_clean = "VERONICA" if "VERONICA" in pm.upper() else pm
+                pm_norm = normalize_text(pm_clean)
+                if pm_norm not in allowed_pm_norms and not any(norm in pm_norm for norm in allowed_pm_norms):
+                    continue
                 if var:
                     pm_varieties_map.setdefault(pm_clean, []).append(var)
                 if blk:
@@ -2101,8 +2106,7 @@ def get_statistics_data(
                 valid_curve_pms.add(c_pm)
                 valid_curve_pms.add(c.product_master)
 
-        # Available PMs includes all crops in TPSR so historical varieties without predefined curves load seamlessly
-        available_pms = sorted(list(pm_varieties_map.keys()))
+        available_pms = sorted(list(set(pm_varieties_map.keys())))
         available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
 
         # Resolve defaults:
@@ -2180,6 +2184,9 @@ def get_statistics_data(
         grouped_block_lots: dict[tuple[str, str, int, str, str], dict[str, Any]] = {}
         for r in tpsr_records:
             pm = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else r.product_master
+            pm_norm = normalize_text(pm)
+            if pm_norm not in allowed_pm_norms and not any(norm in pm_norm for norm in allowed_pm_norms):
+                continue
             var = r.variety
 
             k = (pm, var, r.source_week, r.activity, r.block)
@@ -2704,7 +2711,11 @@ def get_statistics_data(
             else:
                 sorted_calendar_weeks = sorted(list(all_calendar_weeks_set))
 
-        chart3_sorted_labels = [f"Sem {w}" for w in sorted_calendar_weeks]
+        if primary_year and len(primary_year) >= 4:
+            y_prefix = primary_year[2:4]
+            chart3_sorted_labels = [f"{y_prefix}{w:02d}" for w in sorted_calendar_weeks]
+        else:
+            chart3_sorted_labels = [f"26{w:02d}" for w in sorted_calendar_weeks]
         series_by_year: dict[str, list[float | None]] = {}
         details_by_year: dict[str, list[dict[str, Any] | None]] = {}
 
@@ -2762,7 +2773,7 @@ def get_statistics_data(
         chart_hybrid_projected = [chronological_agronomo_stems.get(w, 0) for w in hybrid_weeks]
 
         harvest_breakdown_map: dict[str, list[dict[str, Any]]] = {}
-        for b in all_flat_block_rows:
+        for b in flat_block_rows:
             uid = f"{b['product_master']}-{b['source_week']}-{b['activity']}-{b['block']}"
             if b.get("harvest_breakdown"):
                 harvest_breakdown_map[uid] = [
@@ -2779,160 +2790,6 @@ def get_statistics_data(
                     for h in b["harvest_breakdown"]
                     if h.get("stems", 0) > 0
                 ]
-
-        for prod in consolidated_productions:
-            uid = prod["uid"]
-            if prod.get("harvest_breakdown"):
-                harvest_breakdown_map[uid] = [
-                    {
-                        "hw": h["harvest_week_short"],
-                        "sw": prod["source_week_max_short"],
-                        "stems": h["stems"],
-                        "pp": h["stems_pp"],
-                        "dump": h.get("dump_stems", 0),
-                        "pct": h.get("pct_of_total", 0),
-                        "src": h.get("source", "MODELO"),
-                        "activity": prod.get("activity", "SIEMBRA"),
-                        "production_label": prod.get("production_label", ""),
-                        "production_num": prod.get("production_num", 1),
-                    }
-                    for h in prod["harvest_breakdown"]
-                    if h.get("stems", 0) > 0
-                ]
-            for vb in prod.get("variety_breakdown", []):
-                v_key = f"{uid}_var_{vb['variety']}"
-                if vb.get("harvest_breakdown"):
-                    harvest_breakdown_map[v_key] = [
-                        {
-                            "hw": h["harvest_week_short"],
-                            "sw": prod["source_week_max_short"],
-                            "stems": h["stems"],
-                            "pp": h["stems_pp"],
-                            "dump": h.get("dump_stems", 0),
-                            "pct": h.get("pct_of_total", 0),
-                            "src": h.get("source", "MODELO"),
-                            "activity": prod.get("activity", "SIEMBRA"),
-                            "variety": vb["variety"],
-                            "production_label": prod.get("production_label", ""),
-                        }
-                        for h in vb["harvest_breakdown"]
-                        if h.get("stems", 0) > 0
-                    ]
-
-        for cblock in consolidated_blocks:
-            cuid = cblock["uid"]
-            combined_hw = {}
-            for prod in cblock["productions"]:
-                for h in prod.get("harvest_breakdown", []):
-                    if h.get("stems", 0) <= 0:
-                        continue
-                    hw_short = h["harvest_week_short"]
-                    if hw_short not in combined_hw:
-                        combined_hw[hw_short] = {
-                            "hw": hw_short,
-                            "sw": cblock["source_week_max_short"],
-                            "stems": 0,
-                            "dump": 0,
-                            "src": h.get("source", "MODELO"),
-                            "activity": prod.get("activity", "SIEMBRA"),
-                            "production_label": prod.get("production_label", ""),
-                        }
-                    combined_hw[hw_short]["stems"] += h["stems"]
-                    combined_hw[hw_short]["dump"] += h.get("dump_stems", 0)
-                    if h.get("source") == "REAL":
-                        combined_hw[hw_short]["src"] = "REAL"
-                    elif h.get("source") == "AGRONOMO" and combined_hw[hw_short]["src"] != "REAL":
-                        combined_hw[hw_short]["src"] = "AGRONOMO"
-
-            tot_b_prod = cblock["total_production"]
-            tot_b_plants = cblock["total_plants"]
-            sorted_cb_hw = sorted([item for item in combined_hw.values() if item["stems"] > 0], key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
-            for item in sorted_cb_hw:
-                item["pct"] = round((item["stems"] / tot_b_prod * 100.0), 1) if tot_b_prod > 0 else 0.0
-                item["pp"] = round(item["stems"] / tot_b_plants, 2) if tot_b_plants > 0 else 0.0
-            
-            harvest_breakdown_map[cuid] = sorted_cb_hw
-
-            # Also register per-variety combined breakdown across all cycles in the block
-            cblock_var_map: dict[str, dict[str, Any]] = {}
-            for prod in cblock["productions"]:
-                for vb in prod.get("variety_breakdown", []):
-                    v_name = vb["variety"]
-                    if v_name not in cblock_var_map:
-                        cblock_var_map[v_name] = {"plants": 0, "prod": 0, "hw": {}}
-                    cblock_var_map[v_name]["plants"] = max(cblock_var_map[v_name]["plants"], vb.get("plants", 0))
-                    cblock_var_map[v_name]["prod"] += vb.get("production", 0)
-                    for h in vb.get("harvest_breakdown", []):
-                        if h.get("stems", 0) <= 0:
-                            continue
-                        hws = h["harvest_week_short"]
-                        if hws not in cblock_var_map[v_name]["hw"]:
-                            cblock_var_map[v_name]["hw"][hws] = {
-                                "hw": hws,
-                                "sw": cblock["source_week_max_short"],
-                                "stems": 0,
-                                "dump": 0,
-                                "src": h.get("source", "MODELO"),
-                                "activity": prod.get("activity", "SIEMBRA"),
-                                "variety": v_name,
-                            }
-                        entry = cblock_var_map[v_name]["hw"][hws]
-                        entry["stems"] += h["stems"]
-                        entry["dump"] += h.get("dump_stems", 0)
-                        if h.get("source") == "REAL":
-                            entry["src"] = "REAL"
-                        elif h.get("source") == "AGRONOMO" and entry["src"] != "REAL":
-                            entry["src"] = "AGRONOMO"
-
-            for v_name, cv_info in cblock_var_map.items():
-                v_key = f"{cuid}_var_{v_name}"
-                sorted_vhw = sorted(cv_info["hw"].values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
-                cv_plants = cv_info["plants"]
-                cv_prod = cv_info["prod"]
-                for item in sorted_vhw:
-                    item["pp"] = round(item["stems"] / cv_plants, 2) if cv_plants > 0 else 0.0
-                    item["pct"] = round((item["stems"] / cv_prod * 100.0), 1) if cv_prod > 0 else 0.0
-                harvest_breakdown_map[v_key] = sorted_vhw
-
-            # Also register per-crop combined breakdown across cycles of that crop in the block
-            cblock_crop_map: dict[str, dict[str, Any]] = {}
-            for prod in cblock["productions"]:
-                crop_name = prod.get("product_master") or "OTRO"
-                if crop_name not in cblock_crop_map:
-                    cblock_crop_map[crop_name] = {"plants": 0, "prod": 0, "hw": {}}
-                cblock_crop_map[crop_name]["plants"] += prod.get("plants", 0)
-                cblock_crop_map[crop_name]["prod"] += prod.get("total_production", 0)
-                for h in prod.get("harvest_breakdown", []):
-                    if h.get("stems", 0) <= 0:
-                        continue
-                    hws = h["harvest_week_short"]
-                    if hws not in cblock_crop_map[crop_name]["hw"]:
-                        cblock_crop_map[crop_name]["hw"][hws] = {
-                            "hw": hws,
-                            "sw": prod.get("source_week_max_short", ""),
-                            "stems": 0,
-                            "dump": 0,
-                            "src": h.get("source", "MODELO"),
-                            "activity": prod.get("activity", "SIEMBRA"),
-                            "product_master": crop_name,
-                        }
-                    entry = cblock_crop_map[crop_name]["hw"][hws]
-                    entry["stems"] += h["stems"]
-                    entry["dump"] += h.get("dump_stems", 0)
-                    if h.get("source") == "REAL":
-                        entry["src"] = "REAL"
-                    elif h.get("source") == "AGRONOMO" and entry["src"] != "REAL":
-                        entry["src"] = "AGRONOMO"
-
-            for crop_name, cc_info in cblock_crop_map.items():
-                crop_key = f"{cuid}_crop_{crop_name}"
-                sorted_chw = sorted(cc_info["hw"].values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 999)
-                cc_plants = cc_info["plants"]
-                cc_prod = cc_info["prod"]
-                for item in sorted_chw:
-                    item["pp"] = round(item["stems"] / cc_plants, 2) if cc_plants > 0 else 0.0
-                    item["pct"] = round((item["stems"] / cc_prod * 100.0), 1) if cc_prod > 0 else 0.0
-                harvest_breakdown_map[crop_key] = sorted_chw
 
         res = {
             "kpis": {
