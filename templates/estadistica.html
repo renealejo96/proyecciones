@@ -2867,14 +2867,26 @@
                     </div>
                     <div class="kpi-value kpi-val-emerald" id="kpi-stems">{{ '{:,}'.format(stats.kpis.total_real_stems) }}</div>
                     <div class="kpi-sub">{{ '{:,}'.format(stats.kpis.total_plants) }} plantas en <strong>{{ stats.kpis.total_closed_blocks }}</strong> bloques cerrados</div>
-                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    {% if not stats.selected_activity and (stats.kpis.siembra.plants > 0 or stats.kpis.poda.plants > 0) %}
                     <div class="kpi-breakdown-row">
-                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Tallos y Plantas en Siembra">
+                        {% if stats.kpis.siembra.plants > 0 %}
+                        <span class="kpi-breakdown-item kpi-siembra-tag" title="Producción en Siembra">
                             🌱 <strong>Siembra:</strong> {{ '{:,}'.format(stats.kpis.siembra.production) }} tll
                         </span>
+                        {% endif %}
+                        {% if stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
                         <span class="kpi-breakdown-sep">|</span>
-                        <span class="kpi-breakdown-item kpi-poda-tag" title="Tallos y Plantas en Poda">
+                        {% endif %}
+                        {% if stats.kpis.poda.plants > 0 %}
+                        <span class="kpi-breakdown-item kpi-poda-tag" title="Producción en Poda">
                             ✂️ <strong>Poda:</strong> {{ '{:,}'.format(stats.kpis.poda.production) }} tll
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% elif stats.selected_activity %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item {{ 'kpi-siembra-tag' if stats.selected_activity == 'SIEMBRA' else 'kpi-poda-tag' }}">
+                            {{ '🌱 Filtrado: Solo Siembra' if stats.selected_activity == 'SIEMBRA' else '✂️ Filtrado: Solo Poda' }}
                         </span>
                     </div>
                     {% endif %}
@@ -2895,14 +2907,26 @@
                         {{ stats.kpis.avg_real_stems_per_plant }} <span style="font-size: 0.85rem; font-weight: 700;">T/pl</span>
                     </div>
                     <div class="kpi-sub">Meta Ideal: <strong>{{ stats.kpis.avg_ideal_stems_per_plant }} T/pl</strong></div>
-                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    {% if not stats.selected_activity and (stats.kpis.siembra.plants > 0 or stats.kpis.poda.plants > 0) %}
                     <div class="kpi-breakdown-row">
+                        {% if stats.kpis.siembra.plants > 0 %}
                         <span class="kpi-breakdown-item kpi-siembra-tag" title="Rendimiento promedio en Siembra">
                             🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.stems_per_plant }} T/pl
                         </span>
+                        {% endif %}
+                        {% if stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
                         <span class="kpi-breakdown-sep">|</span>
+                        {% endif %}
+                        {% if stats.kpis.poda.plants > 0 %}
                         <span class="kpi-breakdown-item kpi-poda-tag" title="Rendimiento promedio en Poda">
                             ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.stems_per_plant }} T/pl
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% elif stats.selected_activity %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item {{ 'kpi-siembra-tag' if stats.selected_activity == 'SIEMBRA' else 'kpi-poda-tag' }}">
+                            {{ '🌱 Solo Siembra' if stats.selected_activity == 'SIEMBRA' else '✂️ Solo Poda' }}
                         </span>
                     </div>
                     {% endif %}
@@ -2923,14 +2947,26 @@
                         {{ stats.kpis.total_closed_blocks }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">/ {{ stats.kpis.total_lots }}</span>
                     </div>
                     <div class="kpi-sub"><strong>{{ stats.kpis.total_closed_blocks }}</strong> cerrados | <strong>{{ stats.kpis.total_lots - stats.kpis.total_closed_blocks }}</strong> en cosecha o pendientes</div>
-                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    {% if not stats.selected_activity and (stats.kpis.siembra.count > 0 or stats.kpis.poda.count > 0) %}
                     <div class="kpi-breakdown-row">
+                        {% if stats.kpis.siembra.count > 0 %}
                         <span class="kpi-breakdown-item kpi-siembra-tag" title="Bloques cerrados de Siembra">
                             🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.count }} blq
                         </span>
+                        {% endif %}
+                        {% if stats.kpis.siembra.count > 0 and stats.kpis.poda.count > 0 %}
                         <span class="kpi-breakdown-sep">|</span>
+                        {% endif %}
+                        {% if stats.kpis.poda.count > 0 %}
                         <span class="kpi-breakdown-item kpi-poda-tag" title="Bloques cerrados de Poda">
                             ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.count }} blq
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% elif stats.selected_activity %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item {{ 'kpi-siembra-tag' if stats.selected_activity == 'SIEMBRA' else 'kpi-poda-tag' }}">
+                            {{ '🌱 Solo Siembra' if stats.selected_activity == 'SIEMBRA' else '✂️ Solo Poda' }}
                         </span>
                     </div>
                     {% endif %}
@@ -2951,14 +2987,26 @@
                         {{ stats.kpis.avg_cycle_weeks }} <span style="font-size: 0.85rem;">sem</span>
                     </div>
                     <div class="kpi-sub">Tiempo promedio desde origen a corte</div>
-                    {% if not stats.selected_activity and stats.kpis.siembra and stats.kpis.poda and stats.kpis.siembra.plants > 0 and stats.kpis.poda.plants > 0 %}
+                    {% if not stats.selected_activity and (stats.kpis.siembra.count > 0 or stats.kpis.poda.count > 0) %}
                     <div class="kpi-breakdown-row">
+                        {% if stats.kpis.siembra.count > 0 %}
                         <span class="kpi-breakdown-item kpi-siembra-tag" title="Duración ciclo en Siembra">
                             🌱 <strong>Siembra:</strong> {{ stats.kpis.siembra.cycle_weeks }} sem
                         </span>
+                        {% endif %}
+                        {% if stats.kpis.siembra.count > 0 and stats.kpis.poda.count > 0 %}
                         <span class="kpi-breakdown-sep">|</span>
+                        {% endif %}
+                        {% if stats.kpis.poda.count > 0 %}
                         <span class="kpi-breakdown-item kpi-poda-tag" title="Duración ciclo en Poda">
                             ✂️ <strong>Poda:</strong> {{ stats.kpis.poda.cycle_weeks }} sem
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% elif stats.selected_activity %}
+                    <div class="kpi-breakdown-row">
+                        <span class="kpi-breakdown-item {{ 'kpi-siembra-tag' if stats.selected_activity == 'SIEMBRA' else 'kpi-poda-tag' }}">
+                            {{ '🌱 Solo Siembra' if stats.selected_activity == 'SIEMBRA' else '✂️ Solo Poda' }}
                         </span>
                     </div>
                     {% endif %}
@@ -3131,9 +3179,17 @@
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
-                            <h3>📊 Rendimiento Histórico: Tallos / Planta vs Meta por Semana</h3>
+                            <h3>
+                                {% if stats.selected_year %}
+                                    📊 Rendimiento Semanal: Tallos / Planta vs Meta (Año {{ stats.selected_year }})
+                                {% else %}
+                                    📊 Rendimiento Multianual: Tallos / Planta vs Meta por Semana
+                                {% endif %}
+                            </h3>
                             <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
-                                {% if stats.chart_stems_pp.years %}
+                                {% if stats.selected_year %}
+                                    📅 Año {{ stats.selected_year }}{% if stats.selected_activity %} • {{ stats.selected_activity }}{% else %} • Siembra vs Poda{% endif %}
+                                {% elif stats.chart_stems_pp.years %}
                                     🏆 Multianual: {{ stats.chart_stems_pp.years | join(' vs ') }}
                                 {% elif stats.chart_stems_pp.last_closed_label %}
                                     🏆 Cierre Real: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
@@ -6723,39 +6779,133 @@
             });
         }
 
-        // 2. RENDER CHART 2: MULTI-YEAR STEMS PER PLANT BY CALENDAR WEEK VS TARGET META
+        // 2. RENDER CHART 2: STEMS PER PLANT BY CALENDAR WEEK VS TARGET META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
-            const isMultiYear = Boolean(chartStemsPpData.series_by_year && chartStemsPpData.years && chartStemsPpData.years.length > 0);
-            const hasClosedCutoff = !isMultiYear && (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0);
+            const isSingleYear = Boolean(chartStemsPpData.is_single_year);
+            const selYear = chartStemsPpData.selected_year || '';
+            const selectedAct = (chartStemsPpData.selected_activity || '').toUpperCase();
+            const hasClosedCutoff = isSingleYear && (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0 && chartStemsPpData.last_closed_index < (chartStemsPpData.labels.length - 1));
 
             const datasets = [];
-            const yearColorPalette = {
-                '2026': { line: '#7e22ce', bg: 'rgba(126, 34, 206, 0.20)', fill: true, width: 3.0, ptRadius: 4.5 },
-                '2025': { line: '#2563eb', bg: 'transparent', fill: false, width: 2.4, ptRadius: 3.5 },
-                '2024': { line: '#059669', bg: 'transparent', fill: false, width: 2.2, ptRadius: 3.5 },
-                '2023': { line: '#d97706', bg: 'transparent', fill: false, width: 2.0, ptRadius: 3.0 },
-            };
-            const fallbackPalette = ['#0891b2', '#db2777', '#4f46e5', '#65a30d'];
 
-            if (isMultiYear) {
-                chartStemsPpData.years.forEach((yr, idx) => {
+            if (isSingleYear) {
+                if (selectedAct === 'SIEMBRA') {
+                    // Only Siembra selected
+                    datasets.push({
+                        label: `🌱 Siembra Real ${selYear} (T/pl)`,
+                        data: chartStemsPpData.series_siembra || chartStemsPpData.series_total,
+                        borderColor: '#059669',
+                        backgroundColor: function(context) {
+                            return getChartCanvasGradient(context, 'rgba(5, 150, 105, 0.28)', 'rgba(5, 150, 105, 0.01)');
+                        },
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 3.0,
+                        pointRadius: 4.5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#059669',
+                        pointBorderWidth: 2.2,
+                        spanGaps: true,
+                    });
+                } else if (selectedAct === 'PODA') {
+                    // Only Poda selected
+                    datasets.push({
+                        label: `✂️ Poda Real ${selYear} (T/pl)`,
+                        data: chartStemsPpData.series_poda || chartStemsPpData.series_total,
+                        borderColor: '#7e22ce',
+                        backgroundColor: function(context) {
+                            return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
+                        },
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 3.0,
+                        pointRadius: 4.5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#7e22ce',
+                        pointBorderWidth: 2.2,
+                        spanGaps: true,
+                    });
+                } else {
+                    // Both Siembra & Poda available
+                    if (chartStemsPpData.has_siembra) {
+                        datasets.push({
+                            label: `🌱 Siembra ${selYear} (T/pl)`,
+                            data: chartStemsPpData.series_siembra,
+                            borderColor: '#059669',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.35,
+                            borderWidth: 2.4,
+                            pointRadius: 4.0,
+                            pointHoverRadius: 6.5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#059669',
+                            pointBorderWidth: 2,
+                            spanGaps: true,
+                        });
+                    }
+                    if (chartStemsPpData.has_poda) {
+                        datasets.push({
+                            label: `✂️ Poda ${selYear} (T/pl)`,
+                            data: chartStemsPpData.series_poda,
+                            borderColor: '#7e22ce',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.35,
+                            borderWidth: 2.4,
+                            pointRadius: 4.0,
+                            pointHoverRadius: 6.5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#7e22ce',
+                            pointBorderWidth: 2,
+                            spanGaps: true,
+                        });
+                    }
+                    const hasBoth = chartStemsPpData.has_siembra && chartStemsPpData.has_poda;
+                    datasets.push({
+                        label: hasBoth ? `Total Real Ponderado ${selYear} (T/pl)` : `Rendimiento Real ${selYear} (T/pl)`,
+                        data: chartStemsPpData.series_total,
+                        borderColor: '#2563eb',
+                        backgroundColor: function(context) {
+                            return getChartCanvasGradient(context, 'rgba(37, 99, 235, 0.22)', 'rgba(37, 99, 235, 0.01)');
+                        },
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: hasBoth ? 2.8 : 3.0,
+                        pointRadius: hasBoth ? 4.5 : 5.0,
+                        pointHoverRadius: 7.5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#2563eb',
+                        pointBorderWidth: 2.5,
+                        spanGaps: true,
+                    });
+                }
+            } else {
+                // Multi-Year mode across all years
+                const yearColorPalette = {
+                    '2026': { line: '#7e22ce', width: 2.8, ptRadius: 4.0 },
+                    '2025': { line: '#2563eb', width: 2.6, ptRadius: 3.5 },
+                    '2024': { line: '#059669', width: 2.2, ptRadius: 3.5 },
+                    '2023': { line: '#d97706', width: 2.0, ptRadius: 3.0 },
+                };
+                const fallbackPalette = ['#0891b2', '#db2777', '#4f46e5', '#65a30d'];
+
+                (chartStemsPpData.years || []).forEach((yr, idx) => {
                     const cfg = yearColorPalette[yr] || {
                         line: fallbackPalette[idx % fallbackPalette.length],
-                        bg: 'transparent',
-                        fill: false,
                         width: 2.2,
                         ptRadius: 3.5
                     };
-                    const dataPoints = chartStemsPpData.series_by_year[yr];
+                    const dataPoints = (chartStemsPpData.series_by_year && chartStemsPpData.series_by_year[yr]) ? chartStemsPpData.series_by_year[yr] : [];
                     datasets.push({
-                        label: `Año ${yr}`,
+                        label: `Año ${yr}${selectedAct ? ' (' + selectedAct + ')' : ''}`,
                         data: dataPoints,
                         borderColor: cfg.line,
-                        backgroundColor: cfg.fill ? function(context) {
-                            return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.22)', 'rgba(126, 34, 206, 0.01)');
-                        } : 'transparent',
-                        fill: cfg.fill,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         tension: 0.35,
                         borderWidth: cfg.width,
                         pointRadius: cfg.ptRadius,
@@ -6765,27 +6915,6 @@
                         pointBorderWidth: 2,
                         spanGaps: true,
                     });
-                });
-            } else {
-                const pointBorderColors = (chartStemsPpData.real_stems_pp || []).map((v, i) => {
-                    const target = (chartStemsPpData.target_stems_pp && chartStemsPpData.target_stems_pp[i]) || 0;
-                    return v >= target ? '#059669' : '#dc2626';
-                });
-                datasets.push({
-                    label: 'Rendimiento Real (T/pl)',
-                    data: chartStemsPpData.real_stems_pp,
-                    borderColor: '#7e22ce',
-                    backgroundColor: function(context) {
-                        return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
-                    },
-                    fill: true,
-                    tension: 0.35,
-                    borderWidth: 2.8,
-                    pointRadius: 5,
-                    pointHoverRadius: 7.5,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: pointBorderColors,
-                    pointBorderWidth: 2.5,
                 });
             }
 
@@ -6932,24 +7061,35 @@
                                         return `🎯 ${ds.label}: ${val} T/pl`;
                                     }
 
-                                    const yr = ds.label ? ds.label.replace('Año ', '') : '';
                                     const meta = (chartStemsPpData && chartStemsPpData.target_stems_pp) ? chartStemsPpData.target_stems_pp[context.dataIndex] : 0;
                                     const icon = (meta && val >= meta) ? '🟢' : (meta ? '🔴' : '');
 
-                                    let extra = '';
-                                    if (chartStemsPpData.details_by_year && chartStemsPpData.details_by_year[yr]) {
-                                        const d = chartStemsPpData.details_by_year[yr][context.dataIndex];
-                                        if (d) {
+                                    if (isSingleYear) {
+                                        const d = (chartStemsPpData.details && chartStemsPpData.details[context.dataIndex]) || null;
+                                        let extra = '';
+                                        if (d && (ds.label.includes('Total') || ds.label.includes('Rendimiento'))) {
                                             if (d.siem_t_pl !== null && d.poda_t_pl !== null) {
-                                                extra = ` (Siem: ${d.siem_t_pl} | Poda: ${d.poda_t_pl})`;
-                                            } else if (d.siem_t_pl !== null) {
-                                                extra = ` (Siem: ${d.siem_t_pl})`;
-                                            } else if (d.poda_t_pl !== null) {
-                                                extra = ` (Poda: ${d.poda_t_pl})`;
+                                                extra = ` (🌱 Siem: ${d.siem_t_pl} | ✂️ Poda: ${d.poda_t_pl})`;
                                             }
                                         }
+                                        return `${ds.label}: ${val} T/pl ${icon}${extra}`;
+                                    } else {
+                                        const yr = ds.label ? ds.label.replace('Año ', '').split(' ')[0] : '';
+                                        let extra = '';
+                                        if (chartStemsPpData.details_by_year && chartStemsPpData.details_by_year[yr]) {
+                                            const d = chartStemsPpData.details_by_year[yr][context.dataIndex];
+                                            if (d) {
+                                                if (d.siem_t_pl !== null && d.poda_t_pl !== null) {
+                                                    extra = ` (🌱 Siem: ${d.siem_t_pl} | ✂️ Poda: ${d.poda_t_pl})`;
+                                                } else if (d.siem_t_pl !== null) {
+                                                    extra = ` (🌱 Siem: ${d.siem_t_pl})`;
+                                                } else if (d.poda_t_pl !== null) {
+                                                    extra = ` (✂️ Poda: ${d.poda_t_pl})`;
+                                                }
+                                            }
+                                        }
+                                        return `${ds.label}: ${val} T/pl ${icon}${extra}`;
                                     }
-                                    return `${ds.label}: ${val} T/pl ${icon}${extra}`;
                                 }
                             },
                             titleFont: { family: pbiFontFamily, weight: '800', size: 12 },

@@ -2674,17 +2674,29 @@ def get_statistics_data(
                 acc["poda_plants"] += b_plants
                 acc["poda_prod"] += b_prod
 
-        # Filter by selected weeks if specified
-        if selected_weeks_set:
-            wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
-            sorted_calendar_weeks = sorted([w for w in all_calendar_weeks_set if w in wk_filter_set])
+        is_single_year = bool(resolved_year)
+        available_chart_years = sorted(list(year_week_stems.keys()), reverse=True)
+        primary_year = resolved_year if (resolved_year and resolved_year in year_week_stems) else ("2026" if "2026" in year_week_stems else (available_chart_years[0] if available_chart_years else None))
+
+        # Determine calendar weeks to display on X-axis:
+        # If single year selected, focus strictly on that year's active weeks
+        if is_single_year and primary_year and primary_year in year_week_stems:
+            year_active_weeks = sorted(list(year_week_stems[primary_year].keys()))
+            if selected_weeks_set:
+                wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
+                sorted_calendar_weeks = [w for w in year_active_weeks if w in wk_filter_set]
+            else:
+                sorted_calendar_weeks = year_active_weeks
         else:
-            sorted_calendar_weeks = sorted(list(all_calendar_weeks_set))
+            if selected_weeks_set:
+                wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
+                sorted_calendar_weeks = sorted([w for w in all_calendar_weeks_set if w in wk_filter_set])
+            else:
+                sorted_calendar_weeks = sorted(list(all_calendar_weeks_set))
 
         chart3_sorted_labels = [f"Sem {w}" for w in sorted_calendar_weeks]
         series_by_year: dict[str, list[float | None]] = {}
         details_by_year: dict[str, list[dict[str, Any] | None]] = {}
-        available_chart_years = sorted(list(year_week_stems.keys()), reverse=True)
 
         for y_str in available_chart_years:
             y_data = []
@@ -2693,9 +2705,17 @@ def get_statistics_data(
                 if wk_num in year_week_stems[y_str]:
                     cell = year_week_stems[y_str][wk_num]
                     t_pl = round(cell["prod"] / cell["plants"], 2) if cell["plants"] > 0 else None
-                    y_data.append(t_pl)
                     siem_pp = round(cell["siem_prod"] / cell["siem_plants"], 2) if cell["siem_plants"] > 0 else None
                     poda_pp = round(cell["poda_prod"] / cell["poda_plants"], 2) if cell["poda_plants"] > 0 else None
+
+                    # If activity filter is specified, the year series reflects that specific activity
+                    if activity_filter == "SIEMBRA":
+                        y_data.append(siem_pp)
+                    elif activity_filter == "PODA":
+                        y_data.append(poda_pp)
+                    else:
+                        y_data.append(t_pl)
+
                     y_details.append({
                         "year": y_str,
                         "week": wk_num,
@@ -2704,6 +2724,10 @@ def get_statistics_data(
                         "poda_t_pl": poda_pp,
                         "total_plants": cell["plants"],
                         "total_production": cell["prod"],
+                        "siem_plants": cell["siem_plants"],
+                        "siem_prod": cell["siem_prod"],
+                        "poda_plants": cell["poda_plants"],
+                        "poda_prod": cell["poda_prod"],
                         "blocks_count": cell["blocks_count"],
                         "target": avg_ideal_stems_pp,
                     })
@@ -2713,10 +2737,12 @@ def get_statistics_data(
             series_by_year[y_str] = y_data
             details_by_year[y_str] = y_details
 
-        primary_year = resolved_year if resolved_year in series_by_year else ("2026" if "2026" in series_by_year else (available_chart_years[0] if available_chart_years else None))
-        chart_stems_pp_real = series_by_year.get(primary_year, []) if primary_year else []
+        primary_details = details_by_year.get(primary_year, []) if primary_year else []
+        chart_stems_pp_real = [d["total_t_pl"] if d else None for d in primary_details]
+        chart_stems_pp_siembra = [d["siem_t_pl"] if d else None for d in primary_details]
+        chart_stems_pp_poda = [d["poda_t_pl"] if d else None for d in primary_details]
         chart_stems_pp_target = [avg_ideal_stems_pp] * len(chart3_sorted_labels)
-        chart_stems_pp_details = details_by_year.get(primary_year, []) if primary_year else []
+        chart_stems_pp_details = primary_details
         last_closed_label = chart3_sorted_labels[-1] if chart3_sorted_labels else None
         last_closed_index = len(chart3_sorted_labels) - 1 if chart3_sorted_labels else -1
 
@@ -2944,12 +2970,20 @@ def get_statistics_data(
                 "variation_pct": chrono_variation_pct,
             },
             "chart_stems_pp": {
+                "is_single_year": is_single_year,
+                "selected_year": resolved_year or "ALL",
+                "selected_activity": activity_filter,
                 "labels": chart3_sorted_labels,
                 "calendar_weeks": sorted_calendar_weeks,
                 "series_by_year": series_by_year,
                 "years": available_chart_years,
                 "details_by_year": details_by_year,
                 "real_stems_pp": chart_stems_pp_real,
+                "series_total": chart_stems_pp_real,
+                "series_siembra": chart_stems_pp_siembra,
+                "series_poda": chart_stems_pp_poda,
+                "has_siembra": any(v is not None for v in chart_stems_pp_siembra),
+                "has_poda": any(v is not None for v in chart_stems_pp_poda),
                 "target_stems_pp": chart_stems_pp_target,
                 "details": chart_stems_pp_details,
                 "last_closed_label": last_closed_label,

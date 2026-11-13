@@ -24,6 +24,7 @@ SHEET_CONFIG = {
     'Veronicas Novel': {'pm': 'VERONICA', 'header_row': 11},
     'Gyp Codigos': {'pm': 'GYPSOPHILA', 'header_row': 12},
     'BILLION LIGHTS': {'pm': 'GYPSOPHILA', 'header_row': 11},
+    'Xl ': {'pm': 'GYPSOPHILA', 'header_row': 11},
 }
 
 def comparable_text(value):
@@ -116,6 +117,9 @@ def normalize_variedad(source_sheet_name, value):
     if normalized_sheet_key == 'romantic':
         return 'ROMANTIC GLORY'
 
+    if normalized_sheet_key == 'xl ':
+        return 'XLENCE'
+
     if normalized_sheet_key in {'gyp codigos', 'billion lights'}:
         return 'BILLION LIGHTS'
 
@@ -137,6 +141,8 @@ def clean_block(val):
     if val is None:
         return ""
     b_str = str(val).strip()
+    if b_str.upper() in ('BLOQUE', 'TOTAL', 'NONE', 'VACIO'):
+        return ""
     b_str = re.sub(r'^Bl\.?\s*', '', b_str, flags=re.IGNORECASE).strip()
     return b_str
 
@@ -205,13 +211,14 @@ def run_import():
         week_cols = []
         for c_idx, col_name in enumerate(header):
             val_str = col_name.strip()
-            if val_str.isdigit() and (2300 <= int(val_str) <= 2700):
+            if val_str.isdigit() and (2100 <= int(val_str) <= 2700):
                 week_cols.append((c_idx, int(val_str)))
 
         for row in ws.iter_rows(min_row=h_row+1, values_only=True):
             cierre = str(row[0]).strip().upper() if row[0] is not None else ""
-            if cierre != 'C':
-                continue
+            if sheet_name != 'Xl ':
+                if cierre != 'C':
+                    continue
             
             blk_raw = row[b_idx] if b_idx < len(row) else None
             blk = clean_block(blk_raw)
@@ -281,6 +288,12 @@ def run_import():
                     block_norm=blk_norm,
                     plants=plants,
                 ))
+            elif tpsr_key in existing_tpsr and plants > 0:
+                rec_id, old_plants = existing_tpsr[tpsr_key]
+                if not old_plants or old_plants == 0:
+                    db.query(TpsrRecord).filter(TpsrRecord.id == rec_id).update({"plants": plants})
+                    existing_tpsr[tpsr_key] = (rec_id, plants)
+                    tpsr_updated += 1
 
             # 2. WeekAdjustmentDB for pre-30 cuts
             for hw_full, stems in pre30_cuts:
