@@ -855,22 +855,24 @@
         /* Card individual matching uploaded_media_1794269505204.png */
         .b-card {
             flex: 0 0 calc(12.5% - 10px);
-            min-width: 135px;
-            max-width: 175px;
+            min-width: 140px;
+            max-width: 180px;
             background: #ffffff;
-            border: 1.5px solid #fecdd3;
-            border-top: 3.5px solid #f87171;
-            border-radius: 10px;
-            padding: 9px 8px 7px 8px;
+            border-radius: 7px;
+            padding: 0.42rem 0.5rem 0.38rem 0.5rem;
+            border: 1.5px solid #cbd5e1;
             cursor: pointer;
-            position: relative;
-            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            user-select: none;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
+            align-items: center;
             justify-content: space-between;
             text-align: center;
-            user-select: none;
+            gap: 4px;
+            min-width: 0;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
         @media (max-width: 1400px) { .b-card { flex: 0 0 calc(16.666% - 10px); } }
@@ -879,29 +881,162 @@
         @media (max-width: 650px)  { .b-card { flex: 0 0 calc(50% - 8px); } }
 
         .b-card:hover {
+            border-color: #0f172a !important;
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.10);
-            border-color: #64748b;
+            box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.15);
         }
 
-        .b-card.optimal {
-            border-color: #bbf7d0;
-            border-top-color: #22c55e;
+        .b-card.state-ALTO, .b-card.optimal {
+            background: #f0fdf4;
+            border-color: #86efac;
+            border-top: 3.5px solid #16a34a;
         }
-        .b-card.below {
-            border-color: #fecdd3;
-            border-top-color: #f87171;
+        .b-card.state-MEDIO, .b-card.harvest {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            border-top: 3.5px solid #f59e0b;
         }
-        .b-card.pending {
-            border-color: #e2e8f0;
-            border-top-color: #94a3b8;
+        .b-card.state-BAJO, .b-card.below {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            border-top: 3.5px solid #ef4444;
+        }
+        .b-card.state-PENDIENTE, .b-card.pending {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            border-top: 3.5px solid #64748b;
         }
 
-        .b-card.active-card {
-            border-color: #2563eb !important;
-            border-top-color: #2563eb !important;
-            background: #f8faff;
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35), 0 6px 18px rgba(37, 99, 235, 0.12);
+        .b-card.active-selected, .b-card.active-card {
+            border: 2px solid #2563eb !important;
+            outline: 2px solid #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.30), 0 4px 15px rgba(37, 99, 235, 0.20) !important;
+            transform: translateY(-2px);
+        }
+
+        .blq-tile-row1 {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            padding-bottom: 2px;
+        }
+
+        .blq-code {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+            padding: 1px 4px;
+        }
+
+        .blq-edited-badge {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.58rem;
+            transition: transform 0.12s ease;
+        }
+        .b-card:hover .blq-edited-badge {
+            transform: scale(1.15);
+            background: #2563eb;
+        }
+
+        .blq-tile-row2 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1px;
+            width: 100%;
+            font-size: 0.66rem;
+            color: #475569;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+
+        .blq-pct {
+            font-size: 0.85rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+        }
+        .state-ALTO .blq-pct, .optimal .blq-pct { color: #15803d; }
+        .state-MEDIO .blq-pct, .harvest .blq-pct { color: #b45309; }
+        .state-BAJO .blq-pct, .below .blq-pct { color: #b91c1c; }
+        .state-PENDIENTE .blq-pct, .pending .blq-pct { color: #64748b; }
+
+        .blq-prod-name {
+            width: 100%;
+            text-align: center;
+            font-weight: 700;
+            color: #334155;
+            font-size: 0.64rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .blq-meta-line {
+            font-size: 0.63rem;
+            color: #475569;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .blq-mini-stage-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            width: 100%;
+            font-variant-numeric: tabular-nums;
+            margin-top: 1px;
+        }
+
+        .blq-mini-stage-box {
+            background: rgba(255, 255, 255, 0.90);
+            border-radius: 4px;
+            padding: 2px 2px;
+            font-size: 0.60rem;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.15;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .blq-mini-stage-box.stage-veg {
+            border: 1px solid rgba(3, 105, 161, 0.25);
+            color: #0369a1;
+            background: #f0f9ff;
+        }
+        .blq-mini-stage-box.stage-prod {
+            border: 1px solid rgba(21, 128, 61, 0.28);
+            color: #15803d;
+            background: #f0fdf4;
+        }
+
+        .blq-bar-track {
+            height: 3px;
+            width: 100%;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .blq-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
         }
 
         .b-card-header {
@@ -4105,66 +4240,119 @@
                 const isClosed = Boolean(cblock.is_closed);
                 const hasReal = Boolean(cblock.has_real_data);
 
-                const statusPill = isClosed 
-                    ? `<span class="b-pill b-pill-green">🔒 Cerrado</span>`
-                    : (hasReal ? `<span class="b-pill b-pill-amber">🌱 Cosecha</span>` : `<span class="b-pill b-pill-gray">⏳ Pendiente</span>`);
+                // Latest stage / crop
+                const latestStage = stages.length > 0 ? stages[stages.length - 1] : null;
+                const cropName = latestStage ? latestStage.product_master : (cblock.crops_display || 'CULTIVO');
+                const varietyName = latestStage ? latestStage.variety_display : '';
+                const cropDisplay = varietyName ? `${cropName}, ${varietyName}` : cropName;
 
-                // Segments / Etapas de cultivo
-                let stagesHtml = '';
-                if (stages.length > 0) {
-                    stagesHtml = stages.slice(0, 3).map((stg, sIdx) => {
-                        const cropIcon = getCropIcon(stg.product_master);
-                        const stgClosed = Boolean(stg.is_closed);
-                        const stgTp = stg.real_stems_per_plant || '0.00';
-                        const tpColor = (stgTp > 0) ? '#166534' : '#64748b';
-                        const numProds = stg.productions ? stg.productions.length : 1;
-                        const cycleText = `${numProds}c`;
-                        return `
-                            <div class="b-card-stage-row" title="Etapa ${sIdx + 1}: ${stg.product_master} (${stg.variety_display}) · ${Number(stg.total_production).toLocaleString()} tallos / ${Number(stg.total_plants).toLocaleString()} plantas (${cycleText})">
-                                <div class="stg-name-box">
-                                    <span class="stg-tag">E${sIdx + 1}</span>
-                                    <span class="stg-name">${cropIcon} ${stg.product_master}</span>
-                                </div>
-                                <div class="stg-metric-box">
-                                    <span class="stg-tp" style="color: ${tpColor};"><strong>${stgTp}</strong> <span style="font-size: 0.58rem; font-weight: 600; color: #64748b;">T/pl</span></span>
-                                    <span class="stg-badge">${stgClosed ? '🔒' : '🌱'}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    if (stages.length > 3) {
-                        stagesHtml += `
-                            <div style="font-size: 0.58rem; color: #6366f1; font-weight: 700; text-align: center; padding-top: 1px;">
-                                +${stages.length - 3} etapa(s) adicional(es)
-                            </div>
-                        `;
+                // Real stems per plant for the card:
+                let tpVal = 0.0;
+                if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
+                    tpVal = Number(cblock.real_stems_per_plant);
+                } else if (latestStage && Number(latestStage.real_stems_per_plant) > 0) {
+                    tpVal = Number(latestStage.real_stems_per_plant);
+                }
+                const idealVal = Number(cblock.ideal_stems_per_plant || (latestStage ? latestStage.ideal_stems_pp : 0) || 0);
+
+                // State determination matching operarios.html
+                let stateClass = 'state-PENDIENTE';
+                let barColor = '#94a3b8';
+                if (isClosed) {
+                    if (tpVal >= idealVal && tpVal > 0) {
+                        stateClass = 'state-ALTO optimal';
+                        barColor = '#16a34a';
+                    } else {
+                        stateClass = 'state-BAJO below';
+                        barColor = '#ef4444';
                     }
-                } else {
-                    stagesHtml = `
-                        <div style="font-size: 0.62rem; color: #94a3b8; font-style: italic; text-align: center; padding: 6px;">
-                            Sin etapas registradas
-                        </div>
-                    `;
+                } else if (hasReal) {
+                    stateClass = 'state-MEDIO harvest';
+                    barColor = '#f59e0b';
                 }
 
+                // Progress % for bar track
+                let progressPct = 0;
+                if (idealVal > 0 && tpVal > 0) {
+                    progressPct = Math.min(100, Math.round((tpVal / idealVal) * 100));
+                } else if (tpVal > 0) {
+                    progressPct = 100;
+                }
+
+                // Mini stage pills (matching [Veg 77.1%] [Prod 22.9%] from uploaded screenshot):
+                let pill1Text = '';
+                let pill1Class = 'stage-veg';
+                let pill1Title = '';
+                let pill2Text = '';
+                let pill2Class = 'stage-prod';
+                let pill2Title = '';
+
+                // Check if productions have SIEMBRA and PODA
+                const siemProds = productions.filter(p => p.activity === 'SIEMBRA');
+                const podaProds = productions.filter(p => p.activity === 'PODA');
+
+                if (siemProds.length > 0 && podaProds.length > 0) {
+                    const sLast = siemProds[siemProds.length - 1];
+                    const pLast = podaProds[podaProds.length - 1];
+                    pill1Text = `Siem ${sLast.real_stems_per_plant || '0.00'}`;
+                    pill1Title = `Siembra: ${sLast.real_stems_per_plant || 0} T/pl (${Number(sLast.plants || 0).toLocaleString()} pl)`;
+                    pill2Text = `Poda ${pLast.real_stems_per_plant || '0.00'}`;
+                    pill2Title = `Poda: ${pLast.real_stems_per_plant || 0} T/pl (${Number(pLast.plants || 0).toLocaleString()} pl)`;
+                } else if (stages.length >= 2) {
+                    const stg1 = stages[0];
+                    const stg2 = stages[1];
+                    pill1Text = `E1 ${stg1.real_stems_per_plant || '0.00'}`;
+                    pill1Title = `Etapa 1 (${stg1.product_master}): ${stg1.real_stems_per_plant || 0} T/pl`;
+                    pill2Text = `E2 ${stg2.real_stems_per_plant || '0.00'}`;
+                    pill2Title = `Etapa 2 (${stg2.product_master}): ${stg2.real_stems_per_plant || 0} T/pl`;
+                } else if (productions.length > 0) {
+                    const pr = productions[0];
+                    const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
+                    pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
+                    pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
+                    pill2Text = `${cblock.total_productions}c`;
+                    pill2Title = `${cblock.total_productions} ciclo(s) registrado(s)`;
+                } else {
+                    pill1Text = 'Sin datos';
+                    pill2Text = '0.00 T/pl';
+                }
+
+                const totalPlantsDisplay = Number(cblock.total_plants || 0).toLocaleString();
+                const bedsDisplay = cblock.total_productions ? `${cblock.total_productions}c` : '';
+
                 html += `
-                    <div class="b-card ${isClosed ? 'optimal' : 'below'}" 
+                    <div class="b-card ${stateClass}" 
                          id="bcard-${cblock.uid}" 
-                         title="Bloque ${cblock.block} · ${cblock.total_productions} Ciclos · Haz clic para abrir Ficha Técnica y Curvas"
+                         title="Bloque ${cblock.block} · ${cblock.total_productions} Ciclos · ${totalPlantsDisplay} plantas · Haz clic para abrir Ficha Técnica y Curvas"
                          onclick="openBlockDetailModal('${cblock.uid}')">
-                        <div class="b-card-header">
-                            <span class="b-card-title">BL  ${cblock.block}</span>
-                            ${statusPill}
+
+                        <!-- ROW 1: BL CODE & EDIT ICON -->
+                        <div class="blq-tile-row1">
+                            <span class="blq-code">BL ${cblock.block}</span>
+                            <span class="blq-edited-badge" title="Ficha Técnica y Curvas"><i class="fa-solid fa-pen-to-square"></i></span>
                         </div>
 
-                        <!-- ETAPAS / SEGMENTOS DE CIERRE -->
-                        <div class="b-card-stages-list">
-                            ${stagesHtml}
+                        <!-- ROW 2: T/PL METRIC & CYCLES -->
+                        <div class="blq-tile-row2">
+                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                <span class="blq-pct">${tpVal.toFixed(2)}</span>
+                                <span class="text-muted fw-semibold" style="font-size: 0.65rem;">(${cblock.total_productions}c)</span>
+                            </div>
+                            <div class="blq-prod-name" title="${cropDisplay}">${cropDisplay}</div>
+                            <div class="blq-meta-line" title="Plantas: ${totalPlantsDisplay}">
+                                ${totalPlantsDisplay} pl ${bedsDisplay ? `<span class="text-muted fw-normal">(${bedsDisplay})</span>` : ''}
+                            </div>
                         </div>
 
-                        <div class="b-card-footer">
-                            <span class="b-card-footer-info">${cblock.total_productions} Ciclo${cblock.total_productions > 1 ? 's' : ''} · ${Number(cblock.total_plants).toLocaleString()} pl</span>
-                            <span class="b-card-more-link">Ficha & Curvas ➔</span>
+                        <!-- ROW 3: MINI STAGE GRID (SIEMBRA / PODA / ETAPAS) -->
+                        <div class="blq-mini-stage-grid">
+                            <div class="blq-mini-stage-box ${pill1Class}" title="${pill1Title}">${pill1Text}</div>
+                            <div class="blq-mini-stage-box ${pill2Class}" title="${pill2Title}">${pill2Text}</div>
+                        </div>
+
+                        <!-- ROW 4: MINI PROGRESS BAR TRACK -->
+                        <div class="blq-bar-track">
+                            <div class="blq-bar-fill" style="width: ${progressPct}%; background: ${barColor};"></div>
                         </div>
                     </div>
                 `;
@@ -4394,7 +4582,7 @@
                     scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
                     scopeHWRange = productions.map(p => p.harvest_weeks_display || p.harvest_weeks_str).filter(Boolean).join(' | ') || 'Sin corte';
                     chartId = (isModal && activeModalCrop !== 'ALL') ? `${cblock.uid}_crop_${activeModalCrop}` : cblock.uid;
-                    items = HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
+                    items = HARVEST_BREAKDOWN_MAP[chartId] || HARVEST_BREAKDOWN_MAP[cblock.uid] || [];
                 } else {
                     let vPlants = 0;
                     let vProd = 0;
@@ -4592,11 +4780,11 @@
                         `;
                     }
 
-                    const curveContentHtml = isClosed 
+                    const curveContentHtml = (isClosed || (pItems && pItems.length > 0))
                         ? generateModalLineChartSVG(pItems, `${pKey}-${prefix}`, prod.activity)
                         : generateUnclosedCycleNoticeHTML(prod);
 
-                    const tableContentHtml = (isClosed && pItems.length)
+                    const tableContentHtml = (pItems && pItems.length > 0)
                         ? `<div style="margin-top: 8px;">${generateHarvestMiniTableHTML(pItems, true, prod.activity)}</div>`
                         : '';
 

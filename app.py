@@ -355,13 +355,21 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 if len(clean_v) > 3:
                     cycle = cycle_map_by_clean_v.get((clean_v, activity))
 
-            # If no cycle definition exists for this variety in Parámetros, DO NOT project or display it!
-            # It will safely remain in TPSR and will only enter projection once its curve is created.
+            # If no cycle definition exists for this variety in Parámetros, provide a minimal fallback cycle
+            # so historical varieties, planted lots and recorded weekly cuts are NEVER skipped or dropped!
             if cycle is None:
                 missing_cycles[(product_master, variety, activity)] = (
                     missing_cycles.get((product_master, variety, activity), 0) + 1
                 )
-                continue
+                cycle = {
+                    "product_master": product_master,
+                    "variety": variety,
+                    "activity": activity,
+                    "cycle_weeks": 0,
+                    "waste_rate": 0.0,
+                    "stems_per_plant": 0.0,
+                    "curve": (1.0,),
+                }
 
             source_rows.append(
                 {
@@ -1804,15 +1812,24 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
         max_plants = max(block_capacity, max((p["plants"] for p in productions), default=0))
         
         tot_plants_all_cycles = sum(p["plants"] for p in productions)
-        if tot_plants_all_cycles > 0:
+
+        # For the consolidated block card, the primary real_stems_pp should reflect the LATEST stage
+        # (avoiding distorting current crop metrics with previous crops like Sunflower from 2025):
+        latest_stage = stages[-1] if stages else None
+        if latest_stage and latest_stage.get("real_stems_per_plant", 0) > 0:
+            real_stems_pp = latest_stage["real_stems_per_plant"]
+            ideal_stems_pp = latest_stage.get("productions", [{}])[0].get("ideal_stems_per_plant") or 0.0
+            if not ideal_stems_pp and productions:
+                ideal_stems_pp = productions[-1].get("ideal_stems_per_plant") or 0.0
+        elif tot_plants_all_cycles > 0:
             weighted_real_sum = sum(p["real_stems_per_plant"] * p["plants"] for p in productions)
             real_stems_pp = round(weighted_real_sum / tot_plants_all_cycles, 2)
+            weighted_ideal_sum = sum(p["ideal_stems_per_plant"] * p["plants"] for p in productions)
+            weighted_plants_sum = sum(p["plants"] for p in productions)
+            ideal_stems_pp = round(weighted_ideal_sum / weighted_plants_sum, 2) if weighted_plants_sum > 0 else 0.0
         else:
             real_stems_pp = round(total_prod_sum / max_plants, 2) if max_plants > 0 else 0.0
-        
-        weighted_ideal_sum = sum(p["ideal_stems_per_plant"] * p["plants"] for p in productions)
-        weighted_plants_sum = sum(p["plants"] for p in productions)
-        ideal_stems_pp = round(weighted_ideal_sum / weighted_plants_sum, 2) if weighted_plants_sum > 0 else 0.0
+            ideal_stems_pp = 0.0
         
         is_below = (real_stems_pp < ideal_stems_pp) if (real_stems_pp > 0 and ideal_stems_pp > 0) else False
         
@@ -1992,7 +2009,8 @@ def get_statistics_data(
                 valid_curve_pms.add(c_pm)
                 valid_curve_pms.add(c.product_master)
 
-        available_pms = sorted([pm for pm in pm_varieties_map.keys() if pm in valid_curve_pms])
+        # Available PMs includes all crops in TPSR so historical varieties without predefined curves load seamlessly
+        available_pms = sorted(list(pm_varieties_map.keys()))
         available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
 
         # Resolve defaults:
@@ -2017,10 +2035,8 @@ def get_statistics_data(
         else:
             available_weeks = [format_short_week(w) for w in all_source_weeks_raw]
 
-        # Default product master is first available product (same logic as agronomo view)
-        if pm_filter is None:
-            resolved_pm = available_pms[0] if available_pms else "HYPERICUM"
-        elif str(pm_filter).strip().upper() in ("", "ALL"):
+        # Default product master in statistics is ALL crops ("") to provide farm-wide visibility across all years
+        if pm_filter is None or str(pm_filter).strip().upper() in ("", "ALL"):
             resolved_pm = ""
         else:
             resolved_pm = str(pm_filter).strip()
@@ -2363,9 +2379,6 @@ def get_statistics_data(
         chart3_weeks_map: dict[str, dict[str, Any]] = {}
 
         for pm in sorted(pm_sw_map.keys()):
-            if valid_curve_pms and pm not in valid_curve_pms:
-                continue
-
             sw_dict = pm_sw_map[pm]
             sw_groups = []
             pm_tot_plants = 0
