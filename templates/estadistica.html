@@ -1691,15 +1691,160 @@
         /* ---------------- 2-COLUMN DUAL CHARTS GRID ---------------- */
         .analytics-grid-2 {
             display: grid;
-            grid-template-columns: 420px 1fr;
+            grid-template-columns: minmax(560px, 1.25fr) minmax(380px, 1fr);
             gap: 14px;
             margin-bottom: 14px;
             position: relative;
             z-index: 1;
         }
 
-        @media (max-width: 1120px) {
+        @media (max-width: 1250px) {
             .analytics-grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* Curva Relativa Layout: Gráfico a la izquierda + Tabla Matriz a la derecha */
+        .chart-relative-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            height: 250px;
+            align-items: stretch;
+        }
+        .chart-relative-canvas-box {
+            flex: 1 1 58%;
+            min-width: 250px;
+            height: 100%;
+            position: relative;
+        }
+        .chart-relative-table-box {
+            flex: 0 0 215px;
+            width: 215px;
+            border-left: 1px solid #e2e8f0;
+            padding-left: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background: #fafbfc;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+        .relative-table-header {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        .relative-table-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .relative-table-title .crop-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #059669;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .relative-table-sub {
+            font-size: 0.63rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .badge-ac-mini {
+            font-size: 0.58rem;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-ac-siembra { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .badge-ac-poda { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+
+        .relative-table-scroll {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .relative-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.67rem;
+            line-height: 1.2;
+        }
+        .relative-matrix-table th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            padding: 3px 4px;
+            border-bottom: 1px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .relative-matrix-table td {
+            padding: 2px 4px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .relative-matrix-table .td-sem-label {
+            font-weight: 700;
+            color: #334155;
+            white-space: nowrap;
+        }
+        .relative-matrix-table .td-val-real {
+            text-align: right;
+            font-weight: 700;
+            color: #059669;
+        }
+        .relative-matrix-table .td-val-model {
+            text-align: right;
+            color: #d97706;
+            font-weight: 600;
+        }
+        .relative-matrix-table .td-val-dif {
+            text-align: right;
+            font-weight: 700;
+        }
+        .relative-matrix-table .dif-positive {
+            color: #059669;
+        }
+        .relative-matrix-table .dif-negative {
+            color: #dc2626;
+        }
+        .relative-matrix-table tr.tr-total {
+            background: #e2e8f0;
+            border-top: 1.5px solid #cbd5e1;
+            font-weight: 800;
+        }
+        .relative-matrix-table tr.tr-total td {
+            padding: 3px 4px;
+        }
+        @media (max-width: 640px) {
+            .chart-relative-layout {
+                flex-direction: column;
+                height: auto;
+            }
+            .chart-relative-table-box {
+                width: 100%;
+                flex: 1 1 auto;
+                border-left: none;
+                border-top: 1px solid #e2e8f0;
+                padding-left: 0;
+                padding-top: 8px;
+            }
         }
 
         .chart-card {
@@ -2637,6 +2782,11 @@
                                 </label>
                             {% endfor %}
                         </div>
+                        <div style="padding: 6px 8px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                            <button type="submit" class="pbi-ms-btn-apply" style="width: 100%; padding: 6px; background: #0284c7; color: #ffffff; font-size: 0.72rem; font-weight: 700; border: none; border-radius: 4px; cursor: pointer;">
+                                ✓ Aplicar Variedades Seleccionadas
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2866,8 +3016,68 @@
                             🌱 % Cosechado por Sem Relativa
                         </span>
                     </div>
-                    <div class="chart-body">
-                        <canvas id="relativeCurveChart"></canvas>
+                    <div class="chart-body chart-relative-layout">
+                        <div class="chart-relative-canvas-box">
+                            <canvas id="relativeCurveChart"></canvas>
+                        </div>
+                        <div class="chart-relative-table-box">
+                            <div class="relative-table-header">
+                                <div class="relative-table-title" title="{{ stats.selected_pm or 'TODOS LOS CULTIVOS' }} · {{ stats.selected_variety or 'Todas las Variedades' }}">
+                                    <span class="crop-dot"></span>
+                                    <span>{{ stats.selected_pm or 'TODOS LOS CULTIVOS' }}</span>
+                                </div>
+                                <div class="relative-table-sub">
+                                    <span title="{{ stats.selected_variety if stats.selected_variety else ('Variedades: ' ~ stats.selected_varieties|join(', ') if stats.selected_varieties else 'Todas las Variedades') }}">
+                                        {{ stats.selected_variety if stats.selected_variety else ('Variedades: ' ~ stats.selected_varieties|join(', ') if stats.selected_varieties else 'Todas las Variedades') }}
+                                    </span>
+                                    {% if stats.selected_activity %}
+                                        <span class="badge-ac-mini {{ 'badge-ac-siembra' if stats.selected_activity == 'SIEMBRA' else 'badge-ac-poda' }}">
+                                            {{ stats.selected_activity }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="relative-table-scroll">
+                                <table class="relative-matrix-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sem</th>
+                                            <th style="text-align: right;">% Real</th>
+                                            <th style="text-align: right;">% Mod</th>
+                                            <th style="text-align: right;">Dif</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="relative-matrix-tbody">
+                                        {% for i in range(stats.chart_relative.labels|length) %}
+                                            {% set r_val = stats.chart_relative.real_curve[i] if i < stats.chart_relative.real_curve|length else 0.0 %}
+                                            {% set m_val = stats.chart_relative.ideal_curve[i] if i < stats.chart_relative.ideal_curve|length else 0.0 %}
+                                            {% set dif = (r_val - m_val)|round(1) %}
+                                            <tr>
+                                                <td class="td-sem-label">{{ stats.chart_relative.labels[i] }}</td>
+                                                <td class="td-val-real">{{ '%.1f'|format(r_val) }}%</td>
+                                                <td class="td-val-model">{{ '%.1f'|format(m_val) }}%</td>
+                                                <td class="td-val-dif {{ 'dif-positive' if dif >= 0 else 'dif-negative' }}">
+                                                    {{ '+' if dif > 0 else '' }}{{ '%.1f'|format(dif) }}%
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        {% set sum_r = (stats.chart_relative.real_curve|sum)|round(1) %}
+                                        {% set sum_m = (stats.chart_relative.ideal_curve|sum)|round(1) %}
+                                        {% set sum_dif = (sum_r - sum_m)|round(1) %}
+                                        <tr class="tr-total">
+                                            <td><strong>Total</strong></td>
+                                            <td class="td-val-real"><strong>{{ '%.1f'|format(sum_r) }}%</strong></td>
+                                            <td class="td-val-model"><strong>{{ '%.1f'|format(sum_m) }}%</strong></td>
+                                            <td class="td-val-dif {{ 'dif-positive' if sum_dif >= 0 else 'dif-negative' }}">
+                                                <strong>{{ '+' if sum_dif > 0 else '' }}{{ '%.1f'|format(sum_dif) }}%</strong>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -3746,6 +3956,13 @@
             });
         }
 
+        const acSelect = document.getElementById('slicer-ac');
+        if (acSelect) {
+            acSelect.addEventListener('change', () => {
+                document.getElementById('slicers-form')?.submit();
+            });
+        }
+
         if (pmSelect) {
             pmSelect.addEventListener('change', () => {
                 updateVarietyOptions(true);
@@ -4015,37 +4232,26 @@
 
         // ---------------- HIERARCHICAL MATRIX ACCORDION LOGIC ----------------
         function togglePmGroup(pm) {
-            const swRows = document.querySelectorAll(`.sw-of-${pm}`);
             const icon = document.getElementById(`icon-pm-${pm}`);
-            if (!swRows.length || !icon) return;
-
-            const isCurrentlyHidden = swRows[0].style.display === 'none';
-            swRows.forEach(row => {
-                row.style.display = isCurrentlyHidden ? '' : 'none';
-            });
-            if (!isCurrentlyHidden) {
-                document.querySelectorAll(`.sw-child-of-${pm}`).forEach(r => r.style.display = 'none');
-                document.querySelectorAll(`.sw-grandchild-of-${pm}`).forEach(r => r.style.display = 'none');
+            if (!icon) return;
+            const willOpen = (icon.textContent === '+');
+            icon.textContent = willOpen ? '−' : '+';
+            if (!willOpen) {
                 document.querySelectorAll(`[id^="icon-sw-${pm}-"]`).forEach(i => i.textContent = '+');
                 document.querySelectorAll(`[id^="icon-blk-${pm}-"]`).forEach(i => i.textContent = '+');
             }
-            icon.textContent = isCurrentlyHidden ? '−' : '+';
+            applyTableFilters();
         }
 
         function toggleSwGroup(swUid) {
-            const blkRows = document.querySelectorAll(`.blk-of-${swUid}`);
             const icon = document.getElementById(`icon-sw-${swUid}`);
-            if (!blkRows.length || !icon) return;
-
-            const isCurrentlyHidden = blkRows[0].style.display === 'none';
-            blkRows.forEach(row => {
-                row.style.display = isCurrentlyHidden ? '' : 'none';
-            });
-            if (!isCurrentlyHidden) {
-                document.querySelectorAll(`.blk-child-of-${swUid}`).forEach(r => r.style.display = 'none');
+            if (!icon) return;
+            const willOpen = (icon.textContent === '+');
+            icon.textContent = willOpen ? '−' : '+';
+            if (!willOpen) {
                 document.querySelectorAll(`[id^="icon-blk-${swUid}"]`).forEach(i => i.textContent = '+');
             }
-            icon.textContent = isCurrentlyHidden ? '−' : '+';
+            applyTableFilters();
         }
 
         const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
@@ -6262,11 +6468,12 @@
                             if (statusQ && rowStatus !== statusQ) match = false;
                             if (perfQ && rowPerf !== perfQ) match = false;
 
-                            if (shouldHideGroupTotals) {
+                            if (blkQ) {
+                                // If searching by block, show matching rows directly
                                 blockRow.style.display = match ? '' : 'none';
                             } else {
                                 const iconSw = document.getElementById(`icon-sw-${swUid}`);
-                                const swIsOpen = swRow.style.display !== 'none' && (iconSw ? iconSw.textContent === '−' : false);
+                                const swIsOpen = (iconSw ? iconSw.textContent === '−' : false);
                                 blockRow.style.display = (match && swIsOpen) ? '' : 'none';
                             }
 
@@ -6288,21 +6495,27 @@
                             }
                         });
 
-                        if (shouldHideGroupTotals) {
-                            swRow.style.display = 'none';
-                        } else {
+                        // Preserve hierarchical week row (Semana de Siembra/Poda)
+                        if (swVisibleCount > 0) {
                             const iconPm = document.getElementById(`icon-pm-${pm}`);
                             const pmIsOpen = iconPm ? iconPm.textContent === '−' : false;
-                            swRow.style.display = pmIsOpen ? '' : 'none';
+                            if (blkQ) {
+                                // Auto-expand parent week and crop when a specific block matches search
+                                swRow.style.display = '';
+                                const iconSw = document.getElementById(`icon-sw-${swUid}`);
+                                if (iconSw) iconSw.textContent = '−';
+                                if (iconPm) iconPm.textContent = '−';
+                            } else {
+                                swRow.style.display = pmIsOpen ? '' : 'none';
+                            }
+                        } else {
+                            swRow.style.display = 'none';
                         }
                         pmVisibleCount += swVisibleCount;
                     });
 
-                    if (shouldHideGroupTotals) {
-                        masterRow.style.display = 'none';
-                    } else {
-                        masterRow.style.display = '';
-                    }
+                    // Preserve hierarchical master row (Producto Maestro)
+                    masterRow.style.display = (pmVisibleCount > 0) ? '' : 'none';
                 });
             }
 
