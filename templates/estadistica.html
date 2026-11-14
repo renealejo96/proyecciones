@@ -2895,16 +2895,106 @@
             font-size: 0.81rem;
             border-top: 2px solid #cbd5e1;
             border-bottom: 1.5px solid #cbd5e1;
-            padding: 10px 8px;
+            padding: 8px 8px;
         }
 
-        .sm-tr-variety td {
-            background: #ffffff;
+        .sm-tr-crop-siem td {
+            background: #f0fdf4;
+            font-weight: 800;
+            color: #065f46;
+            border-top: 1.5px solid #a7f3d0;
+            padding: 7px 8px;
         }
+        .sm-tr-crop-poda td {
+            background: #faf5ff;
+            font-weight: 800;
+            color: #581c87;
+            border-top: 1px dashed #e9d5ff;
+            padding: 7px 8px;
+        }
+        .sm-tr-crop-total td {
+            background: #f1f5f9;
+            font-weight: 850;
+            color: #0f172a;
+            border-top: 1.5px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
+            padding: 8px 8px;
+        }
+
+        .sm-tr-variety-siem td {
+            background: #ffffff;
+            padding: 6px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .sm-tr-variety-siem:hover td {
+            background: #f0fdf4 !important;
+        }
+
+        .sm-tr-variety-poda td {
+            background: #ffffff;
+            padding: 6px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .sm-tr-variety-poda:hover td {
+            background: #faf5ff !important;
+        }
+
+        .sm-tr-variety-total td {
+            background: #f8fafc;
+            padding: 6px 8px;
+            border-bottom: 1.5px solid #e2e8f0;
+        }
+        .sm-tr-variety-total:hover td {
+            background: #f1f5f9 !important;
+        }
+
         .sm-var-indent {
-            padding-left: 20px !important;
+            padding-left: 12px !important;
             font-weight: 700;
             color: #1e293b;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sm-badge-act-siem {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            font-weight: 800;
+            font-size: 0.69rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+        }
+        .sm-badge-act-poda {
+            background: #faf5ff;
+            color: #6b21a8;
+            border: 1px solid #e9d5ff;
+            font-weight: 800;
+            font-size: 0.69rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+        }
+        .sm-badge-act-tot {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            font-weight: 800;
+            font-size: 0.69rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
         }
 
         .sm-tr-grand-total td {
@@ -2914,14 +3004,15 @@
             font-size: 0.83rem;
             border-top: 2.5px solid #94a3b8;
             border-bottom: 2px solid #94a3b8;
-            padding: 10px 8px;
+            padding: 9px 8px;
         }
 
         .sm-td-sparkline {
-            width: 128px;
-            min-width: 128px;
+            width: 145px;
+            min-width: 145px;
             text-align: center;
-            padding: 4px 6px !important;
+            padding: 2px 4px !important;
+            vertical-align: middle;
         }
 
         .sm-th-wk {
@@ -2936,7 +3027,8 @@
             min-width: 44px;
             font-weight: 700;
             font-size: 0.71rem;
-            padding: 6px 3px !important;
+            padding: 5px 2px !important;
+            vertical-align: middle;
         }
         .sm-wk-val {
             display: block;
@@ -2945,9 +3037,17 @@
         .sm-wk-bar {
             height: 4px;
             border-radius: 2px;
-            background: #3b82f6;
             margin: 0 auto;
             opacity: 0.85;
+        }
+        .sm-bar-siem {
+            background: #059669;
+        }
+        .sm-bar-poda {
+            background: #7e22ce;
+        }
+        .sm-bar-tot {
+            background: #2563eb;
         }
 
         .sm-badge-tp {
@@ -3612,17 +3712,69 @@
                 </div>
 
                 <div class="summary-matrix-table-wrap">
+                    {% macro render_summary_row(label, act_type, m, tr_class="", is_subrow=false) %}
+                    <tr class="{{ tr_class }}">
+                        <td style="{{ 'padding-left: 20px !important;' if is_subrow else '' }}">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; {{ 'font-weight: 850;' if not is_subrow else 'font-weight: 650;' }}">
+                                {{ label }}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if act_type == 'SIEMBRA' %}
+                                <span class="sm-badge-act-siem">🌱 Siembra</span>
+                            {% elif act_type == 'PODA' %}
+                                <span class="sm-badge-act-poda">✂️ Poda</span>
+                            {% else %}
+                                <span class="sm-badge-act-tot">∑ Consolidado</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="kpi-badge" style="background: {{ '#e2e8f0' if not is_subrow else '#f1f5f9' }}; color: #1e293b; font-weight: 700;">
+                                {{ m.closed_blocks }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;">{{ '{:,}'.format(m.total_plants) }}</td>
+                        <td style="text-align: right; font-weight: 750; color: {{ '#059669' if act_type == 'SIEMBRA' else ('#7e22ce' if act_type == 'PODA' else '#0284c7') }};">{{ '{:,}'.format(m.total_production) }}</td>
+                        <td style="text-align: right;">
+                            <span class="sm-badge-tp" style="font-size: {{ '0.88rem' if not is_subrow else '0.82rem' }}; color: {{ '#059669' if m.real_stems_pp >= m.ideal_stems_pp else '#0f172a' }};">
+                                {{ m.real_stems_pp }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;"><span class="sm-badge-meta">{{ m.ideal_stems_pp }}</span></td>
+                        <td style="text-align: center;">
+                            {% if m.diff_pp >= 0 %}
+                                <span class="sm-badge-diff sm-diff-pos">▲ +{{ m.diff_pp }} ({{ m.fulfillment_pct }}%)</span>
+                            {% else %}
+                                <span class="sm-badge-diff sm-diff-neg">▼ {{ m.diff_pp }} ({{ m.fulfillment_pct }}%)</span>
+                            {% endif %}
+                        </td>
+                        <td class="sm-td-sparkline">
+                            {{ m.svg_curve | safe }}
+                        </td>
+                        {% for idx in range(8) %}
+                            {% set pct = m.relative_curve[idx] if idx < m.relative_curve|length else 0.0 %}
+                            <td class="sm-td-wk">
+                                <span class="sm-wk-val" style="color: {{ '#047857' if act_type == 'SIEMBRA' and pct >= 25 else ('#6b21a8' if act_type == 'PODA' and pct >= 25 else ('#1d4ed8' if pct >= 25 else ('#334155' if pct > 0 else '#94a3b8'))) }}; font-weight: {{ '800' if pct >= 20 else '600' }};">
+                                    {{ '%.1f'|format(pct) }}%
+                                </span>
+                                <div class="sm-wk-bar {{ 'sm-bar-siem' if act_type == 'SIEMBRA' else ('sm-bar-poda' if act_type == 'PODA' else 'sm-bar-tot') }}" style="width: {{ [pct * 2.4, 38.0]|min }}px;"></div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% endmacro %}
+
                     <table class="summary-matrix-table" id="summary-matrix-table">
                         <thead>
                             <tr>
                                 <th style="min-width: 175px;">Cultivo / Variedad</th>
-                                <th style="text-align: center; width: 65px;" title="Cantidad de bloques cerrados">Bloques</th>
+                                <th style="text-align: center; width: 85px;">Actividad</th>
+                                <th style="text-align: center; width: 60px;" title="Cantidad de bloques cerrados">Bloques</th>
                                 <th style="text-align: right; width: 85px;" title="Total de plantas de los bloques cerrados">Plantas</th>
                                 <th style="text-align: right; width: 95px;" title="Producción total de tallos cerrados">Tallos Totales</th>
-                                <th style="text-align: right; width: 80px;" title="Tallos por planta ponderado real">T/Pl Real</th>
+                                <th style="text-align: right; width: 75px;" title="Tallos por planta ponderado real">T/Pl Real</th>
                                 <th style="text-align: right; width: 75px;" title="Meta de tallos por planta">T/Pl Meta</th>
                                 <th style="text-align: center; width: 105px;" title="Diferencia absoluta y cumplimiento porcentual">Desv / Cumpl</th>
-                                <th style="text-align: center; width: 130px;" title="Curva gráfica de entrada a cosecha ponderada (vectorial SVG)">Gráfica de Curva</th>
+                                <th style="text-align: center; width: 145px;" title="Curva gráfica de entrada a cosecha ponderada (vectorial SVG, altura 48px)">Gráfica de Curva</th>
                                 <th class="sm-th-wk" title="Semana 0 (Inicio de cosecha)">Sem 0</th>
                                 <th class="sm-th-wk" title="Semana +1">Sem +1</th>
                                 <th class="sm-th-wk" title="Semana +2">Sem +2</th>
@@ -3631,163 +3783,47 @@
                                 <th class="sm-th-wk" title="Semana +5">Sem +5</th>
                                 <th class="sm-th-wk" title="Semana +6">Sem +6</th>
                                 <th class="sm-th-wk" title="Semana +7 o posterior">Sem +7+</th>
-                                <th style="text-align: left; min-width: 150px;" title="Rendimiento detallado por Siembra y Poda">Desglose Siem / Poda</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if stats.variety_summary_groups %}
                                 {% for pm_g in stats.variety_summary_groups %}
-                                    <!-- FILA TOTAL / CONSOLIDADO DEL CULTIVO (PRODUCTO MAESTRO) -->
-                                    <tr class="sm-tr-crop-header">
-                                        <td>
-                                            <span style="display: inline-flex; align-items: center; gap: 5px;">
-                                                📦 <strong>TOTAL {{ pm_g.product_master }}</strong>
-                                            </span>
-                                        </td>
-                                        <td style="text-align: center;">
-                                            <span class="kpi-badge" style="background: #e2e8f0; color: #1e293b; font-weight: 800;">
-                                                {{ pm_g.closed_blocks }}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right;">{{ '{:,}'.format(pm_g.total_plants) }}</td>
-                                        <td style="text-align: right; font-weight: 800; color: #0284c7;">{{ '{:,}'.format(pm_g.total_production) }}</td>
-                                        <td style="text-align: right;">
-                                            <span class="sm-badge-tp" style="font-size: 0.88rem; color: {{ '#059669' if pm_g.real_stems_pp >= pm_g.ideal_stems_pp else '#0f172a' }};">
-                                                {{ pm_g.real_stems_pp }}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right;"><span class="sm-badge-meta">{{ pm_g.ideal_stems_pp }}</span></td>
-                                        <td style="text-align: center;">
-                                            {% if pm_g.diff_pp >= 0 %}
-                                                <span class="sm-badge-diff sm-diff-pos">▲ +{{ pm_g.diff_pp }} ({{ pm_g.fulfillment_pct }}%)</span>
-                                            {% else %}
-                                                <span class="sm-badge-diff sm-diff-neg">▼ {{ pm_g.diff_pp }} ({{ pm_g.fulfillment_pct }}%)</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="sm-td-sparkline">
-                                            {{ pm_g.svg_curve | safe }}
-                                        </td>
-                                        {% for idx in range(8) %}
-                                            {% set pct = pm_g.relative_curve[idx] if idx < pm_g.relative_curve|length else 0.0 %}
-                                            <td class="sm-td-wk">
-                                                <span class="sm-wk-val" style="color: {{ '#0369a1' if pct >= 25 else ('#1e293b' if pct > 0 else '#94a3b8') }}; font-weight: {{ '800' if pct >= 20 else '600' }};">
-                                                    {{ '%.1f'|format(pct) }}%
-                                                </span>
-                                                <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: {{ '#0284c7' if pct >= 25 else '#38bdf8' }};"></div>
-                                            </td>
-                                        {% endfor %}
-                                        <td style="font-size: 0.69rem;">
-                                            {% if pm_g.siem_pp is not none and pm_g.poda_pp is not none %}
-                                                <span style="color: #047857; font-weight: 700;">🌱 Siem: <strong>{{ pm_g.siem_pp }}</strong></span>
-                                                <span style="color: #94a3b8; margin: 0 2px;">|</span>
-                                                <span style="color: #7e22ce; font-weight: 700;">✂️ Poda: <strong>{{ pm_g.poda_pp }}</strong></span>
-                                            {% elif pm_g.siem_pp is not none %}
-                                                <span style="color: #047857; font-weight: 700;">🌱 Siembra: <strong>{{ pm_g.siem_pp }}</strong></span>
-                                            {% elif pm_g.poda_pp is not none %}
-                                                <span style="color: #7e22ce; font-weight: 700;">✂️ Poda: <strong>{{ pm_g.poda_pp }}</strong></span>
-                                            {% else %}
-                                                <span style="color: #94a3b8;">-</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
+                                    <!-- FILAS RESUMEN CULTIVO (PRODUCTO MAESTRO) POR ACTIVIDAD -->
+                                    {% if pm_g.siembra.has_data %}
+                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "SIEMBRA", pm_g.siembra, "sm-tr-crop-siem", false) }}
+                                    {% endif %}
+                                    {% if pm_g.poda.has_data %}
+                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "PODA", pm_g.poda, "sm-tr-crop-poda", false) }}
+                                    {% endif %}
+                                    {% if pm_g.has_both %}
+                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "TOTAL", pm_g.total, "sm-tr-crop-total", false) }}
+                                    {% endif %}
 
-                                    <!-- FILAS DE CADA VARIEDAD -->
+                                    <!-- FILAS DE CADA VARIEDAD (SIEMBRA Y PODA FILA A FILA) -->
                                     {% for v in pm_g.varieties %}
-                                    <tr class="sm-tr-variety">
-                                        <td class="sm-var-indent">
-                                            <span>🌿 {{ v.variety }}</span>
-                                        </td>
-                                        <td style="text-align: center;">
-                                            <span class="kpi-badge" style="background: #f8fafc; color: #475569; font-weight: 700;">
-                                                {{ v.closed_blocks }}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right;">{{ '{:,}'.format(v.total_plants) }}</td>
-                                        <td style="text-align: right; font-weight: 700;">{{ '{:,}'.format(v.total_production) }}</td>
-                                        <td style="text-align: right;">
-                                            <span class="sm-badge-tp" style="color: {{ '#059669' if v.real_stems_pp >= v.ideal_stems_pp else '#0f172a' }};">
-                                                {{ v.real_stems_pp }}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right;"><span class="sm-badge-meta">{{ v.ideal_stems_pp }}</span></td>
-                                        <td style="text-align: center;">
-                                            {% if v.diff_pp >= 0 %}
-                                                <span class="sm-badge-diff sm-diff-pos">▲ +{{ v.diff_pp }} ({{ v.fulfillment_pct }}%)</span>
-                                            {% else %}
-                                                <span class="sm-badge-diff sm-diff-neg">▼ {{ v.diff_pp }} ({{ v.fulfillment_pct }}%)</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="sm-td-sparkline">
-                                            {{ v.svg_curve | safe }}
-                                        </td>
-                                        {% for idx in range(8) %}
-                                            {% set pct = v.relative_curve[idx] if idx < v.relative_curve|length else 0.0 %}
-                                            <td class="sm-td-wk">
-                                                <span class="sm-wk-val" style="color: {{ '#1d4ed8' if pct >= 25 else ('#334155' if pct > 0 else '#94a3b8') }}; font-weight: {{ '800' if pct >= 20 else '600' }};">
-                                                    {{ '%.1f'|format(pct) }}%
-                                                </span>
-                                                <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: {{ '#2563eb' if pct >= 25 else '#60a5fa' }};"></div>
-                                            </td>
-                                        {% endfor %}
-                                        <td style="font-size: 0.68rem;">
-                                            {% if v.siem_pp is not none and v.poda_pp is not none %}
-                                                <span style="color: #047857;">🌱 Siem: <strong>{{ v.siem_pp }}</strong> ({{ v.siem_blocks }} b)</span>
-                                                <span style="color: #cbd5e1; margin: 0 2px;">|</span>
-                                                <span style="color: #7e22ce;">✂️ Poda: <strong>{{ v.poda_pp }}</strong> ({{ v.poda_blocks }} b)</span>
-                                            {% elif v.siem_pp is not none %}
-                                                <span style="color: #047857;">🌱 Siembra: <strong>{{ v.siem_pp }}</strong> ({{ v.siem_blocks }} b)</span>
-                                            {% elif v.poda_pp is not none %}
-                                                <span style="color: #7e22ce;">✂️ Poda: <strong>{{ v.poda_pp }}</strong> ({{ v.poda_blocks }} b)</span>
-                                            {% else %}
-                                                <span style="color: #94a3b8;">-</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
+                                        {% if v.siembra.has_data %}
+                                            {{ render_summary_row("🌿 " ~ v.variety, "SIEMBRA", v.siembra, "sm-tr-variety-siem", true) }}
+                                        {% endif %}
+                                        {% if v.poda.has_data %}
+                                            {{ render_summary_row("🌿 " ~ v.variety, "PODA", v.poda, "sm-tr-variety-poda", true) }}
+                                        {% endif %}
+                                        {% if v.has_both %}
+                                            {{ render_summary_row("∑ " ~ v.variety ~ " (Total)", "TOTAL", v.total, "sm-tr-variety-total", true) }}
+                                        {% endif %}
                                     {% endfor %}
                                 {% endfor %}
 
-                                <!-- FILA TOTAL GENERAL FINCA (SI HAY MÁS DE 1 CULTIVO EN PANTALLA) -->
+                                <!-- FILA TOTAL GENERAL FINCA CONSOLIDADO -->
                                 {% if stats.variety_summary_groups|length > 1 %}
-                                <tr class="sm-tr-grand-total">
-                                    <td>
-                                        <span style="display: inline-flex; align-items: center; gap: 5px;">
-                                            🏆 <strong>TOTAL FINCA CONSOLIDADO</strong>
-                                        </span>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <span class="kpi-badge" style="background: #0f172a; color: #ffffff; font-weight: 850;">
-                                            {{ stats.summary_farm_total.closed_blocks }}
-                                        </span>
-                                    </td>
-                                    <td style="text-align: right;">{{ '{:,}'.format(stats.summary_farm_total.total_plants) }}</td>
-                                    <td style="text-align: right; color: #4338ca;">{{ '{:,}'.format(stats.summary_farm_total.total_production) }}</td>
-                                    <td style="text-align: right;">
-                                        <span class="sm-badge-tp" style="font-size: 0.90rem; color: #4338ca;">
-                                            {{ stats.summary_farm_total.real_stems_pp }}
-                                        </span>
-                                    </td>
-                                    <td style="text-align: right;"><span class="sm-badge-meta">{{ stats.summary_farm_total.ideal_stems_pp }}</span></td>
-                                    <td style="text-align: center;">
-                                        {% if stats.summary_farm_total.diff_pp >= 0 %}
-                                            <span class="sm-badge-diff sm-diff-pos">▲ +{{ stats.summary_farm_total.diff_pp }} ({{ stats.summary_farm_total.fulfillment_pct }}%)</span>
-                                        {% else %}
-                                            <span class="sm-badge-diff sm-diff-neg">▼ {{ stats.summary_farm_total.diff_pp }} ({{ stats.summary_farm_total.fulfillment_pct }}%)</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="sm-td-sparkline">
-                                        {{ stats.summary_farm_total.svg_curve | safe }}
-                                    </td>
-                                    {% for idx in range(8) %}
-                                        {% set pct = stats.summary_farm_total.relative_curve[idx] if idx < stats.summary_farm_total.relative_curve|length else 0.0 %}
-                                        <td class="sm-td-wk">
-                                            <span class="sm-wk-val" style="color: #312e81; font-weight: 800;">
-                                                {{ '%.1f'|format(pct) }}%
-                                            </span>
-                                            <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: #6366f1;"></div>
-                                        </td>
-                                    {% endfor %}
-                                    <td style="font-size: 0.69rem; font-weight: 700; color: #475569;">Consolidado General</td>
-                                </tr>
+                                    {% if stats.summary_farm_total.siembra.has_data %}
+                                        {{ render_summary_row("🏆 TOTAL FINCA", "SIEMBRA", stats.summary_farm_total.siembra, "sm-tr-grand-total", false) }}
+                                    {% endif %}
+                                    {% if stats.summary_farm_total.poda.has_data %}
+                                        {{ render_summary_row("🏆 TOTAL FINCA", "PODA", stats.summary_farm_total.poda, "sm-tr-grand-total", false) }}
+                                    {% endif %}
+                                    {% if stats.summary_farm_total.has_both %}
+                                        {{ render_summary_row("🏆 TOTAL FINCA", "TOTAL", stats.summary_farm_total.total, "sm-tr-grand-total", false) }}
+                                    {% endif %}
                                 {% endif %}
                             {% else %}
                                 <tr>
