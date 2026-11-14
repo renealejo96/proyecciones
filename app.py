@@ -355,6 +355,7 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 if len(clean_v) > 3:
                     cycle = cycle_map_by_clean_v.get((clean_v, activity))
 
+            had_real_cycle = (cycle is not None)
             # If no cycle definition exists for this variety in Parámetros, provide a minimal fallback cycle
             # so historical varieties, planted lots and recorded weekly cuts are NEVER skipped or dropped!
             if cycle is None:
@@ -383,7 +384,7 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                     "plants": plants,
                     "bed_location": bed_location_str,
                     "pruning_number": "",
-                    "cycle_found": True,
+                    "cycle_found": had_real_cycle and (cycle.get("stems_per_plant", 0) > 0),
                     "cycle_weeks": None,
                     "waste_rate": None,
                     "stems_per_plant": None,
@@ -565,15 +566,25 @@ def available_weeks(snapshot: dict[str, Any]) -> list[int]:
     return sorted({int(row["harvest_week"]) for row in projection_rows if row.get("harvest_week")})
 
 
+NON_HARVEST_CROPS = {
+    "ASTER", "PAGODA", "MOSTAZA CALIENTE", "PROD.NUEVOS", "PROD NUEVOS", "PROD", "NUEVOS",
+    "RUMEX", "VICIA-AVENA", "VICIA AVENA", "VICIA", "AVENA", "BRILLANTINA", "MOSTAZA",
+}
+
+
 def available_products(snapshot: dict[str, Any]) -> list[str]:
     source_rows = snapshot.get("source_rows", [])
-    return sorted(
-        {
-            str(row.get("product_master") or "").strip()
-            for row in source_rows
-            if row.get("product_master") and row.get("cycle_found")
-        }
-    )
+    prods = set()
+    for row in source_rows:
+        pm = str(row.get("product_master") or "").strip()
+        if not pm:
+            continue
+        pm_norm = normalize_text(pm)
+        if any(ex in pm_norm.split() or ex == pm_norm for ex in NON_HARVEST_CROPS):
+            continue
+        if row.get("cycle_found") and (row.get("ideal_stems_per_plant") or 0) > 0:
+            prods.add(pm)
+    return sorted(prods)
 
 
 def resolve_selected_week(

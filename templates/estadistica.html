@@ -2888,6 +2888,103 @@
             background: #f8fafc;
         }
 
+        /* ---------------- PANTALLA GRANDE (FULLSCREEN) PARA GRÁFICA DE RENDIMIENTO ---------------- */
+        .chart-card-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            z-index: 9999999 !important;
+            background: #ffffff !important;
+            padding: 20px 28px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.45) !important;
+            border-radius: 0 !important;
+        }
+
+        .chart-card-fullscreen .stems-pp-chart-flex {
+            flex: 1 !important;
+            height: calc(100vh - 160px) !important;
+            min-height: 400px !important;
+        }
+
+        .btn-fullscreen-chart {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            font-weight: 750;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+        .btn-fullscreen-chart:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        .stems-pp-legend-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 12px 2px 12px;
+            flex-wrap: wrap;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #f1f5f9;
+            margin-top: 6px;
+        }
+        .stems-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            font-weight: 750;
+            color: #1e293b;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            transition: all 0.15s ease;
+        }
+        .stems-legend-item:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+        .stems-legend-item.disabled {
+            opacity: 0.45;
+            text-decoration: line-through;
+            background: #f8fafc;
+        }
+        .stems-legend-line {
+            display: inline-block;
+            width: 18px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        .stems-legend-line.dashed {
+            border-top: 2.5px dashed;
+            height: 0;
+            background: transparent !important;
+        }
+
         .sm-btn-toggle {
             width: 17px;
             height: 17px;
@@ -3687,22 +3784,34 @@
                     </div>
 
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
-                    <div class="chart-card" style="flex: 1; margin-bottom: 0;">
-                        <div class="chart-header">
+                    <div class="chart-card" id="stemsPpChartCard" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column;">
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 0.90rem; font-weight: 800;">📊 Rendimiento Semanal: Tallos / Planta vs Meta (Histórico Multi-Año Continuo)</h3>
                                 <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">
                                     ↔️ Desplázate horizontalmente (de derecha a izquierda) para recorrer todo el historial
                                 </span>
                             </div>
-                            <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
-                                🏆 Eje X: Semanas Históricas (Formato YYWW)
-                            </span>
-                        </div>
-                        <div class="chart-body" id="stemsPpScrollContainer" style="height: 255px; overflow-x: auto; overflow-y: hidden; position: relative; scroll-behavior: smooth;">
-                            <div id="stemsPpCanvasWrapper" style="height: 100%; min-width: 100%;">
-                                <canvas id="stemsPpChart"></canvas>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button type="button" class="btn-fullscreen-chart" id="btn-toggle-fullscreen-stems" title="Ver gráfica en pantalla grande">
+                                    ⛶ Pantalla Grande
+                                </button>
                             </div>
+                        </div>
+                        <div class="stems-pp-chart-flex" style="display: flex; position: relative; height: 260px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-top: 4px;">
+                            <!-- STICKY Y-AXIS CANVAS (Fixed width 62px on left) -->
+                            <div class="stems-pp-axis-col" style="width: 62px; flex-shrink: 0; height: 100%; background: #ffffff; border-right: 1.5px solid #cbd5e1; z-index: 10; position: relative; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">
+                                <canvas id="stemsPpAxisChart"></canvas>
+                            </div>
+                            <!-- SCROLLABLE DATA CANVAS -->
+                            <div class="chart-body" id="stemsPpScrollContainer" style="flex: 1; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; scroll-behavior: smooth;">
+                                <div id="stemsPpCanvasWrapper" style="height: 100%; min-width: 100%;">
+                                    <canvas id="stemsPpChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- BOTTOM CENTERED LEGEND -->
+                        <div id="stemsPpCustomLegend" class="stems-pp-legend-wrap" style="display: flex; justify-content: center; align-items: center; gap: 16px; padding: 10px 12px 4px 12px; flex-wrap: wrap;">
                         </div>
                     </div>
                 </div>
@@ -7758,7 +7867,64 @@
                 pointHoverRadius: 0
             });
 
-            new Chart(ctxStemsPp, {
+            // Calculate common yMax across all datasets
+            let maxVal = 0;
+            datasets.forEach(ds => {
+                if (ds && Array.isArray(ds.data)) {
+                    ds.data.forEach(v => {
+                        const num = parseFloat(v);
+                        if (!isNaN(num) && num > maxVal) maxVal = num;
+                    });
+                }
+            });
+            let yMax = 5;
+            if (maxVal > 0) {
+                yMax = Math.ceil(maxVal * 1.15 * 10) / 10;
+                if (yMax < maxVal + 0.3) yMax = Math.ceil(maxVal + 1);
+            }
+
+            // 1. RENDER STICKY Y-AXIS CHART (Left column)
+            let axisChart = null;
+            const ctxStemsPpAxis = document.getElementById('stemsPpAxisChart');
+            if (ctxStemsPpAxis) {
+                axisChart = new Chart(ctxStemsPpAxis, {
+                    type: 'line',
+                    data: {
+                        labels: [''],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: { left: 0, right: 0, top: 10, bottom: 28 }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: yMax,
+                                ticks: {
+                                    color: '#334155',
+                                    callback: function(v) { return v + ' T/pl'; },
+                                    font: { family: pbiFontFamily, size: 9.5, weight: '800' },
+                                    padding: 4
+                                },
+                                grid: { display: false }
+                            },
+                            x: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. RENDER MAIN SCROLLABLE TIMELINE CHART
+            const mainChart = new Chart(ctxStemsPp, {
                 type: 'line',
                 data: {
                     labels: chartStemsPpData.labels,
@@ -7769,17 +7935,11 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     layout: {
-                        padding: { left: 4, right: 12, top: 4, bottom: 8 }
+                        padding: { left: 4, right: 14, top: 10, bottom: 4 }
                     },
                     plugins: {
                         legend: {
-                            position: 'top',
-                            labels: {
-                                color: '#1e293b',
-                                font: { family: pbiFontFamily, size: 11, weight: '700' },
-                                usePointStyle: true,
-                                boxWidth: 8
-                            }
+                            display: false // Usamos la leyenda personalizada inferior centrada
                         },
                         tooltip: {
                             backgroundColor: '#0f172a',
@@ -7826,13 +7986,12 @@
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            min: 0,
+                            max: yMax,
                             ticks: {
-                                color: '#64748b',
-                                callback: function(v) { return v + ' T/pl'; },
-                                font: { family: pbiFontFamily, size: 10, weight: '700' }
+                                display: false // Mostrado sticky en stemsPpAxisChart
                             },
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            grid: { color: 'rgba(0, 0, 0, 0.06)' }
                         },
                         x: {
                             ticks: {
@@ -7849,6 +8008,78 @@
                 }
             });
 
+            // 3. GENERATE BOTTOM CENTERED INTERACTIVE LEGEND
+            const legendContainer = document.getElementById('stemsPpCustomLegend');
+            if (legendContainer) {
+                legendContainer.innerHTML = '';
+                datasets.forEach((ds, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'stems-legend-item';
+                    item.title = 'Clic para mostrar/ocultar ' + ds.label;
+
+                    const line = document.createElement('span');
+                    line.className = 'stems-legend-line' + (ds.borderDash ? ' dashed' : '');
+                    if (ds.borderDash) {
+                        line.style.borderTopColor = ds.borderColor;
+                    } else {
+                        line.style.backgroundColor = ds.borderColor;
+                    }
+
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = ds.label;
+
+                    item.appendChild(line);
+                    item.appendChild(textSpan);
+
+                    item.addEventListener('click', () => {
+                        const isVisible = mainChart.isDatasetVisible(idx);
+                        mainChart.setDatasetVisibility(idx, !isVisible);
+                        mainChart.update();
+                        if (isVisible) {
+                            item.classList.add('disabled');
+                        } else {
+                            item.classList.remove('disabled');
+                        }
+                    });
+
+                    legendContainer.appendChild(item);
+                });
+            }
+
+            // 4. FULLSCREEN (PANTALLA GRANDE) HANDLER
+            const btnFullscreen = document.getElementById('btn-toggle-fullscreen-stems');
+            const stemsCard = document.getElementById('stemsPpChartCard');
+
+            function toggleStemsFullscreen() {
+                if (!stemsCard) return;
+                const isFull = stemsCard.classList.toggle('chart-card-fullscreen');
+                if (btnFullscreen) {
+                    btnFullscreen.innerHTML = isFull ? '✕ Salir de Pantalla Grande' : '⛶ Pantalla Grande';
+                    btnFullscreen.style.background = isFull ? '#fee2e2' : '';
+                    btnFullscreen.style.color = isFull ? '#991b1b' : '';
+                    btnFullscreen.style.borderColor = isFull ? '#fca5a5' : '';
+                }
+                setTimeout(() => {
+                    if (mainChart) mainChart.resize();
+                    if (axisChart) axisChart.resize();
+                    if (canvasWrapper && scrollContainer) {
+                        const containerWidth = scrollContainer.clientWidth || 700;
+                        canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
+                        scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+                    }
+                }, 80);
+            }
+
+            if (btnFullscreen) {
+                btnFullscreen.addEventListener('click', toggleStemsFullscreen);
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && stemsCard && stemsCard.classList.contains('chart-card-fullscreen')) {
+                    toggleStemsFullscreen();
+                }
+            });
+
             // Auto-scroll to the far right so the latest weeks (2026) appear first,
             // allowing the user to smoothly scroll from right to left to explore past history.
             if (scrollContainer) {
@@ -7861,6 +8092,8 @@
                     const containerWidth = scrollContainer.clientWidth || 700;
                     canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
                 }
+                if (mainChart) mainChart.resize();
+                if (axisChart) axisChart.resize();
             });
         }
 
