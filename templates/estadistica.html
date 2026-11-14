@@ -3232,6 +3232,260 @@
             color: #b91c1c;
         }
 
+        /* ========================================================================= */
+        /* RESPONSIVE DESIGN INTELIGENTE PARA TELÉFONOS MÓVILES (TABLETS & SMARTPHONES) */
+        /* ========================================================================= */
+        html {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        @media (max-width: 992px) {
+            .analytics-grid-2 {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 14px !important;
+            }
+            .chart-card {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
+            .chart-col-right {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
+            .chart-relative-layout {
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+            .chart-relative-canvas-box {
+                width: 100% !important;
+                min-width: 0 !important;
+                height: 220px !important;
+                min-height: 220px !important;
+            }
+            .chart-relative-table-box {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+                border-left: none !important;
+                border-top: 1px solid #e2e8f0 !important;
+                padding-left: 0 !important;
+                padding-top: 10px !important;
+                max-height: 260px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            /* Base Container */
+            body {
+                overflow-x: hidden !important;
+                font-size: 14px !important;
+            }
+            .dashboard-container {
+                padding: 8px 10px 40px !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }
+
+            /* Top Navigation Menu */
+            .main-menu {
+                border-radius: 12px !important;
+                padding: 6px 8px !important;
+                gap: 6px !important;
+                overflow-x: auto !important;
+                flex-wrap: nowrap !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+            }
+            .main-menu::-webkit-scrollbar {
+                display: none !important;
+            }
+            .menu-link {
+                padding: 6px 12px !important;
+                font-size: 0.74rem !important;
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+            }
+            .user-nav-group {
+                margin-left: 0 !important;
+                flex-shrink: 0 !important;
+            }
+
+            /* Dashboard Header */
+            .dashboard-header {
+                margin-bottom: 10px !important;
+                padding: 4px 2px !important;
+            }
+            .header-text h1 {
+                font-size: 1.15rem !important;
+                line-height: 1.25 !important;
+            }
+            .header-text p {
+                font-size: 0.72rem !important;
+            }
+
+            /* Slicers Card (Filtros Globales) */
+            .slicers-card {
+                padding: 10px !important;
+                gap: 8px !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+            }
+            .slicer-group {
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+            .slicer-group-multiselect {
+                grid-column: 1 / -1 !important;
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+            .pbi-multiselect-btn {
+                min-width: 0 !important;
+                width: 100% !important;
+            }
+            .slicer-select {
+                width: 100% !important;
+                min-width: 0 !important;
+                font-size: 0.82rem !important;
+            }
+            .btn-slicer-submit {
+                grid-column: 1 / 2 !important;
+                width: 100% !important;
+                padding: 8px !important;
+                text-align: center !important;
+                justify-content: center !important;
+            }
+            .btn-slicer-clear {
+                grid-column: 2 / 3 !important;
+                width: 100% !important;
+                padding: 8px !important;
+                text-align: center !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            /* Subtabs Bar (Pestañas Estratégicas) */
+            .subtabs-bar {
+                overflow-x: auto !important;
+                flex-wrap: nowrap !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+                gap: 6px !important;
+                padding-bottom: 2px !important;
+                border-bottom: 2px solid var(--border-subtle) !important;
+            }
+            .subtabs-bar::-webkit-scrollbar {
+                display: none !important;
+            }
+            .subtab-btn {
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+                padding: 8px 12px !important;
+                font-size: 0.76rem !important;
+            }
+
+            /* KPI Cards Grid */
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+            .kpi-card {
+                padding: 10px 12px !important;
+                border-radius: 12px !important;
+            }
+            .kpi-value {
+                font-size: 1.25rem !important;
+            }
+            .kpi-label {
+                font-size: 0.68rem !important;
+            }
+
+            /* Chiclet Slicer de Semanas */
+            .week-chiclet-card {
+                padding: 8px 10px !important;
+            }
+            .chiclet-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 6px !important;
+            }
+            .chiclet-actions {
+                width: 100% !important;
+                overflow-x: auto !important;
+                flex-wrap: nowrap !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+                padding-bottom: 2px !important;
+            }
+            .chiclet-grid-container {
+                grid-template-columns: repeat(4, 1fr) !important;
+                max-height: 80px !important;
+            }
+
+            /* Chart Headers */
+            .chart-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 6px !important;
+            }
+            .btn-fullscreen-chart {
+                align-self: flex-start !important;
+            }
+
+            /* Summary Matrix Card */
+            .summary-matrix-card {
+                padding: 12px 10px !important;
+                margin-top: 14px !important;
+            }
+            .summary-matrix-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            .summary-matrix-main-title {
+                font-size: 0.88rem !important;
+            }
+            .summary-matrix-actions {
+                width: 100% !important;
+                display: flex !important;
+                justify-content: flex-start !important;
+                gap: 6px !important;
+            }
+            .summary-matrix-table th, .summary-matrix-table td {
+                padding: 4px 5px !important;
+                font-size: 0.68rem !important;
+            }
+
+            /* Botonera y Fichas por Bloque */
+            .blocks-matrix-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 6px !important;
+            }
+            .b-card {
+                flex: 0 0 calc(50% - 6px) !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chiclet-grid-container {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 6px !important;
+            }
+            .b-card {
+                flex: 0 0 100% !important;
+            }
+        }
+
         @media print {
             body * { visibility: hidden !important; }
             #summary-matrix-section, #summary-matrix-section * { visibility: visible !important; }
@@ -3811,8 +4065,8 @@
                             </div>
                         </div>
                         <div class="stems-pp-chart-flex" style="display: flex; position: relative; height: 195px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-top: 4px;">
-                            <!-- STICKY Y-AXIS CANVAS (Fixed width 78px on left) -->
-                            <div class="stems-pp-axis-col" id="stemsPpAxisCol" style="width: 78px; flex-shrink: 0; height: 100%; background: #ffffff; border-right: 1.5px solid #cbd5e1; z-index: 10; position: relative; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">
+                            <!-- STICKY Y-AXIS CANVAS (Fixed width 68px on left, seamless integration) -->
+                            <div class="stems-pp-axis-col" id="stemsPpAxisCol" style="width: 68px; flex-shrink: 0; height: 100%; background: #ffffff; border-right: 1px solid rgba(0,0,0,0.08); z-index: 10; position: relative;">
                                 <canvas id="stemsPpAxisChart" style="width: 100%; height: 100%; display: block;"></canvas>
                             </div>
                             <!-- SCROLLABLE DATA CANVAS -->
@@ -7895,7 +8149,7 @@
                 if (yMax < maxVal + 0.3) yMax = Math.ceil(maxVal + 1);
             }
 
-            // Sticky Y-Axis Drawer (Reads exact ticks and coordinates directly from mainChart)
+            // Sticky Y-Axis Drawer (Centrado con pastilla limpia y cuadrícula continua)
             function drawStickyAxis() {
                 const canvas = document.getElementById('stemsPpAxisChart');
                 if (!canvas || !mainChart || !mainChart.scales || !mainChart.scales.y) return;
@@ -7920,9 +8174,8 @@
                 const yScale = mainChart.scales.y;
                 const ticks = yScale.ticks || [];
 
-                ctx.font = '800 10px ' + pbiFontFamily;
-                ctx.fillStyle = '#0f172a';
-                ctx.textAlign = 'right';
+                ctx.font = '750 9.5px ' + pbiFontFamily;
+                ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
                 ticks.forEach(t => {
@@ -7931,19 +8184,40 @@
                     const yPx = yScale.getPixelForValue(val);
                     if (yPx < 0 || yPx > height) return;
 
-                    // Formato limpio del número con su unidad T/pl: ej. "0 T/pl", "0.5 T/pl", "1 T/pl", "2.5 T/pl"
+                    // 1. Línea de cuadrícula horizontal continua que se une perfectamente con el gráfico
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, yPx);
+                    ctx.lineTo(width, yPx);
+                    ctx.stroke();
+
+                    // 2. Formato limpio del número con su unidad: ej. "0 T/pl", "0.5 T/pl", "1 T/pl", "2.5 T/pl"
                     const numStr = Number.isInteger(val) ? val.toString() : val.toFixed(1);
                     const labelText = numStr + ' T/pl';
 
-                    ctx.fillText(labelText, width - 8, yPx);
+                    // 3. Pastilla blanca centrada con borde sutil
+                    const textWidth = ctx.measureText(labelText).width;
+                    const badgeW = textWidth + 8;
+                    const badgeH = 15;
+                    const badgeX = (width - badgeW) / 2;
+                    const badgeY = yPx - (badgeH / 2);
 
-                    // Marca guía horizontal de tick
+                    ctx.fillStyle = '#ffffff';
                     ctx.strokeStyle = '#cbd5e1';
-                    ctx.lineWidth = 1.5;
+                    ctx.lineWidth = 1;
                     ctx.beginPath();
-                    ctx.moveTo(width - 4, yPx);
-                    ctx.lineTo(width, yPx);
+                    if (ctx.roundRect) {
+                        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
+                    } else {
+                        ctx.rect(badgeX, badgeY, badgeW, badgeH);
+                    }
+                    ctx.fill();
                     ctx.stroke();
+
+                    // 4. Texto centrado en la pastilla
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(labelText, width / 2, yPx);
                 });
 
                 ctx.restore();
@@ -7969,7 +8243,7 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     layout: {
-                        padding: { left: 4, right: 14, top: 10, bottom: 4 }
+                        padding: { left: 0, right: 14, top: 10, bottom: 4 }
                     },
                     plugins: {
                         legend: {
@@ -8022,10 +8296,19 @@
                         y: {
                             min: 0,
                             max: yMax,
-                            ticks: {
-                                display: false // Mostrado sticky con número y unidad en stemsPpAxisChart
+                            afterFit: function(axis) {
+                                axis.width = 0; // <<-- ELIMINA EL HUECO FANTASMA ENTRE EL EJE Y Y EL GRÁFICO
                             },
-                            grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            ticks: {
+                                display: false // Mostrado sticky centrado en stemsPpAxisChart
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.06)',
+                                drawTicks: false
+                            },
+                            border: {
+                                display: false
+                            }
                         },
                         x: {
                             ticks: {
