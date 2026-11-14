@@ -2888,70 +2888,67 @@
             background: #f8fafc;
         }
 
-        .sm-tr-crop-header td {
-            background: #f1f5f9;
-            font-weight: 850;
-            color: #0f172a;
-            font-size: 0.81rem;
-            border-top: 2px solid #cbd5e1;
-            border-bottom: 1.5px solid #cbd5e1;
-            padding: 8px 8px;
-        }
-
-        .sm-tr-crop-siem td {
-            background: #f0fdf4;
-            font-weight: 800;
-            color: #065f46;
-            border-top: 1.5px solid #a7f3d0;
-            padding: 7px 8px;
-        }
-        .sm-tr-crop-poda td {
-            background: #faf5ff;
-            font-weight: 800;
-            color: #581c87;
-            border-top: 1px dashed #e9d5ff;
-            padding: 7px 8px;
-        }
-        .sm-tr-crop-total td {
-            background: #f1f5f9;
-            font-weight: 850;
-            color: #0f172a;
-            border-top: 1.5px solid #cbd5e1;
-            border-bottom: 2px solid #cbd5e1;
-            padding: 8px 8px;
-        }
-
-        .sm-tr-variety-siem td {
+        .sm-btn-toggle {
+            width: 17px;
+            height: 17px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #94a3b8;
+            border-radius: 4px;
             background: #ffffff;
-            padding: 6px 8px;
+            color: #0284c7;
+            font-weight: 900;
+            font-size: 0.76rem;
+            line-height: 1;
+            cursor: pointer;
+            margin-right: 6px;
+            padding: 0;
+            transition: all 0.15s ease;
+            vertical-align: middle;
+        }
+        .sm-btn-toggle:hover {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            transform: scale(1.08);
+        }
+        .sm-btn-toggle.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+        }
+
+        .sm-tr-variety-main td {
+            background: #ffffff;
+            font-weight: 750;
+            padding: 7px 8px;
             border-bottom: 1px solid #f1f5f9;
         }
-        .sm-tr-variety-siem:hover td {
+        .sm-tr-variety-main:hover td {
+            background: #f8fafc !important;
+        }
+
+        .sm-tr-child td {
+            background: #fcfcfc;
+            padding: 5px 8px;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .sm-tr-child-siem td {
+            background: #fbfdfc;
+        }
+        .sm-tr-child-siem:hover td {
             background: #f0fdf4 !important;
         }
-
-        .sm-tr-variety-poda td {
-            background: #ffffff;
-            padding: 6px 8px;
-            border-bottom: 1px solid #f1f5f9;
+        .sm-tr-child-poda td {
+            background: #fcfbfe;
         }
-        .sm-tr-variety-poda:hover td {
+        .sm-tr-child-poda:hover td {
             background: #faf5ff !important;
         }
-
-        .sm-tr-variety-total td {
-            background: #f8fafc;
-            padding: 6px 8px;
-            border-bottom: 1.5px solid #e2e8f0;
-        }
-        .sm-tr-variety-total:hover td {
-            background: #f1f5f9 !important;
-        }
-
-        .sm-var-indent {
-            padding-left: 12px !important;
+        .sm-child-indent {
+            padding-left: 22px !important;
+            font-size: 0.72rem;
             font-weight: 700;
-            color: #1e293b;
             display: inline-flex;
             align-items: center;
             gap: 4px;
@@ -2997,14 +2994,61 @@
             white-space: nowrap;
         }
 
-        .sm-tr-grand-total td {
-            background: #e2e8f0;
-            font-weight: 900;
-            color: #0f172a;
-            font-size: 0.83rem;
-            border-top: 2.5px solid #94a3b8;
-            border-bottom: 2px solid #94a3b8;
+        /* ---------------- SUBTOTAIL ROWS AL FINAL DE LA TABLA (BIEN DIFERENCIADOS) ---------------- */
+        .sm-tr-subtotal-siem td {
+            background: #ecfdf5 !important;
+            font-weight: 850;
+            color: #065f46;
+            font-size: 0.81rem;
+            border-top: 2.5px solid #059669 !important;
+            border-bottom: 1px solid #a7f3d0 !important;
             padding: 9px 8px;
+        }
+        .sm-tr-subtotal-poda td {
+            background: #faf5ff !important;
+            font-weight: 850;
+            color: #581c87;
+            font-size: 0.81rem;
+            border-top: 2px solid #7e22ce !important;
+            border-bottom: 2px solid #e9d5ff !important;
+            padding: 9px 8px;
+        }
+        .sm-tr-total-pm td {
+            background: #0f172a !important;
+            font-weight: 900;
+            color: #ffffff !important;
+            font-size: 0.85rem;
+            border-top: 3px solid #0284c7 !important;
+            border-bottom: 3px solid #0284c7 !important;
+            padding: 10px 8px;
+        }
+        .sm-tr-total-pm td .sm-badge-tp {
+            color: #38bdf8 !important;
+        }
+        .sm-tr-total-pm td .sm-badge-meta {
+            color: #94a3b8 !important;
+        }
+        .sm-tr-total-pm td .sm-wk-val {
+            color: #ffffff !important;
+        }
+
+        .sm-tr-grand-total td {
+            background: #0284c7 !important;
+            font-weight: 900;
+            color: #ffffff !important;
+            font-size: 0.86rem;
+            border-top: 3px solid #0369a1 !important;
+            border-bottom: 3px solid #0369a1 !important;
+            padding: 10px 8px;
+        }
+        .sm-tr-grand-total td .sm-badge-tp {
+            color: #ffffff !important;
+        }
+        .sm-tr-grand-total td .sm-badge-meta {
+            color: #e0f2fe !important;
+        }
+        .sm-tr-grand-total td .sm-wk-val {
+            color: #ffffff !important;
         }
 
         .sm-td-sparkline {
@@ -3702,6 +3746,12 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn-table-action" id="btn-summary-expand-all" title="Desplegar todas las variedades a Siembra y Poda">
+                            [+] Desplegar Todo
+                        </button>
+                        <button type="button" class="btn-table-action" id="btn-summary-collapse-all" title="Contraer a totales por variedad">
+                            [−] Contraer Todo
+                        </button>
                         <button type="button" class="btn-table-action" id="btn-copy-summary-tsv" title="Copiar tabla al portapapeles en formato compatible con Excel">
                             📋 Copiar Tabla (Excel)
                         </button>
@@ -3712,10 +3762,15 @@
                 </div>
 
                 <div class="summary-matrix-table-wrap">
-                    {% macro render_summary_row(label, act_type, m, tr_class="", is_subrow=false) %}
-                    <tr class="{{ tr_class }}">
-                        <td style="{{ 'padding-left: 20px !important;' if is_subrow else '' }}">
-                            <span style="display: inline-flex; align-items: center; gap: 5px; {{ 'font-weight: 850;' if not is_subrow else 'font-weight: 650;' }}">
+                    {% macro render_summary_row(label, act_type, m, tr_class="", toggle_id="", is_child=false, child_grp_id="") %}
+                    <tr class="{{ tr_class }} {% if is_child %}sm-tr-child grp-{{ child_grp_id }}{% endif %}" {% if is_child %}style="display: none;"{% endif %}>
+                        <td style="{{ 'padding-left: 28px !important;' if is_child else '' }}">
+                            {% if toggle_id %}
+                                <button type="button" class="sm-btn-toggle" id="toggle-{{ toggle_id }}" onclick="toggleSummaryGroup('{{ toggle_id }}')" title="Desagrupar Siembra y Poda">+</button>
+                            {% elif not is_child and not 'subtotal' in tr_class and not 'total' in tr_class and not 'grand' in tr_class %}
+                                <span style="display: inline-block; width: 23px;"></span>
+                            {% endif %}
+                            <span style="display: inline-flex; align-items: center; gap: 5px; {{ 'font-weight: 850;' if not is_child else 'font-weight: 650;' }}">
                                 {{ label }}
                             </span>
                         </td>
@@ -3725,18 +3780,18 @@
                             {% elif act_type == 'PODA' %}
                                 <span class="sm-badge-act-poda">✂️ Poda</span>
                             {% else %}
-                                <span class="sm-badge-act-tot">∑ Consolidado</span>
+                                <span class="sm-badge-act-tot">∑ Total</span>
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            <span class="kpi-badge" style="background: {{ '#e2e8f0' if not is_subrow else '#f1f5f9' }}; color: #1e293b; font-weight: 700;">
+                            <span class="kpi-badge" style="background: {{ '#e2e8f0' if not is_child else '#f1f5f9' }}; color: #1e293b; font-weight: 700;">
                                 {{ m.closed_blocks }}
                             </span>
                         </td>
                         <td style="text-align: right;">{{ '{:,}'.format(m.total_plants) }}</td>
-                        <td style="text-align: right; font-weight: 750; color: {{ '#059669' if act_type == 'SIEMBRA' else ('#7e22ce' if act_type == 'PODA' else '#0284c7') }};">{{ '{:,}'.format(m.total_production) }}</td>
+                        <td style="text-align: right; font-weight: 750; color: {{ '#059669' if act_type == 'SIEMBRA' else ('#7e22ce' if act_type == 'PODA' else ('#38bdf8' if 'total-pm' in tr_class or 'grand-total' in tr_class else '#0284c7')) }};">{{ '{:,}'.format(m.total_production) }}</td>
                         <td style="text-align: right;">
-                            <span class="sm-badge-tp" style="font-size: {{ '0.88rem' if not is_subrow else '0.82rem' }}; color: {{ '#059669' if m.real_stems_pp >= m.ideal_stems_pp else '#0f172a' }};">
+                            <span class="sm-badge-tp" style="font-size: {{ '0.88rem' if not is_child else '0.82rem' }}; color: {{ '#059669' if m.real_stems_pp >= m.ideal_stems_pp else '#0f172a' }};">
                                 {{ m.real_stems_pp }}
                             </span>
                         </td>
@@ -3788,42 +3843,54 @@
                         <tbody>
                             {% if stats.variety_summary_groups %}
                                 {% for pm_g in stats.variety_summary_groups %}
-                                    <!-- FILAS RESUMEN CULTIVO (PRODUCTO MAESTRO) POR ACTIVIDAD -->
-                                    {% if pm_g.siembra.has_data %}
-                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "SIEMBRA", pm_g.siembra, "sm-tr-crop-siem", false) }}
-                                    {% endif %}
-                                    {% if pm_g.poda.has_data %}
-                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "PODA", pm_g.poda, "sm-tr-crop-poda", false) }}
-                                    {% endif %}
-                                    {% if pm_g.has_both %}
-                                        {{ render_summary_row("📦 TOTAL " ~ pm_g.product_master, "TOTAL", pm_g.total, "sm-tr-crop-total", false) }}
+                                    <!-- ENCABEZADO DE CULTIVO SI HAY MÁS DE 1 CULTIVO -->
+                                    {% if stats.variety_summary_groups|length > 1 %}
+                                    <tr style="background: #f1f5f9; border-top: 2px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+                                        <td colspan="17" style="padding: 7px 12px; font-weight: 900; font-size: 0.82rem; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            📦 Cultivo: {{ pm_g.product_master }}
+                                        </td>
+                                    </tr>
                                     {% endif %}
 
-                                    <!-- FILAS DE CADA VARIEDAD (SIEMBRA Y PODA FILA A FILA) -->
+                                    <!-- 1. VARIEDADES: Fila Principal Total con [+] para desagrupar Siembra y Poda -->
                                     {% for v in pm_g.varieties %}
-                                        {% if v.siembra.has_data %}
-                                            {{ render_summary_row("🌿 " ~ v.variety, "SIEMBRA", v.siembra, "sm-tr-variety-siem", true) }}
-                                        {% endif %}
-                                        {% if v.poda.has_data %}
-                                            {{ render_summary_row("🌿 " ~ v.variety, "PODA", v.poda, "sm-tr-variety-poda", true) }}
-                                        {% endif %}
+                                        {% set grp_id = (pm_g.product_master ~ '-' ~ loop.index)|lower|replace(' ', '-')|replace('/', '-') %}
                                         {% if v.has_both %}
-                                            {{ render_summary_row("∑ " ~ v.variety ~ " (Total)", "TOTAL", v.total, "sm-tr-variety-total", true) }}
+                                            <!-- Fila Principal Variedad (Total Consolidado con botón [+]) -->
+                                            {{ render_summary_row("🌿 " ~ v.variety, "TOTAL", v.total, "sm-tr-variety-main", toggle_id=grp_id) }}
+                                            <!-- Filas Hijas (Siembra y Poda desagrupadas, ocultas por defecto) -->
+                                            {% if v.siembra.has_data %}
+                                                {{ render_summary_row("↳ 🌱 Siembra", "SIEMBRA", v.siembra, "sm-tr-child-siem", is_child=true, child_grp_id=grp_id) }}
+                                            {% endif %}
+                                            {% if v.poda.has_data %}
+                                                {{ render_summary_row("↳ ✂️ Poda", "PODA", v.poda, "sm-tr-child-poda", is_child=true, child_grp_id=grp_id) }}
+                                            {% endif %}
+                                        {% else %}
+                                            <!-- Variedad con una sola actividad disponible -->
+                                            {% set only_act = "SIEMBRA" if v.siembra.has_data else "PODA" %}
+                                            {{ render_summary_row("🌿 " ~ v.variety, only_act, v.total, "sm-tr-variety-main") }}
                                         {% endif %}
                                     {% endfor %}
+
+                                    <!-- 2. SUBTOTAIS BIEN DIFERENCIADOS AL FINAL DE LA TABLA -->
+                                    {% if pm_g.siembra.has_data and pm_g.has_both %}
+                                        {{ render_summary_row("🌱 SUBTOTAL SIEMBRAS — " ~ pm_g.product_master, "SIEMBRA", pm_g.siembra, "sm-tr-subtotal-siem") }}
+                                    {% endif %}
+                                    {% if pm_g.poda.has_data and pm_g.has_both %}
+                                        {{ render_summary_row("✂️ SUBTOTAL PODAS — " ~ pm_g.product_master, "PODA", pm_g.poda, "sm-tr-subtotal-poda") }}
+                                    {% endif %}
+                                    {{ render_summary_row("📦 TOTAL GENERAL " ~ pm_g.product_master, "TOTAL" if pm_g.has_both else ("SIEMBRA" if pm_g.siembra.has_data else "PODA"), pm_g.total, "sm-tr-total-pm") }}
                                 {% endfor %}
 
-                                <!-- FILA TOTAL GENERAL FINCA CONSOLIDADO -->
+                                <!-- 3. TOTAL GENERAL FINCA CONSOLIDADO (SI HAY MÁS DE 1 CULTIVO) -->
                                 {% if stats.variety_summary_groups|length > 1 %}
-                                    {% if stats.summary_farm_total.siembra.has_data %}
-                                        {{ render_summary_row("🏆 TOTAL FINCA", "SIEMBRA", stats.summary_farm_total.siembra, "sm-tr-grand-total", false) }}
+                                    {% if stats.summary_farm_total.siembra.has_data and stats.summary_farm_total.has_both %}
+                                        {{ render_summary_row("🌱 SUBTOTAL GENERAL FINCA — SIEMBRAS", "SIEMBRA", stats.summary_farm_total.siembra, "sm-tr-subtotal-siem") }}
                                     {% endif %}
-                                    {% if stats.summary_farm_total.poda.has_data %}
-                                        {{ render_summary_row("🏆 TOTAL FINCA", "PODA", stats.summary_farm_total.poda, "sm-tr-grand-total", false) }}
+                                    {% if stats.summary_farm_total.poda.has_data and stats.summary_farm_total.has_both %}
+                                        {{ render_summary_row("✂️ SUBTOTAL GENERAL FINCA — PODAS", "PODA", stats.summary_farm_total.poda, "sm-tr-subtotal-poda") }}
                                     {% endif %}
-                                    {% if stats.summary_farm_total.has_both %}
-                                        {{ render_summary_row("🏆 TOTAL FINCA", "TOTAL", stats.summary_farm_total.total, "sm-tr-grand-total", false) }}
-                                    {% endif %}
+                                    {{ render_summary_row("🏆 TOTAL GENERAL FINCA CONSOLIDADO", "TOTAL", stats.summary_farm_total.total, "sm-tr-grand-total") }}
                                 {% endif %}
                             {% else %}
                                 <tr>
@@ -7839,6 +7906,50 @@
                 setTimeout(() => {
                     window.print();
                 }, 300);
+            });
+        }
+
+        // Interactive pivot-like toggle for Variety Summary Matrix
+        window.toggleSummaryGroup = function(groupId) {
+            const childRows = document.querySelectorAll('.grp-' + groupId);
+            const btn = document.getElementById('toggle-' + groupId);
+            if (!childRows.length) return;
+            const isHidden = (childRows[0].style.display === 'none' || childRows[0].style.display === '');
+            childRows.forEach(r => {
+                r.style.display = isHidden ? 'table-row' : 'none';
+            });
+            if (btn) {
+                btn.textContent = isHidden ? '−' : '+';
+                btn.classList.toggle('active', isHidden);
+                btn.title = isHidden ? 'Contraer Siembra y Poda' : 'Desagrupar Siembra y Poda';
+            }
+        };
+
+        const btnSummaryExpandAll = document.getElementById('btn-summary-expand-all');
+        if (btnSummaryExpandAll) {
+            btnSummaryExpandAll.addEventListener('click', () => {
+                document.querySelectorAll('.sm-tr-child').forEach(r => {
+                    r.style.display = 'table-row';
+                });
+                document.querySelectorAll('.sm-btn-toggle').forEach(btn => {
+                    btn.textContent = '−';
+                    btn.classList.add('active');
+                    btn.title = 'Contraer Siembra y Poda';
+                });
+            });
+        }
+
+        const btnSummaryCollapseAll = document.getElementById('btn-summary-collapse-all');
+        if (btnSummaryCollapseAll) {
+            btnSummaryCollapseAll.addEventListener('click', () => {
+                document.querySelectorAll('.sm-tr-child').forEach(r => {
+                    r.style.display = 'none';
+                });
+                document.querySelectorAll('.sm-btn-toggle').forEach(btn => {
+                    btn.textContent = '+';
+                    btn.classList.remove('active');
+                    btn.title = 'Desagrupar Siembra y Poda';
+                });
             });
         }
 
