@@ -1742,17 +1742,17 @@
             position: relative;
         }
         .chart-relative-table-box {
-            flex: 0 0 290px;
-            width: 290px;
+            flex: 0 0 340px;
+            width: 340px;
+            min-width: 310px;
             border-left: 1px solid #e2e8f0;
-            padding-left: 10px;
+            padding-left: 12px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             overflow: hidden;
             background: #fafbfc;
             border-radius: 8px;
-            padding: 6px 10px;
+            padding: 8px 12px;
             height: 100%;
         }
         .relative-table-header {
@@ -1805,25 +1805,31 @@
             overflow-y: auto;
             scrollbar-width: thin;
             min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
         .relative-matrix-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.67rem;
-            line-height: 1.2;
+            font-size: 0.70rem;
+            line-height: 1.35;
+            height: 100%;
+        }
+        .relative-matrix-table tbody {
+            height: 100%;
         }
         .relative-matrix-table th {
             background: #f1f5f9;
             color: #475569;
-            font-weight: 700;
-            padding: 3px 4px;
+            font-weight: 750;
+            padding: 5px 6px;
             border-bottom: 1px solid #cbd5e1;
             position: sticky;
             top: 0;
             z-index: 2;
         }
         .relative-matrix-table td {
-            padding: 2.5px 4px;
+            padding: 4px 6px;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
         }
@@ -3805,9 +3811,9 @@
                             </div>
                         </div>
                         <div class="stems-pp-chart-flex" style="display: flex; position: relative; height: 195px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-top: 4px;">
-                            <!-- STICKY Y-AXIS CANVAS (Fixed width 62px on left) -->
-                            <div class="stems-pp-axis-col" style="width: 62px; flex-shrink: 0; height: 100%; background: #ffffff; border-right: 1.5px solid #cbd5e1; z-index: 10; position: relative; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">
-                                <canvas id="stemsPpAxisChart"></canvas>
+                            <!-- STICKY Y-AXIS CANVAS (Fixed width 78px on left) -->
+                            <div class="stems-pp-axis-col" id="stemsPpAxisCol" style="width: 78px; flex-shrink: 0; height: 100%; background: #ffffff; border-right: 1.5px solid #cbd5e1; z-index: 10; position: relative; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">
+                                <canvas id="stemsPpAxisChart" style="width: 100%; height: 100%; display: block;"></canvas>
                             </div>
                             <!-- SCROLLABLE DATA CANVAS -->
                             <div class="chart-body" id="stemsPpScrollContainer" style="flex: 1; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; scroll-behavior: smooth;">
@@ -7889,53 +7895,75 @@
                 if (yMax < maxVal + 0.3) yMax = Math.ceil(maxVal + 1);
             }
 
-            // 1. RENDER STICKY Y-AXIS CHART (Left column)
-            let axisChart = null;
-            const ctxStemsPpAxis = document.getElementById('stemsPpAxisChart');
-            if (ctxStemsPpAxis) {
-                axisChart = new Chart(ctxStemsPpAxis, {
-                    type: 'line',
-                    data: {
-                        labels: [''],
-                        datasets: []
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        layout: {
-                            padding: { left: 0, right: 0, top: 10, bottom: 28 }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false }
-                        },
-                        scales: {
-                            y: {
-                                min: 0,
-                                max: yMax,
-                                ticks: {
-                                    color: '#334155',
-                                    callback: function(v) { return v + ' T/pl'; },
-                                    font: { family: pbiFontFamily, size: 9.5, weight: '800' },
-                                    padding: 4
-                                },
-                                grid: { display: false }
-                            },
-                            x: {
-                                display: false
-                            }
-                        }
-                    }
+            // Sticky Y-Axis Drawer (Reads exact ticks and coordinates directly from mainChart)
+            function drawStickyAxis() {
+                const canvas = document.getElementById('stemsPpAxisChart');
+                if (!canvas || !mainChart || !mainChart.scales || !mainChart.scales.y) return;
+
+                const rect = canvas.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) return;
+
+                const dpr = window.devicePixelRatio || 1;
+                const width = Math.round(rect.width);
+                const height = Math.round(rect.height);
+
+                if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+                    canvas.width = width * dpr;
+                    canvas.height = height * dpr;
+                }
+
+                const ctx = canvas.getContext('2d');
+                ctx.save();
+                ctx.scale(dpr, dpr);
+                ctx.clearRect(0, 0, width, height);
+
+                const yScale = mainChart.scales.y;
+                const ticks = yScale.ticks || [];
+
+                ctx.font = '800 10px ' + pbiFontFamily;
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+
+                ticks.forEach(t => {
+                    const val = t.value;
+                    if (val === null || val === undefined) return;
+                    const yPx = yScale.getPixelForValue(val);
+                    if (yPx < 0 || yPx > height) return;
+
+                    // Formato limpio del número con su unidad T/pl: ej. "0 T/pl", "0.5 T/pl", "1 T/pl", "2.5 T/pl"
+                    const numStr = Number.isInteger(val) ? val.toString() : val.toFixed(1);
+                    const labelText = numStr + ' T/pl';
+
+                    ctx.fillText(labelText, width - 8, yPx);
+
+                    // Marca guía horizontal de tick
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(width - 4, yPx);
+                    ctx.lineTo(width, yPx);
+                    ctx.stroke();
                 });
+
+                ctx.restore();
             }
 
-            // 2. RENDER MAIN SCROLLABLE TIMELINE CHART
+            // 1. RENDER MAIN SCROLLABLE TIMELINE CHART
             const mainChart = new Chart(ctxStemsPp, {
                 type: 'line',
                 data: {
                     labels: chartStemsPpData.labels,
                     datasets: datasets
                 },
+                plugins: [
+                    {
+                        id: 'stickyAxisPlugin',
+                        afterRender: function() {
+                            drawStickyAxis();
+                        }
+                    }
+                ],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -7995,7 +8023,7 @@
                             min: 0,
                             max: yMax,
                             ticks: {
-                                display: false // Mostrado sticky en stemsPpAxisChart
+                                display: false // Mostrado sticky con número y unidad en stemsPpAxisChart
                             },
                             grid: { color: 'rgba(0, 0, 0, 0.06)' }
                         },
@@ -8067,7 +8095,7 @@
                 }
                 setTimeout(() => {
                     if (mainChart) mainChart.resize();
-                    if (axisChart) axisChart.resize();
+                    drawStickyAxis();
                     if (canvasWrapper && scrollContainer) {
                         const containerWidth = scrollContainer.clientWidth || 700;
                         canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
@@ -8099,7 +8127,7 @@
                     canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
                 }
                 if (mainChart) mainChart.resize();
-                if (axisChart) axisChart.resize();
+                drawStickyAxis();
             });
         }
 
