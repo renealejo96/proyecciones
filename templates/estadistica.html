@@ -2536,12 +2536,12 @@
 
         .timeline-stage-card {
             flex: 0 0 auto;
-            min-width: 145px;
-            max-width: 185px;
+            min-width: 165px;
+            max-width: 215px;
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
             border-radius: 8px;
-            padding: 6px 10px;
+            padding: 7px 10px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -2581,6 +2581,40 @@
             padding: 1px 5px;
             border-radius: 4px;
             text-transform: uppercase;
+        }
+
+        .stage-act-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+        .stage-act-badge.act-siembra {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .stage-act-badge.act-poda {
+            background: #faf5ff;
+            color: #7e22ce;
+            border: 1px solid #d8b4fe;
+        }
+
+        .stage-harvest-range {
+            font-size: 0.65rem;
+            color: #0f172a;
+            font-weight: 700;
+            background: #f8fafc;
+            padding: 2.5px 6px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin: 3px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .stage-status-pill {
@@ -4289,24 +4323,50 @@
             return stages;
         }
 
-        function renderModalChronologyTimeline(cblock, activeCrop) {
+        function getProductionHarvestRangeText(prod) {
+            if (!prod) return 'Sin corte';
+            let hwList = [];
+            if (prod.harvest_breakdown && prod.harvest_breakdown.length) {
+                hwList = prod.harvest_breakdown
+                    .map(h => String(h.harvest_week_short || h.hw || '').trim())
+                    .filter(Boolean);
+            } else if (prod.harvest_weeks_str) {
+                hwList = String(prod.harvest_weeks_str)
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+            }
+            if (!hwList.length) {
+                return prod.is_closed ? 'Sin corte registrado' : 'Cosecha en proceso';
+            }
+            const cleanW = w => String(w).trim().replace(/^Sem\s*/i, '').replace(/^S/i, '');
+            const firstW = cleanW(hwList[0]);
+            const lastW = cleanW(hwList[hwList.length - 1]);
+            if (!firstW && !lastW) return 'Sin corte';
+            if (firstW === lastW || !lastW) {
+                return `Sem ${firstW}`;
+            }
+            return `Sem ${firstW} – ${lastW}`;
+        }
+
+        function renderModalChronologyTimeline(cblock, activeProdUid) {
             const container = document.getElementById('modal-chronology-container');
             if (!container) return;
 
-            const stages = getChronologicalCropStages(cblock);
-            if (!stages || stages.length === 0) {
+            const productions = (cblock && cblock.productions) ? cblock.productions : [];
+            if (!productions || productions.length === 0) {
                 container.style.display = 'none';
                 return;
             }
 
             container.style.display = 'block';
-            const isAllActive = (activeCrop === 'ALL');
+            const isAllActive = (!activeProdUid || activeProdUid === 'ALL');
 
             let html = `
                 <div class="modal-chronology-title">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span style="font-size: 0.95rem;">🔄</span>
-                        <span>Cronología Productiva del Bloque (Transición de Cultivos)</span>
+                        <span>Cronología Productiva del Bloque (Transición de Ciclos y Manejo)</span>
                     </div>
                     <span class="timeline-hint">De más antiguo a más reciente ➔</span>
                 </div>
@@ -4314,52 +4374,62 @@
                     <!-- 📊 Botón Todo el Bloque / Historial Completo -->
                     <button type="button" 
                             class="timeline-all-btn ${isAllActive ? 'active' : ''}" 
-                            onclick="selectModalCrop('ALL')" 
-                            title="Ver consolidado de todos los ciclos y cultivos históricos del bloque">
+                            onclick="selectModalCycle('ALL')" 
+                            title="Ver consolidado de todos los ciclos y cultivos del bloque">
                         <span class="t-all-icon">📊</span>
                         <span class="t-all-title">Historial Completo</span>
-                        <span class="t-all-sub">${cblock.total_productions} Ciclos · ${Number(cblock.total_production || 0).toLocaleString()} tll</span>
+                        <span class="t-all-sub">${productions.length} Ciclo${productions.length > 1 ? 's' : ''} · ${Number(cblock.total_production || 0).toLocaleString()} tll</span>
                     </button>
                     <div class="timeline-sep">|</div>
             `;
 
-            stages.forEach((stg, idx) => {
-                const isStageActive = (!isAllActive && activeCrop === stg.crop);
-                const cropIcon = getCropIcon(stg.crop);
-                const stageStatusPill = stg.is_closed 
-                    ? `<span class="stage-status-pill status-closed">🔒 Cerrado</span>`
-                    : (stg.has_real_stems ? `<span class="stage-status-pill status-harvest">🌱 En Cosecha</span>` : `<span class="stage-status-pill status-pending">⏳ Pendiente</span>`);
+            productions.forEach((prod, idx) => {
+                const isCycleActive = (!isAllActive && activeProdUid === prod.uid);
+                const isPoda = (prod.activity || '').toUpperCase() === 'PODA';
+                const actBadge = isPoda 
+                    ? `<span class="stage-act-badge act-poda">✂️ Poda</span>`
+                    : `<span class="stage-act-badge act-siembra">🌱 Siembra</span>`;
 
-                const fmtWk = w => (String(w || '').startsWith('S') ? String(w) : (w ? `S${w}` : '-'));
-                const rangeStr = (stg.start_week && stg.end_week && stg.start_week !== stg.end_week) 
-                    ? `${fmtWk(stg.start_week)} - ${fmtWk(stg.end_week)}` 
-                    : fmtWk(stg.start_week);
+                const cropIcon = getCropIcon(prod.product_master);
+                const statusPill = prod.is_closed 
+                    ? `<span class="stage-status-pill status-closed">🔒 Cerrado</span>`
+                    : ((prod.total_production || 0) > 0 ? `<span class="stage-status-pill status-harvest">🌱 En Cosecha</span>` : `<span class="stage-status-pill status-pending">⏳ Pendiente</span>`);
+
+                const harvestRange = getProductionHarvestRangeText(prod);
+                const cleanSourceW = (prod.source_week_max_short || (prod.source_weeks_short && prod.source_weeks_short[0]) || '').replace(/^S/i, '');
+                const sourceStr = cleanSourceW ? `${isPoda ? 'Poda' : 'Siembra'} Sem ${cleanSourceW}` : '';
+
+                const realPP = Number(prod.real_stems_per_plant || 0);
+                const idealPP = Number(prod.ideal_stems_per_plant || 0);
+                const isOptimal = (idealPP > 0) ? (realPP >= idealPP) : true;
 
                 html += `
-                    <div class="timeline-stage-card ${isStageActive ? 'active' : ''}" 
-                         onclick="selectModalCrop('${stg.crop}')"
-                         title="Clic para ver detalles y curvas exclusivas de ${stg.crop}">
+                    <div class="timeline-stage-card ${isCycleActive ? 'active' : ''}" 
+                         onclick="selectModalCycle('${prod.uid}')"
+                         title="Clic para ver detalles, selector de variedades y curva de cosecha de este ciclo">
                         <div class="stage-card-top">
-                            <span class="stage-badge">Etapa ${idx + 1}</span>
-                            ${stageStatusPill}
+                            <span class="stage-badge">Ciclo ${idx + 1}</span>
+                            ${statusPill}
                         </div>
-                        <div class="stage-crop-title">
-                            <span>${cropIcon}</span> <span>${stg.crop}</span>
+                        <div style="display: flex; align-items: center; gap: 4px; margin: 2px 0;">
+                            ${actBadge}
+                            <span class="stage-crop-title" title="${prod.product_master}">${cropIcon} ${prod.product_master}</span>
                         </div>
-                        <div class="stage-meta-info">
-                            ${rangeStr} · ${stg.productions.length} Ciclo${stg.productions.length > 1 ? 's' : ''}
+                        <div class="stage-harvest-range" title="Cronología de semanas de corte">
+                            🗓️ Cosecha: <strong>${harvestRange}</strong>
                         </div>
+                        ${sourceStr ? `<div class="stage-meta-info" title="Semana de inicio">${isPoda ? '✂️' : '🌱'} ${sourceStr}</div>` : ''}
                         <div class="stage-perf-row">
-                            <span class="stage-stems">${Number(stg.total_stems).toLocaleString()} tll</span>
-                            <span class="stage-pp ${Number(stg.real_stems_pp) >= Number(stg.ideal_stems_pp) ? 'optimal' : 'below'}">
-                                ${stg.real_stems_pp} T/pl
+                            <span class="stage-stems">${Number(prod.total_production || 0).toLocaleString()} tll</span>
+                            <span class="stage-pp ${isOptimal ? 'optimal' : 'below'}">
+                                ${prod.real_stems_per_plant || '0.00'} T/pl
                             </span>
                         </div>
                     </div>
                 `;
 
-                if (idx < stages.length - 1) {
-                    html += `<div class="timeline-arrow" title="Transición fenológica y cambio de cultivo">➔</div>`;
+                if (idx < productions.length - 1) {
+                    html += `<div class="timeline-arrow" title="Transición fenológica al siguiente ciclo">➔</div>`;
                 }
             });
 
@@ -4367,13 +4437,39 @@
             container.innerHTML = html;
         }
 
-        function selectModalCrop(crop) {
-            activeModalCrop = crop;
+        function selectModalCycle(uid) {
+            activeModalProdUid = uid;
             activeModalVariety = 'ALL';
-            activeModalProdUid = 'ALL';
             if (activeModalBlock) {
-                renderModalChronologyTimeline(activeModalBlock, activeModalCrop);
+                if (uid === 'ALL') {
+                    activeModalCrop = 'ALL';
+                } else {
+                    const prod = (activeModalBlock.productions || []).find(p => p.uid === uid);
+                    if (prod) {
+                        activeModalCrop = prod.product_master;
+                    }
+                }
+                renderModalChronologyTimeline(activeModalBlock, activeModalProdUid);
                 renderBlockDossier('modal', activeModalBlock, activeModalProdUid, activeModalVariety);
+            }
+        }
+
+        function selectModalCrop(crop) {
+            if (!crop || crop === 'ALL') {
+                selectModalCycle('ALL');
+                return;
+            }
+            if (activeModalBlock) {
+                const prod = (activeModalBlock.productions || []).find(p => (p.product_master || '').toUpperCase() === crop.toUpperCase());
+                if (prod) {
+                    selectModalCycle(prod.uid);
+                } else {
+                    activeModalCrop = crop;
+                    activeModalVariety = 'ALL';
+                    activeModalProdUid = 'ALL';
+                    renderModalChronologyTimeline(activeModalBlock, activeModalProdUid);
+                    renderBlockDossier('modal', activeModalBlock, activeModalProdUid, activeModalVariety);
+                }
             }
         }
 
@@ -4415,61 +4511,43 @@
             }
 
             activeModalBlock = cblock;
-            activeModalProdUid = 'ALL';
             activeModalVariety = 'ALL';
 
-            const stages = getChronologicalCropStages(cblock);
+            const productions = cblock.productions || [];
+            let targetProdUid = 'ALL';
 
-            // Determinar cultivo activo por defecto
-            let targetCrop = null;
             if (initialCropOrProd) {
-                const asCrop = stages.find(s => s.crop.toUpperCase() === String(initialCropOrProd).toUpperCase());
-                if (asCrop) {
-                    targetCrop = asCrop.crop;
+                const foundP = productions.find(p => p.uid === initialCropOrProd);
+                if (foundP) {
+                    targetProdUid = foundP.uid;
+                    activeModalCrop = foundP.product_master;
                 } else {
-                    const prod = (cblock.productions || []).find(p => p.uid === initialCropOrProd);
-                    if (prod && prod.product_master) {
-                        targetCrop = prod.product_master;
-                        activeModalProdUid = prod.uid;
+                    const byCrop = productions.find(p => (p.product_master || '').toUpperCase() === String(initialCropOrProd).toUpperCase());
+                    if (byCrop) {
+                        targetProdUid = byCrop.uid;
+                        activeModalCrop = byCrop.product_master;
                     }
                 }
-            } else {
-                const parts = String(identifier).split('-');
-                if (parts.length > 2 && stages.some(s => s.crop.toUpperCase() === parts[0].toUpperCase())) {
-                    targetCrop = stages.find(s => s.crop.toUpperCase() === parts[0].toUpperCase())?.crop;
+            } else if (productions.length === 1) {
+                targetProdUid = productions[0].uid;
+                activeModalCrop = productions[0].product_master;
+            } else if (productions.length > 1) {
+                const rev = productions.slice().reverse();
+                const preferred = rev.find(p => p.is_closed && (p.total_production || 0) > 0)
+                               || rev.find(p => p.is_closed)
+                               || rev[0];
+                if (preferred) {
+                    targetProdUid = preferred.uid;
+                    activeModalCrop = preferred.product_master;
                 }
             }
 
-            if (!targetCrop) {
-                if (botoneraSelectedYear && botoneraSelectedYear !== 'ALL') {
-                    const yrStr = String(botoneraSelectedYear).slice(-2);
-                    const yrFull = String(botoneraSelectedYear);
-                    const yrStage = stages.find(s => {
-                        return (s.productions || []).some(p => {
-                            const swStr = String(p.source_week_max || p.source_week_max_short || '');
-                            const hwStr = String(p.harvest_weeks_str || '');
-                            return swStr.startsWith(yrFull) || swStr.startsWith(yrStr) || hwStr.includes(yrStr);
-                        });
-                    });
-                    if (yrStage) targetCrop = yrStage.crop;
-                }
-
-                if (!targetCrop) {
-                    // Por defecto el cultivo más reciente que tenga datos cerrados con cosecha
-                    const revStages = stages.slice().reverse();
-                    const preferredStage = revStages.find(s => s.has_closed_data && s.has_real_stems)
-                                        || revStages.find(s => s.has_closed_data)
-                                        || stages[stages.length - 1];
-                    targetCrop = preferredStage ? preferredStage.crop : 'ALL';
-                }
-            }
-
-            activeModalCrop = targetCrop;
+            activeModalProdUid = targetProdUid;
 
             const modal = document.getElementById('block-detail-modal');
             if (!modal) return;
 
-            renderModalChronologyTimeline(cblock, activeModalCrop);
+            renderModalChronologyTimeline(cblock, activeModalProdUid);
             renderBlockDossier('modal', cblock, activeModalProdUid, activeModalVariety);
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -4961,9 +5039,19 @@
             const varEl = document.getElementById(`${prefix}-variety-badge`);
             const statusEl = document.getElementById(`${prefix}-status-badge`);
 
-            if (titleEl) titleEl.textContent = `Bloque ${cblock.block}`;
+            const currentProdForTitle = (selectedProdUid && selectedProdUid !== 'ALL') ? productions.find(p => p.uid === selectedProdUid) : null;
+            if (titleEl) {
+                if (currentProdForTitle) {
+                    const isPoda = (currentProdForTitle.activity || '').toUpperCase() === 'PODA';
+                    const actName = isPoda ? 'Poda' : 'Siembra';
+                    const actIcon = isPoda ? '✂️' : '🌱';
+                    titleEl.textContent = `Bloque ${cblock.block} · ${actIcon} ${actName} (Ciclo ${currentProdForTitle.production_num || ''})`;
+                } else {
+                    titleEl.textContent = `Bloque ${cblock.block} · Historial Completo`;
+                }
+            }
             if (pmEl) {
-                pmEl.textContent = (isModal && activeModalCrop && activeModalCrop !== 'ALL') ? activeModalCrop : (cblock.product_master || '-');
+                pmEl.textContent = (currentProdForTitle && currentProdForTitle.product_master) ? currentProdForTitle.product_master : ((isModal && activeModalCrop && activeModalCrop !== 'ALL') ? activeModalCrop : (cblock.product_master || '-'));
             }
             if (varEl) {
                 if (effectiveVar !== 'ALL') {
@@ -5046,16 +5134,31 @@
                     items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[prod.uid]) || prod.harvest_breakdown || [];
 
                     if (effectiveVar && effectiveVar !== 'ALL') {
-                        const vb = (prod.variety_breakdown || []).find(v => v.variety === effectiveVar);
+                        const vb = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
                         if (vb) {
                             scopePlants = vb.plants || 0;
                             scopeProd = vb.production || 0;
-                            scopeRealPP = vb.real_stems_pp || '0.00';
+                            scopeRealPP = vb.real_stems_pp || (vb.plants > 0 ? (vb.production / vb.plants).toFixed(2) : '0.00');
                             scopeIdealPP = (vb.ideal_stems_pp || prod.ideal_stems_per_plant || 0).toFixed(2);
                             scopeDump = vb.dump || 0;
                             scopeHWRange = vb.harvest_weeks_display || vb.harvest_weeks_str || scopeHWRange;
                             chartId = `${prod.uid}_var_${effectiveVar}`;
-                            items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || vb.harvest_breakdown || [];
+                            const rawVbHw = vb.harvest_breakdown || [];
+                            if (rawVbHw.length) {
+                                items = rawVbHw.map(h => ({
+                                    hw: h.harvest_week_short || h.hw || String((h.harvest_week || 0) % 100),
+                                    sw: prod.source_week_max_short,
+                                    stems: h.stems,
+                                    pp: h.stems_pp || (scopePlants > 0 ? Number((h.stems / scopePlants).toFixed(2)) : 0),
+                                    dump: h.dump_stems || h.dump || 0,
+                                    pct: h.pct_of_total || (scopeProd > 0 ? Number(((h.stems / scopeProd) * 100).toFixed(1)) : 0),
+                                    src: h.source || 'REAL',
+                                    activity: prod.activity || 'SIEMBRA',
+                                    variety: effectiveVar
+                                }));
+                            } else {
+                                items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || [];
+                            }
                         }
                     }
                 }
@@ -5253,7 +5356,7 @@
                     });
                 }
 
-                if (vbList.length > 1) {
+                if (vbList.length > 0) {
                     varContainer.style.display = 'block';
                     let chipsHtml = `
                         <button type="button" 
@@ -5428,14 +5531,16 @@
                         }
                         if (HARVEST_BREAKDOWN_MAP[cKey] && HARVEST_BREAKDOWN_MAP[cKey].length) {
                             pItems = HARVEST_BREAKDOWN_MAP[cKey];
+                        } else if (items && items.length) {
+                            pItems = items;
                         } else if (currentProd.harvest_breakdown && currentProd.harvest_breakdown.length) {
                             pItems = currentProd.harvest_breakdown.map(h => ({
-                                hw: h.harvest_week_short,
+                                hw: h.harvest_week_short || h.hw,
                                 sw: currentProd.source_week_max_short,
                                 stems: h.stems,
-                                pp: h.stems_pp,
-                                dump: h.dump_stems || 0,
-                                pct: h.pct_of_total || 0,
+                                pp: h.stems_pp || h.pp,
+                                dump: h.dump_stems || h.dump || 0,
+                                pct: h.pct_of_total || h.pct || 0,
                                 src: h.source || 'REAL',
                                 activity: currentProd.activity || 'SIEMBRA'
                             }));
@@ -6766,17 +6871,15 @@
                     label: '🌱 Siembra Real (T/pl)',
                     data: chartStemsPpData.series_siembra || chartStemsPpData.series_total,
                     borderColor: '#059669',
-                    backgroundColor: function(context) {
-                        return getChartCanvasGradient(context, 'rgba(5, 150, 105, 0.28)', 'rgba(5, 150, 105, 0.01)');
-                    },
-                    fill: true,
+                    backgroundColor: 'transparent',
+                    fill: false,
                     tension: 0.35,
-                    borderWidth: 2.8,
-                    pointRadius: 3.5,
-                    pointHoverRadius: 6.5,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
                     pointBackgroundColor: '#ffffff',
                     pointBorderColor: '#059669',
-                    pointBorderWidth: 2.0,
+                    pointBorderWidth: 2,
                     spanGaps: true,
                 });
             } else if (selectedAct === 'PODA') {
@@ -6784,21 +6887,20 @@
                     label: '✂️ Poda Real (T/pl)',
                     data: chartStemsPpData.series_poda || chartStemsPpData.series_total,
                     borderColor: '#7e22ce',
-                    backgroundColor: function(context) {
-                        return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
-                    },
-                    fill: true,
+                    backgroundColor: 'transparent',
+                    fill: false,
                     tension: 0.35,
-                    borderWidth: 2.8,
-                    pointRadius: 3.5,
-                    pointHoverRadius: 6.5,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
                     pointBackgroundColor: '#ffffff',
                     pointBorderColor: '#7e22ce',
-                    pointBorderWidth: 2.0,
+                    pointBorderWidth: 2,
                     spanGaps: true,
                 });
             } else {
-                if (chartStemsPpData.has_siembra) {
+                const hasBoth = chartStemsPpData.has_siembra && chartStemsPpData.has_poda;
+                if (hasBoth) {
                     datasets.push({
                         label: '🌱 Siembra Real (T/pl)',
                         data: chartStemsPpData.series_siembra,
@@ -6806,16 +6908,14 @@
                         backgroundColor: 'transparent',
                         fill: false,
                         tension: 0.35,
-                        borderWidth: 2.2,
-                        pointRadius: 3.0,
-                        pointHoverRadius: 5.5,
+                        borderWidth: 2.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
                         pointBackgroundColor: '#ffffff',
                         pointBorderColor: '#059669',
-                        pointBorderWidth: 1.8,
+                        pointBorderWidth: 2,
                         spanGaps: true,
                     });
-                }
-                if (chartStemsPpData.has_poda) {
                     datasets.push({
                         label: '✂️ Poda Real (T/pl)',
                         data: chartStemsPpData.series_poda,
@@ -6823,33 +6923,63 @@
                         backgroundColor: 'transparent',
                         fill: false,
                         tension: 0.35,
-                        borderWidth: 2.2,
-                        pointRadius: 3.0,
-                        pointHoverRadius: 5.5,
+                        borderWidth: 2.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
                         pointBackgroundColor: '#ffffff',
                         pointBorderColor: '#7e22ce',
-                        pointBorderWidth: 1.8,
+                        pointBorderWidth: 2,
+                        spanGaps: true,
+                    });
+                } else if (chartStemsPpData.has_siembra) {
+                    datasets.push({
+                        label: '🌱 Siembra Real (T/pl)',
+                        data: chartStemsPpData.series_siembra,
+                        borderColor: '#059669',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.35,
+                        borderWidth: 2.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#059669',
+                        pointBorderWidth: 2,
+                        spanGaps: true,
+                    });
+                } else if (chartStemsPpData.has_poda) {
+                    datasets.push({
+                        label: '✂️ Poda Real (T/pl)',
+                        data: chartStemsPpData.series_poda,
+                        borderColor: '#7e22ce',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.35,
+                        borderWidth: 2.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#7e22ce',
+                        pointBorderWidth: 2,
+                        spanGaps: true,
+                    });
+                } else {
+                    datasets.push({
+                        label: 'Rendimiento Real (T/pl)',
+                        data: chartStemsPpData.series_total,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.35,
+                        borderWidth: 2.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#2563eb',
+                        pointBorderWidth: 2,
                         spanGaps: true,
                     });
                 }
-                const hasBoth = chartStemsPpData.has_siembra && chartStemsPpData.has_poda;
-                datasets.push({
-                    label: hasBoth ? 'Total Real Ponderado (T/pl)' : 'Rendimiento Real (T/pl)',
-                    data: chartStemsPpData.series_total,
-                    borderColor: '#2563eb',
-                    backgroundColor: function(context) {
-                        return getChartCanvasGradient(context, 'rgba(37, 99, 235, 0.22)', 'rgba(37, 99, 235, 0.01)');
-                    },
-                    fill: true,
-                    tension: 0.35,
-                    borderWidth: 2.8,
-                    pointRadius: 3.5,
-                    pointHoverRadius: 6.5,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#2563eb',
-                    pointBorderWidth: 2.0,
-                    spanGaps: true,
-                });
             }
 
             // Always add Target Meta Ideal line:
