@@ -2930,7 +2930,7 @@
 
         .sm-tr-child td {
             background: #fcfcfc;
-            padding: 5px 8px;
+            padding: 6px 8px;
             border-bottom: 1px dashed #f1f5f9;
         }
         .sm-tr-child-siem td {
@@ -2941,6 +2941,7 @@
         }
         .sm-tr-child-poda td {
             background: #fcfbfe;
+            border-bottom: 1.5px solid #e2e8f0;
         }
         .sm-tr-child-poda:hover td {
             background: #faf5ff !important;
@@ -3762,15 +3763,17 @@
                 </div>
 
                 <div class="summary-matrix-table-wrap">
-                    {% macro render_summary_row(label, act_type, m, tr_class="", toggle_id="", is_child=false, child_grp_id="") %}
-                    <tr class="{{ tr_class }} {% if is_child %}sm-tr-child grp-{{ child_grp_id }}{% endif %}" {% if is_child %}style="display: none;"{% endif %}>
-                        <td style="{{ 'padding-left: 28px !important;' if is_child else '' }}">
+                    {% macro render_summary_row(label, act_type, m, tr_class="", row_id="", toggle_id="", toggle_btn="+", toggle_btn_class="", toggle_btn_title="", is_child=false, child_grp_id="") %}
+                    <tr {% if row_id %}id="{{ row_id }}"{% endif %} class="{{ tr_class }} {% if is_child %}sm-tr-child grp-child-{{ child_grp_id }}{% endif %}" {% if is_child %}style="display: none;"{% endif %}>
+                        <td>
                             {% if toggle_id %}
-                                <button type="button" class="sm-btn-toggle" id="toggle-{{ toggle_id }}" onclick="toggleSummaryGroup('{{ toggle_id }}')" title="Desagrupar Siembra y Poda">+</button>
-                            {% elif not is_child and not 'subtotal' in tr_class and not 'total' in tr_class and not 'grand' in tr_class %}
+                                <button type="button" class="sm-btn-toggle {{ toggle_btn_class }}" id="toggle-{{ toggle_id }}-{{ act_type|lower }}" onclick="toggleSummaryGroup('{{ toggle_id }}')" title="{{ toggle_btn_title or 'Desagrupar Siembra y Poda' }}">{{ toggle_btn }}</button>
+                            {% elif not is_child and not 'total-pm' in tr_class and not 'grand-total' in tr_class %}
+                                <span style="display: inline-block; width: 23px;"></span>
+                            {% elif is_child and not toggle_id %}
                                 <span style="display: inline-block; width: 23px;"></span>
                             {% endif %}
-                            <span style="display: inline-flex; align-items: center; gap: 5px; {{ 'font-weight: 850;' if not is_child else 'font-weight: 650;' }}">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; {{ 'font-weight: 850;' if not is_child else 'font-weight: 750;' }}">
                                 {{ label }}
                             </span>
                         </td>
@@ -3791,7 +3794,7 @@
                         <td style="text-align: right;">{{ '{:,}'.format(m.total_plants) }}</td>
                         <td style="text-align: right; font-weight: 750; color: {{ '#059669' if act_type == 'SIEMBRA' else ('#7e22ce' if act_type == 'PODA' else ('#38bdf8' if 'total-pm' in tr_class or 'grand-total' in tr_class else '#0284c7')) }};">{{ '{:,}'.format(m.total_production) }}</td>
                         <td style="text-align: right;">
-                            <span class="sm-badge-tp" style="font-size: {{ '0.88rem' if not is_child else '0.82rem' }}; color: {{ '#059669' if m.real_stems_pp >= m.ideal_stems_pp else '#0f172a' }};">
+                            <span class="sm-badge-tp" style="font-size: {{ '0.88rem' if not is_child else '0.82rem' }}; color: {{ '#059669' if m.real_stems_pp >= m.ideal_stems_pp else ('#38bdf8' if 'total-pm' in tr_class or 'grand-total' in tr_class else '#0f172a') }};">
                                 {{ m.real_stems_pp }}
                             </span>
                         </td>
@@ -3856,41 +3859,29 @@
                                     {% for v in pm_g.varieties %}
                                         {% set grp_id = (pm_g.product_master ~ '-' ~ loop.index)|lower|replace(' ', '-')|replace('/', '-') %}
                                         {% if v.has_both %}
-                                            <!-- Fila Principal Variedad (Total Consolidado con botón [+]) -->
-                                            {{ render_summary_row("🌿 " ~ v.variety, "TOTAL", v.total, "sm-tr-variety-main", toggle_id=grp_id) }}
-                                            <!-- Filas Hijas (Siembra y Poda desagrupadas, ocultas por defecto) -->
+                                            <!-- Fila Principal Variedad (Total Consolidado con botón [+]). Se oculta al desagrupar para evitar redundancia -->
+                                            {{ render_summary_row("🌿 " ~ v.variety, "TOTAL", v.total, tr_class="sm-tr-variety-main", row_id="row-main-" ~ grp_id, toggle_id=grp_id, toggle_btn="+", toggle_btn_title="Desagrupar en Siembra y Poda") }}
+                                            <!-- Filas Desagrupadas (Siembra y Poda). Ocultas por defecto. Al dar [+] se muestran y la fila de total principal se oculta -->
                                             {% if v.siembra.has_data %}
-                                                {{ render_summary_row("↳ 🌱 Siembra", "SIEMBRA", v.siembra, "sm-tr-child-siem", is_child=true, child_grp_id=grp_id) }}
+                                                {{ render_summary_row("🌿 " ~ v.variety, "SIEMBRA", v.siembra, tr_class="sm-tr-child sm-tr-child-siem", row_id="row-siem-" ~ grp_id, toggle_id=grp_id, toggle_btn="−", toggle_btn_class="active", toggle_btn_title="Contraer a Total de Variedad", is_child=true, child_grp_id=grp_id) }}
                                             {% endif %}
                                             {% if v.poda.has_data %}
-                                                {{ render_summary_row("↳ ✂️ Poda", "PODA", v.poda, "sm-tr-child-poda", is_child=true, child_grp_id=grp_id) }}
+                                                {{ render_summary_row("🌿 " ~ v.variety, "PODA", v.poda, tr_class="sm-tr-child sm-tr-child-poda", row_id="row-poda-" ~ grp_id, is_child=true, child_grp_id=grp_id) }}
                                             {% endif %}
                                         {% else %}
                                             <!-- Variedad con una sola actividad disponible -->
                                             {% set only_act = "SIEMBRA" if v.siembra.has_data else "PODA" %}
-                                            {{ render_summary_row("🌿 " ~ v.variety, only_act, v.total, "sm-tr-variety-main") }}
+                                            {{ render_summary_row("🌿 " ~ v.variety, only_act, v.total, tr_class="sm-tr-variety-main") }}
                                         {% endif %}
                                     {% endfor %}
 
-                                    <!-- 2. SUBTOTAIS BIEN DIFERENCIADOS AL FINAL DE LA TABLA -->
-                                    {% if pm_g.siembra.has_data and pm_g.has_both %}
-                                        {{ render_summary_row("🌱 SUBTOTAL SIEMBRAS — " ~ pm_g.product_master, "SIEMBRA", pm_g.siembra, "sm-tr-subtotal-siem") }}
-                                    {% endif %}
-                                    {% if pm_g.poda.has_data and pm_g.has_both %}
-                                        {{ render_summary_row("✂️ SUBTOTAL PODAS — " ~ pm_g.product_master, "PODA", pm_g.poda, "sm-tr-subtotal-poda") }}
-                                    {% endif %}
-                                    {{ render_summary_row("📦 TOTAL GENERAL " ~ pm_g.product_master, "TOTAL" if pm_g.has_both else ("SIEMBRA" if pm_g.siembra.has_data else "PODA"), pm_g.total, "sm-tr-total-pm") }}
+                                    <!-- 2. TOTAL GENERAL DEL CULTIVO (FONDO NEGRO). ÚNICA FILA DE TOTAL AL FINAL DE LA TABLA -->
+                                    {{ render_summary_row("📦 TOTAL GENERAL " ~ pm_g.product_master, "TOTAL" if pm_g.has_both else ("SIEMBRA" if pm_g.siembra.has_data else "PODA"), pm_g.total, tr_class="sm-tr-total-pm") }}
                                 {% endfor %}
 
                                 <!-- 3. TOTAL GENERAL FINCA CONSOLIDADO (SI HAY MÁS DE 1 CULTIVO) -->
                                 {% if stats.variety_summary_groups|length > 1 %}
-                                    {% if stats.summary_farm_total.siembra.has_data and stats.summary_farm_total.has_both %}
-                                        {{ render_summary_row("🌱 SUBTOTAL GENERAL FINCA — SIEMBRAS", "SIEMBRA", stats.summary_farm_total.siembra, "sm-tr-subtotal-siem") }}
-                                    {% endif %}
-                                    {% if stats.summary_farm_total.poda.has_data and stats.summary_farm_total.has_both %}
-                                        {{ render_summary_row("✂️ SUBTOTAL GENERAL FINCA — PODAS", "PODA", stats.summary_farm_total.poda, "sm-tr-subtotal-poda") }}
-                                    {% endif %}
-                                    {{ render_summary_row("🏆 TOTAL GENERAL FINCA CONSOLIDADO", "TOTAL", stats.summary_farm_total.total, "sm-tr-grand-total") }}
+                                    {{ render_summary_row("🏆 TOTAL GENERAL FINCA CONSOLIDADO", "TOTAL", stats.summary_farm_total.total, tr_class="sm-tr-grand-total") }}
                                 {% endif %}
                             {% else %}
                                 <tr>
@@ -7868,6 +7859,8 @@
                 let tsv = [];
                 const rows = table.querySelectorAll('tr');
                 rows.forEach(row => {
+                    // Ignorar filas ocultas (por contraer o desagrupar) para copiar fielmente lo visible
+                    if (row.style.display === 'none') return;
                     const cells = Array.from(row.querySelectorAll('th, td'));
                     const rowData = cells.map(cell => {
                         if (cell.classList.contains('sm-td-sparkline') || cell.querySelector('svg')) {
@@ -7911,30 +7904,35 @@
 
         // Interactive pivot-like toggle for Variety Summary Matrix
         window.toggleSummaryGroup = function(groupId) {
-            const childRows = document.querySelectorAll('.grp-' + groupId);
-            const btn = document.getElementById('toggle-' + groupId);
-            if (!childRows.length) return;
-            const isHidden = (childRows[0].style.display === 'none' || childRows[0].style.display === '');
-            childRows.forEach(r => {
-                r.style.display = isHidden ? 'table-row' : 'none';
-            });
-            if (btn) {
-                btn.textContent = isHidden ? '−' : '+';
-                btn.classList.toggle('active', isHidden);
-                btn.title = isHidden ? 'Contraer Siembra y Poda' : 'Desagrupar Siembra y Poda';
+            const mainRow = document.getElementById('row-main-' + groupId);
+            const childRows = document.querySelectorAll('.grp-child-' + groupId);
+            if (!mainRow || !childRows.length) return;
+
+            // If main total row is visible, we are expanding
+            const isCurrentlyCollapsed = (mainRow.style.display !== 'none');
+            if (isCurrentlyCollapsed) {
+                // Expand: hide the redundant variety total row and show the Siembra / Poda child rows
+                mainRow.style.display = 'none';
+                childRows.forEach(r => {
+                    r.style.display = 'table-row';
+                });
+            } else {
+                // Collapse: show the main total row and hide the child rows
+                mainRow.style.display = 'table-row';
+                childRows.forEach(r => {
+                    r.style.display = 'none';
+                });
             }
         };
 
         const btnSummaryExpandAll = document.getElementById('btn-summary-expand-all');
         if (btnSummaryExpandAll) {
             btnSummaryExpandAll.addEventListener('click', () => {
+                document.querySelectorAll('[id^="row-main-"]').forEach(mainRow => {
+                    mainRow.style.display = 'none';
+                });
                 document.querySelectorAll('.sm-tr-child').forEach(r => {
                     r.style.display = 'table-row';
-                });
-                document.querySelectorAll('.sm-btn-toggle').forEach(btn => {
-                    btn.textContent = '−';
-                    btn.classList.add('active');
-                    btn.title = 'Contraer Siembra y Poda';
                 });
             });
         }
@@ -7942,13 +7940,11 @@
         const btnSummaryCollapseAll = document.getElementById('btn-summary-collapse-all');
         if (btnSummaryCollapseAll) {
             btnSummaryCollapseAll.addEventListener('click', () => {
+                document.querySelectorAll('[id^="row-main-"]').forEach(mainRow => {
+                    mainRow.style.display = 'table-row';
+                });
                 document.querySelectorAll('.sm-tr-child').forEach(r => {
                     r.style.display = 'none';
-                });
-                document.querySelectorAll('.sm-btn-toggle').forEach(btn => {
-                    btn.textContent = '+';
-                    btn.classList.remove('active');
-                    btn.title = 'Desagrupar Siembra y Poda';
                 });
             });
         }
