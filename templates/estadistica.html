@@ -465,10 +465,31 @@
             box-shadow: var(--shadow-card);
             margin-bottom: 0;
             box-sizing: border-box;
-            height: 122px; /* Altura idéntica a una tarjeta KPI */
+            min-height: 122px;
+            height: auto;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+        }
+
+        #stemsPpScrollContainer {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            scroll-behavior: smooth;
+        }
+        #stemsPpScrollContainer::-webkit-scrollbar {
+            height: 7px;
+        }
+        #stemsPpScrollContainer::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        #stemsPpScrollContainer::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        #stemsPpScrollContainer::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .chiclet-header {
@@ -3218,17 +3239,26 @@
                     <div class="week-chiclet-card" id="week-chiclet-bar">
                         <div class="chiclet-header">
                             <div class="chiclet-title">
-                                <span class="chiclet-title-main">Semanas Siembra / Poda</span>
+                                <span class="chiclet-title-main">Semanas Siembra / Poda (Cerradas)</span>
                             </div>
                             <div class="chiclet-actions">
-                                <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas">
+                                <button type="button" id="btn-chiclet-all" class="btn-chiclet-all {{ 'active' if not stats.selected_weeks else '' }}" title="Ver todas las semanas cerradas">
                                     Todas
                                 </button>
-                                <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Últimas 4 semanas">
+                                <button type="button" id="btn-chiclet-last4" class="btn-chiclet-all" title="Últimas 4 semanas cerradas">
                                     Últ. 4
                                 </button>
-                                <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Últimas 8 semanas">
+                                <button type="button" id="btn-chiclet-last6" class="btn-chiclet-all" title="Últimas 6 semanas cerradas">
+                                    Últ. 6
+                                </button>
+                                <button type="button" id="btn-chiclet-last8" class="btn-chiclet-all" title="Últimas 8 semanas cerradas">
                                     Últ. 8
+                                </button>
+                                <button type="button" id="btn-chiclet-last12" class="btn-chiclet-all" title="Últimas 12 semanas cerradas">
+                                    Últ. 12
+                                </button>
+                                <button type="button" id="btn-chiclet-range-toggle" class="btn-chiclet-all" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Seleccionar rango de semanas (Desde - Hasta)">
+                                    📅 Rango
                                 </button>
                                 <button type="button" id="btn-chiclet-none" class="btn-chiclet-all" title="Deseleccionar todas">
                                     ✕
@@ -3243,6 +3273,31 @@
                                 {% endif %}
                             </div>
                         </div>
+
+                        <!-- BARRA DESPLEGABLE DE SELECCIÓN POR RANGO -->
+                        <div id="chiclet-range-bar" style="display: none; align-items: center; gap: 8px; padding: 5px 8px; background: #f0f9ff; border: 1px dashed #7dd3fc; border-radius: 6px; margin: 3px 0 5px; font-size: 0.72rem; flex-wrap: wrap;">
+                            <span style="font-weight: 800; color: #0369a1;">📅 Rango:</span>
+                            <span style="color: #475569; font-weight: 600;">Desde:</span>
+                            <select id="range-week-from" style="padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.70rem; font-weight: 700; background: #ffffff;">
+                                <option value="">(Inicio)</option>
+                                {% for w in stats.available_weeks %}
+                                    <option value="{{ w }}">Sem {{ w }}</option>
+                                {% endfor %}
+                            </select>
+                            <span style="color: #475569; font-weight: 600;">Hasta:</span>
+                            <select id="range-week-to" style="padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.70rem; font-weight: 700; background: #ffffff;">
+                                <option value="">(Fin)</option>
+                                {% for w in stats.available_weeks %}
+                                    <option value="{{ w }}">Sem {{ w }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="btn-apply-range" class="btn-chiclet-submit" style="padding: 2px 8px; font-size: 0.68rem;">
+                                ✓ Seleccionar Rango
+                            </button>
+                            <span style="color: #64748b; font-size: 0.65rem; margin-left: auto;">
+                                💡 Tip: También puedes mantener <strong>Shift</strong> y hacer clic entre dos pastillas para seleccionar un rango.
+                            </span>
+                        </div>
                         
                         <div class="chiclet-grid-container" id="chiclet-grid-container">
                             {% for w in stats.available_weeks %}
@@ -3251,7 +3306,7 @@
                                         class="chiclet-pill {{ 'active' if is_sel else '' }}" 
                                         data-week="{{ w }}" 
                                         id="chiclet-pill-{{ w }}"
-                                        title="Semana {{ w }} (Clic para alternar, doble clic para ver solo esta)">
+                                        title="Semana {{ w }} (Clic para alternar, Shift+Clic para rango, doble clic para ver solo esta)">
                                     <span class="chiclet-pill-status">{{ '✓' if is_sel else '+' }}</span>
                                     <span class="chiclet-pill-label">Sem {{ w }}</span>
                                 </button>
@@ -3262,13 +3317,20 @@
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
-                            <h3>📊 Rendimiento Semanal: Tallos / Planta vs Meta (Histórico Multi-Año Continuo)</h3>
+                            <div>
+                                <h3 style="margin: 0; font-size: 0.90rem; font-weight: 800;">📊 Rendimiento Semanal: Tallos / Planta vs Meta (Histórico Multi-Año Continuo)</h3>
+                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">
+                                    ↔️ Desplázate horizontalmente (de derecha a izquierda) para recorrer todo el historial
+                                </span>
+                            </div>
                             <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
                                 🏆 Eje X: Semanas Históricas (Formato YYWW)
                             </span>
                         </div>
-                        <div class="chart-body" style="height: 250px;">
-                            <canvas id="stemsPpChart"></canvas>
+                        <div class="chart-body" id="stemsPpScrollContainer" style="height: 255px; overflow-x: auto; overflow-y: hidden; position: relative; scroll-behavior: smooth;">
+                            <div id="stemsPpCanvasWrapper" style="height: 100%; min-width: 100%;">
+                                <canvas id="stemsPpChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3788,6 +3850,12 @@
             } else {
                 if (dashboard) dashboard.style.display = 'block';
                 if (btnDashboard) btnDashboard.classList.add('active');
+                const scrollEl = document.getElementById('stemsPpScrollContainer');
+                if (scrollEl) {
+                    setTimeout(() => {
+                        scrollEl.scrollLeft = scrollEl.scrollWidth;
+                    }, 50);
+                }
             }
         }
 
@@ -3955,7 +4023,14 @@
         // ---------------- COMPACT CHICLET WEEK SLICER (PANEL VISUAL) ----------------
         const btnChicletAll = document.getElementById('btn-chiclet-all');
         const btnChicletLast4 = document.getElementById('btn-chiclet-last4');
+        const btnChicletLast6 = document.getElementById('btn-chiclet-last6');
         const btnChicletLast8 = document.getElementById('btn-chiclet-last8');
+        const btnChicletLast12 = document.getElementById('btn-chiclet-last12');
+        const btnChicletRangeToggle = document.getElementById('btn-chiclet-range-toggle');
+        const chicletRangeBar = document.getElementById('chiclet-range-bar');
+        const rangeWeekFrom = document.getElementById('range-week-from');
+        const rangeWeekTo = document.getElementById('range-week-to');
+        const btnApplyRange = document.getElementById('btn-apply-range');
         const btnChicletNone = document.getElementById('btn-chiclet-none');
         const btnChicletApply = document.getElementById('btn-chiclet-apply');
         const chicletCount = document.getElementById('chiclet-count');
@@ -4033,6 +4108,24 @@
             });
         }
 
+        if (btnChicletLast6) {
+            btnChicletLast6.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last6 = allCbs.slice(-6);
+                last6.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateChicletState();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
         if (btnChicletLast8) {
             btnChicletLast8.addEventListener('click', () => {
                 const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
@@ -4045,6 +4138,68 @@
                     cb.checked = true;
                     syncChicletPill(cb.value, true);
                 });
+                updateChicletState();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        if (btnChicletLast12) {
+            btnChicletLast12.addEventListener('click', () => {
+                const allCbs = Array.from(document.querySelectorAll('.pbi-week-cb'));
+                allCbs.forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                const last12 = allCbs.slice(-12);
+                last12.forEach(cb => {
+                    cb.checked = true;
+                    syncChicletPill(cb.value, true);
+                });
+                updateChicletState();
+                const form = document.getElementById('slicers-form');
+                if (form) form.submit();
+            });
+        }
+
+        if (btnChicletRangeToggle && chicletRangeBar) {
+            btnChicletRangeToggle.addEventListener('click', () => {
+                const isHidden = (chicletRangeBar.style.display === 'none');
+                chicletRangeBar.style.display = isHidden ? 'flex' : 'none';
+                btnChicletRangeToggle.classList.toggle('active', isHidden);
+            });
+        }
+
+        if (btnApplyRange && rangeWeekFrom && rangeWeekTo) {
+            btnApplyRange.addEventListener('click', () => {
+                const fromVal = rangeWeekFrom.value;
+                const toVal = rangeWeekTo.value;
+                const allPills = Array.from(document.querySelectorAll('.chiclet-pill'));
+                const allWeeks = allPills.map(p => p.dataset.week);
+
+                let startIdx = fromVal ? allWeeks.indexOf(fromVal) : 0;
+                let endIdx = toVal ? allWeeks.indexOf(toVal) : (allWeeks.length - 1);
+
+                if (startIdx === -1) startIdx = 0;
+                if (endIdx === -1) endIdx = allWeeks.length - 1;
+                if (startIdx > endIdx) {
+                    const temp = startIdx;
+                    startIdx = endIdx;
+                    endIdx = temp;
+                }
+
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    cb.checked = false;
+                    syncChicletPill(cb.value, false);
+                });
+                for (let i = startIdx; i <= endIdx; i++) {
+                    const w = allWeeks[i];
+                    const cb = document.querySelector(`.pbi-week-cb[value="${w}"]`);
+                    if (cb) {
+                        cb.checked = true;
+                        syncChicletPill(w, true);
+                    }
+                }
                 updateChicletState();
                 const form = document.getElementById('slicers-form');
                 if (form) form.submit();
@@ -4069,10 +4224,34 @@
             });
         }
 
-        // Chiclet individual pills click & double-click
+        // Chiclet individual pills click & double-click with SHIFT + CLICK range support
+        let lastClickedPillWeek = null;
         document.querySelectorAll('.chiclet-pill').forEach(pill => {
             pill.addEventListener('click', (e) => {
                 const weekVal = pill.dataset.week;
+                const allPills = Array.from(document.querySelectorAll('.chiclet-pill'));
+
+                if (e.shiftKey && lastClickedPillWeek) {
+                    const idx1 = allPills.findIndex(p => p.dataset.week === lastClickedPillWeek);
+                    const idx2 = allPills.findIndex(p => p.dataset.week === weekVal);
+                    if (idx1 !== -1 && idx2 !== -1) {
+                        const start = Math.min(idx1, idx2);
+                        const end = Math.max(idx1, idx2);
+                        for (let i = start; i <= end; i++) {
+                            const targetWk = allPills[i].dataset.week;
+                            const cb = document.querySelector(`.pbi-week-cb[value="${targetWk}"]`);
+                            if (cb) {
+                                cb.checked = true;
+                                syncChicletPill(targetWk, true);
+                            }
+                        }
+                        updateChicletState();
+                        lastClickedPillWeek = weekVal;
+                        return;
+                    }
+                }
+
+                lastClickedPillWeek = weekVal;
                 const cb = document.querySelector(`.pbi-week-cb[value="${weekVal}"]`);
                 if (cb) {
                     cb.checked = !cb.checked;
@@ -6862,9 +7041,21 @@
 
         // 2. RENDER CHART 2: HISTORICAL MULTI-YEAR CONTINUOUS STEMS PER PLANT TIMELINE VS META
         const ctxStemsPp = document.getElementById('stemsPpChart');
+        const scrollContainer = document.getElementById('stemsPpScrollContainer');
+        const canvasWrapper = document.getElementById('stemsPpCanvasWrapper');
+
         if (ctxStemsPp && typeof Chart !== 'undefined') {
             const selectedAct = (chartStemsPpData.selected_activity || '').toUpperCase();
             const datasets = [];
+            const totalLabels = (chartStemsPpData && chartStemsPpData.labels) ? chartStemsPpData.labels.length : 0;
+
+            // Dynamically size canvasWrapper so every single week label has plenty of breathing room (34px)
+            const minWeekWidth = 34;
+            if (canvasWrapper && scrollContainer) {
+                const containerWidth = scrollContainer.clientWidth || 700;
+                const dynamicWidth = Math.max(containerWidth, totalLabels * minWeekWidth);
+                canvasWrapper.style.width = dynamicWidth + 'px';
+            }
 
             if (selectedAct === 'SIEMBRA') {
                 datasets.push({
@@ -7076,13 +7267,26 @@
                                 font: { family: pbiFontFamily, size: 10, weight: '700' },
                                 maxRotation: 45,
                                 minRotation: 0,
-                                autoSkip: true,
-                                maxTicksLimit: 28,
+                                autoSkip: false,
                                 padding: 6,
                             },
                             grid: { display: false }
                         }
                     }
+                }
+            });
+
+            // Auto-scroll to the far right so the latest weeks (2026) appear first,
+            // allowing the user to smoothly scroll from right to left to explore past history.
+            if (scrollContainer) {
+                setTimeout(() => {
+                    scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+                }, 80);
+            }
+            window.addEventListener('resize', () => {
+                if (canvasWrapper && scrollContainer) {
+                    const containerWidth = scrollContainer.clientWidth || 700;
+                    canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
                 }
             });
         }

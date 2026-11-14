@@ -2085,9 +2085,27 @@ def get_statistics_data(
         available_blocks = sorted(list(set(b[0].strip() for b in all_blocks_query if b[0] and str(b[0]).strip())))
 
         sws = db.query(TpsrRecord.source_week).distinct().all()
-        all_source_weeks_raw = sorted(list(set(s[0] for s in sws if s[0])))
+        all_tpsr_sws = sorted(list(set(s[0] for s in sws if s[0])))
+
+        # Available weeks for the slicer should strictly only go up to the last closed week
+        closed_sws_rows = (
+            db.query(BlockClosureDB.source_week)
+            .filter(BlockClosureDB.is_closed == True)
+            .distinct()
+            .all()
+        )
+        closed_sws_set = set(s[0] for s in closed_sws_rows if s[0])
+        max_closed_sw = max(closed_sws_set) if closed_sws_set else None
+
+        if max_closed_sw is not None:
+            all_source_weeks_raw = sorted(list(set(s for s in all_tpsr_sws if s <= max_closed_sw and s in closed_sws_set)))
+            if not all_source_weeks_raw:
+                all_source_weeks_raw = sorted(list(closed_sws_set))
+        else:
+            all_source_weeks_raw = all_tpsr_sws
+
         extracted_years = sorted(
-            list(set(int(str(s[0])[:4]) for s in sws if s[0] and len(str(s[0])) >= 4)),
+            list(set(int(str(s)[:4]) for s in all_source_weeks_raw if len(str(s)) >= 4)),
             reverse=True,
         )
         available_years = [str(y) for y in extracted_years]
