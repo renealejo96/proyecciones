@@ -3299,8 +3299,8 @@
                     <div class="t-filter-item">
                         <span>Estado:</span>
                         <select id="t-filter-status" class="t-filter-ctrl">
-                            <option value="">(Todos)</option>
-                            <option value="CERRADO" selected>Solo Cerrados</option>
+                            <option value="" selected>(Todos)</option>
+                            <option value="CERRADO">Solo Cerrados</option>
                             <option value="EN COSECHA">En Cosecha</option>
                         </select>
                     </div>
@@ -3565,31 +3565,7 @@
             <!-- TOOLBAR DE LA BOTONERA -->
             <div class="botonera-toolbar">
                 <div class="botonera-filter-group">
-                    <input type="text" id="botonera-search" class="botonera-search-input" placeholder="🔍 Buscar por bloque (ej: 71, 13A, 101, 31B)..." oninput="filterBotoneraCards()">
-                    
-                    <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
-                        <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Año:</span>
-                        <button type="button" class="btn-pill-filter btn-pill-year active" data-year="ALL" onclick="filterBotoneraYear('ALL')">Todos</button>
-                        <button type="button" class="btn-pill-filter btn-pill-year" data-year="2026" onclick="filterBotoneraYear('2026')">2026</button>
-                        <button type="button" class="btn-pill-filter btn-pill-year" data-year="2025" onclick="filterBotoneraYear('2025')">2025</button>
-                    </div>
-
-                    <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
-                        <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Cultivo:</span>
-                        <button type="button" class="btn-pill-filter active" data-crop="ALL" onclick="filterBotoneraCrop('ALL')">Todos</button>
-                        <button type="button" class="btn-pill-filter btn-pill-crop-gyp" data-crop="GYPSOPHILA" onclick="filterBotoneraCrop('GYPSOPHILA')">Gypsophila</button>
-                        <button type="button" class="btn-pill-filter btn-pill-crop-sun" data-crop="SUNFLOWER" onclick="filterBotoneraCrop('SUNFLOWER')">Girasol</button>
-                        <button type="button" class="btn-pill-filter btn-pill-crop-hyp" data-crop="HYPERICUM" onclick="filterBotoneraCrop('HYPERICUM')">Hypericum</button>
-                        <button type="button" class="btn-pill-filter btn-pill-crop-sol" data-crop="SOLIDAGO" onclick="filterBotoneraCrop('SOLIDAGO')">Solidago</button>
-                        <button type="button" class="btn-pill-filter btn-pill-crop-ver" data-crop="VERONICA" onclick="filterBotoneraCrop('VERONICA')">Veronica</button>
-                    </div>
-                    
-                    <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
-                        <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Estado:</span>
-                        <button type="button" class="btn-pill-filter active" data-status="ALL" onclick="filterBotoneraStatus('ALL')">Todos</button>
-                        <button type="button" class="btn-pill-filter" data-status="CLOSED" onclick="filterBotoneraStatus('CLOSED')">🔒 Solo Cerrados</button>
-                        <button type="button" class="btn-pill-filter" data-status="HARVEST" onclick="filterBotoneraStatus('HARVEST')">🌱 En Cosecha</button>
-                    </div>
+                    <input type="text" id="botonera-search" class="botonera-search-input" placeholder="🔍 Buscar bloque en bitácora (ej: 71, 13A, 101, 31B)..." oninput="filterBotoneraCards()">
                 </div>
                 
                 <div class="botonera-filter-group">
@@ -4741,35 +4717,7 @@
 
             let filtered = CONSOLIDATED_BLOCKS_DATA.slice();
 
-            // 0. Year filter
-            if (botoneraSelectedYear && botoneraSelectedYear !== 'ALL') {
-                const yrStr = String(botoneraSelectedYear).slice(-2);
-                const yrFull = String(botoneraSelectedYear);
-                filtered = filtered.filter(b => {
-                    return (b.productions || []).some(p => {
-                        const swStr = String(p.source_week_max || p.source_week_max_short || '');
-                        const hwStr = String(p.harvest_weeks_str || '');
-                        return swStr.startsWith(yrFull) || swStr.startsWith(yrStr) || hwStr.includes(yrStr);
-                    });
-                });
-            }
-
-            // 1. Crop filter
-            if (botoneraSelectedCrop && botoneraSelectedCrop !== 'ALL') {
-                const selCrop = botoneraSelectedCrop.toUpperCase();
-                filtered = filtered.filter(b => {
-                    const pmStr = (b.product_master || '').toUpperCase();
-                    if (selCrop === 'VERONICA') return pmStr.includes('VERONICA');
-                    return pmStr.includes(selCrop);
-                });
-            }
-
-            // 2. Status filter
-            if (botoneraSelectedStatus === 'CLOSED') {
-                filtered = filtered.filter(b => b.is_closed || (b.status || '').toUpperCase() === 'CERRADO');
-            } else if (botoneraSelectedStatus === 'HARVEST') {
-                filtered = filtered.filter(b => (b.status || '').toUpperCase() === 'EN COSECHA');
-            }
+            // 1. Bitácora universal: no filtra por año/cultivo/estado (consulta histórica total)
 
             // 3. Search filter
             if (botoneraSearchQuery) {
@@ -6650,7 +6598,7 @@
         if (filterReset) {
             filterReset.addEventListener('click', () => {
                 if (filterBlock) filterBlock.value = '';
-                if (filterStatus) filterStatus.value = 'CERRADO';
+                if (filterStatus) filterStatus.value = '';
                 if (filterPerf) filterPerf.value = '';
                 document.querySelectorAll('.tbl-week-cb').forEach(cb => cb.checked = true);
                 updateTblWeekDropdownText();

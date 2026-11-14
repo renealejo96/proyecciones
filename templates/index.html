@@ -1559,7 +1559,7 @@
             <form method="get" class="toolbar" id="filters-form">
                 <div class="field">
                     <label for="ano">Año</label>
-                    <select id="ano" name="ano" style="width: 70px;" onchange="this.form.submit()">
+                    <select id="ano" name="ano" style="width: 70px;" onchange="const s = document.getElementById('semana'); if (s) s.value = ''; this.form.submit();">
                         {% for yr in year_options %}
                             <option value="{{ yr }}" {{ 'selected' if yr == (selected_year | string) else '' }}>{{ yr }}</option>
                         {% endfor %}

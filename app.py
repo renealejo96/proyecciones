@@ -576,13 +576,42 @@ def available_products(snapshot: dict[str, Any]) -> list[str]:
     )
 
 
-def resolve_selected_week(raw_week: str, snapshot: dict[str, Any]) -> int:
+def resolve_selected_week(
+    raw_week: str,
+    snapshot: dict[str, Any],
+    target_year: int | None = None,
+) -> int:
     requested = parse_week_code(raw_week)
     week_options = available_weeks(snapshot)
+    effective_year = target_year or snapshot.get("year")
+
+    # If a specific week was requested:
     if requested is not None:
-        return requested
+        if effective_year:
+            try:
+                eff_yr = int(effective_year)
+                # If requested week belongs to target_year, return it!
+                if requested // 100 == eff_yr:
+                    return requested
+                # If requested week belongs to another year (e.g. lingering query param from year switch),
+                # ignore it so we resolve cleanly to the target year!
+            except (ValueError, TypeError):
+                return requested
+        else:
+            return requested
+
     if week_options:
         current = current_week_code()
+        if effective_year:
+            try:
+                eff_yr = int(effective_year)
+                year_weeks = [w for w in week_options if w // 100 == eff_yr]
+                if year_weeks:
+                    # Target the equivalent calendar week of today in the target year (e.g. 202546)
+                    target_equiv = eff_yr * 100 + (current % 100)
+                    return min(year_weeks, key=lambda week_code: abs(week_code - target_equiv))
+            except (ValueError, TypeError):
+                pass
         return min(week_options, key=lambda week_code: abs(week_code - current))
     return current_week_code()
 
@@ -1213,7 +1242,7 @@ def index() -> str:
         invalidate_snapshot_cache()
 
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
-    selected_week = resolve_selected_week(requested_week, snapshot)
+    selected_week = resolve_selected_week(requested_week, snapshot, target_year=requested_year)
 
     prods = available_products(snapshot)
     if "producto" not in request.args:
@@ -1274,7 +1303,7 @@ def reales() -> str:
         invalidate_snapshot_cache()
 
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
-    selected_week = resolve_selected_week(requested_week, snapshot)
+    selected_week = resolve_selected_week(requested_week, snapshot, target_year=requested_year)
 
     prods = available_products(snapshot)
     if "producto" not in request.args:
@@ -3056,7 +3085,7 @@ def exportar_matriz_api():
     prods = available_products(snapshot)
 
     requested_week = request.args.get("semana", "").strip()
-    selected_week = resolve_selected_week(requested_week, snapshot)
+    selected_week = resolve_selected_week(requested_week, snapshot, target_year=requested_year)
 
     requested_product_master = request.args.get("producto", "").strip()
     if not requested_product_master and prods:
@@ -3415,7 +3444,7 @@ def projections_api():
         requested_year = 2026
 
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
-    selected_week = resolve_selected_week(requested_week, snapshot)
+    selected_week = resolve_selected_week(requested_week, snapshot, target_year=requested_year)
     if requested_horizon and not requested_horizon_back and not requested_horizon_forward:
         horizon_weeks_back = max(0, min(20, int(requested_horizon or 4)))
         horizon_weeks_forward = max(1, min(20, int(requested_horizon or 4)))
