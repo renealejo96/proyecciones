@@ -2840,16 +2840,6 @@
             </div>
 
             <div class="slicer-group">
-                <label for="slicer-block">Bloque:</label>
-                <select name="bloque" id="slicer-block" class="slicer-select">
-                    <option value="">(Todos los Bloques)</option>
-                    {% for b in stats.available_blocks %}
-                        <option value="{{ b }}" {{ 'selected' if stats.selected_block == b else '' }}>Bloque {{ b }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="slicer-group">
                 <label for="slicer-ac">Actividad:</label>
                 <select name="ac" id="slicer-ac" class="slicer-select">
                     <option value="">(Siembra y Poda)</option>
@@ -2891,10 +2881,10 @@
             </button>
         </div>
 
-        {% if stats.kpis.total_closed_blocks == 0 and stats.selected_year and stats.selected_pm %}
+        {% if stats.kpis.total_closed_blocks == 0 and stats.selected_year %}
         <div class="active-filter-banner" style="background: #eff6ff; border-color: #3b82f6; color: #1e40af; margin-bottom: 12px;">
-            <span>ℹ️ En el año <strong>{{ stats.selected_year }}</strong> no se registran cosechas cerradas para <strong>{{ stats.selected_pm }}</strong>. Los cultivos con cosechas registradas en {{ stats.selected_year }} son: <strong>Sunflower (Girasol), Veronica, Hypericum y Solidago</strong>.</span>
-            <a href="/estadistica?year={{ stats.selected_year }}" class="active-filter-clear" style="background: #3b82f6; color: #ffffff; border-color: #2563eb;" title="Ver todos los cultivos de {{ stats.selected_year }}">Ver Todos los Cultivos de {{ stats.selected_year }}</a>
+            <span>ℹ️ No se registraron bloques cerrados en el año <strong>{{ stats.selected_year }}</strong> para los filtros seleccionados{% if stats.selected_pm %} (Cultivo: <strong>{{ stats.selected_pm }}</strong>){% endif %}.</span>
+            <a href="/estadistica?year={{ stats.selected_year }}" class="active-filter-clear" style="background: #3b82f6; color: #ffffff; border-color: #2563eb;" title="Restablecer filtros">Restablecer Filtros</a>
         </div>
         {% endif %}
 
@@ -3237,23 +3227,9 @@
                     <!-- CHART 2: STEMS PER PLANT BY SOURCE PLANTING WEEK VS TARGET META -->
                     <div class="chart-card" style="flex: 1; margin-bottom: 0;">
                         <div class="chart-header">
-                            <h3>
-                                {% if stats.selected_year %}
-                                    📊 Rendimiento Semanal: Tallos / Planta vs Meta (Año {{ stats.selected_year }})
-                                {% else %}
-                                    📊 Rendimiento Multianual: Tallos / Planta vs Meta por Semana
-                                {% endif %}
-                            </h3>
+                            <h3>📊 Rendimiento Semanal: Tallos / Planta vs Meta (Histórico Multi-Año Continuo)</h3>
                             <span class="chart-tag" id="chart-closed-tag" style="background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;">
-                                {% if stats.selected_year %}
-                                    📅 Año {{ stats.selected_year }}{% if stats.selected_activity %} • {{ stats.selected_activity }}{% else %} • Siembra vs Poda{% endif %}
-                                {% elif stats.chart_stems_pp.years %}
-                                    🏆 Multianual: {{ stats.chart_stems_pp.years | join(' vs ') }}
-                                {% elif stats.chart_stems_pp.last_closed_label %}
-                                    🏆 Cierre Real: <strong>{{ stats.chart_stems_pp.last_closed_label }}</strong>
-                                {% else %}
-                                    Eje X: Semanas de Siembra / Poda
-                                {% endif %}
+                                🏆 Eje X: Semanas Históricas (Formato YYWW)
                             </span>
                         </div>
                         <div class="chart-body" style="height: 250px;">
@@ -3610,8 +3586,8 @@
                     
                     <div style="display: flex; gap: 4px; align-items: center; margin-left: 6px;">
                         <span style="font-size: 0.70rem; font-weight: 700; color: #64748b; margin-right: 2px;">Estado:</span>
-                        <button type="button" class="btn-pill-filter" data-status="ALL" onclick="filterBotoneraStatus('ALL')">Todos</button>
-                        <button type="button" class="btn-pill-filter active" data-status="CLOSED" onclick="filterBotoneraStatus('CLOSED')">🔒 Solo Cerrados</button>
+                        <button type="button" class="btn-pill-filter active" data-status="ALL" onclick="filterBotoneraStatus('ALL')">Todos</button>
+                        <button type="button" class="btn-pill-filter" data-status="CLOSED" onclick="filterBotoneraStatus('CLOSED')">🔒 Solo Cerrados</button>
                         <button type="button" class="btn-pill-filter" data-status="HARVEST" onclick="filterBotoneraStatus('HARVEST')">🌱 En Cosecha</button>
                     </div>
                 </div>
@@ -3760,7 +3736,7 @@
         let botoneraSearchQuery = '';
         let botoneraSelectedYear = 'ALL';
         let botoneraSelectedCrop = 'ALL';
-        let botoneraSelectedStatus = 'CLOSED';
+        let botoneraSelectedStatus = 'ALL';
         let botoneraSelectedZone = 'ALL';
         let botoneraGroupByZone = true;
         let botoneraSortBy = 'block_asc';
@@ -3851,6 +3827,7 @@
         }
 
         function updateBlockOptions() {
+            if (!blockSelect) return;
             const selPm = pmSelect ? pmSelect.value : 'ALL';
             let blks = [];
             if (selPm && selPm !== 'ALL' && pmBlocksMap[selPm]) {
@@ -3933,6 +3910,19 @@
                 document.getElementById('slicers-form')?.submit();
             });
         }
+
+        document.getElementById('slicers-form')?.addEventListener('submit', () => {
+            const yrVal = document.getElementById('slicer-year')?.value || '';
+            if (yrVal && yrVal !== 'ALL') {
+                const yrPrefix = yrVal.slice(-2);
+                document.querySelectorAll('.pbi-week-cb').forEach(cb => {
+                    const val = String(cb.value || '').trim();
+                    if (val && !val.startsWith(yrVal) && !val.startsWith(yrPrefix)) {
+                        cb.checked = false;
+                    }
+                });
+            }
+        });
 
         const acSelect = document.getElementById('slicer-ac');
         if (acSelect) {
@@ -6816,142 +6806,100 @@
             });
         }
 
-        // 2. RENDER CHART 2: STEMS PER PLANT BY CALENDAR WEEK VS TARGET META
+        // 2. RENDER CHART 2: HISTORICAL MULTI-YEAR CONTINUOUS STEMS PER PLANT TIMELINE VS META
         const ctxStemsPp = document.getElementById('stemsPpChart');
         if (ctxStemsPp && typeof Chart !== 'undefined') {
-            const isSingleYear = Boolean(chartStemsPpData.is_single_year);
-            const selYear = chartStemsPpData.selected_year || '';
             const selectedAct = (chartStemsPpData.selected_activity || '').toUpperCase();
-            const hasClosedCutoff = isSingleYear && (chartStemsPpData.last_closed_index !== undefined && chartStemsPpData.last_closed_index !== null && chartStemsPpData.last_closed_index >= 0 && chartStemsPpData.last_closed_index < (chartStemsPpData.labels.length - 1));
-
             const datasets = [];
 
-            if (isSingleYear) {
-                if (selectedAct === 'SIEMBRA') {
-                    // Only Siembra selected
-                    datasets.push({
-                        label: `🌱 Siembra Real ${selYear} (T/pl)`,
-                        data: chartStemsPpData.series_siembra || chartStemsPpData.series_total,
-                        borderColor: '#059669',
-                        backgroundColor: function(context) {
-                            return getChartCanvasGradient(context, 'rgba(5, 150, 105, 0.28)', 'rgba(5, 150, 105, 0.01)');
-                        },
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 3.0,
-                        pointRadius: 4.5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#059669',
-                        pointBorderWidth: 2.2,
-                        spanGaps: true,
-                    });
-                } else if (selectedAct === 'PODA') {
-                    // Only Poda selected
-                    datasets.push({
-                        label: `✂️ Poda Real ${selYear} (T/pl)`,
-                        data: chartStemsPpData.series_poda || chartStemsPpData.series_total,
-                        borderColor: '#7e22ce',
-                        backgroundColor: function(context) {
-                            return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
-                        },
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 3.0,
-                        pointRadius: 4.5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#7e22ce',
-                        pointBorderWidth: 2.2,
-                        spanGaps: true,
-                    });
-                } else {
-                    // Both Siembra & Poda available
-                    if (chartStemsPpData.has_siembra) {
-                        datasets.push({
-                            label: `🌱 Siembra ${selYear} (T/pl)`,
-                            data: chartStemsPpData.series_siembra,
-                            borderColor: '#059669',
-                            backgroundColor: 'transparent',
-                            fill: false,
-                            tension: 0.35,
-                            borderWidth: 2.4,
-                            pointRadius: 4.0,
-                            pointHoverRadius: 6.5,
-                            pointBackgroundColor: '#ffffff',
-                            pointBorderColor: '#059669',
-                            pointBorderWidth: 2,
-                            spanGaps: true,
-                        });
-                    }
-                    if (chartStemsPpData.has_poda) {
-                        datasets.push({
-                            label: `✂️ Poda ${selYear} (T/pl)`,
-                            data: chartStemsPpData.series_poda,
-                            borderColor: '#7e22ce',
-                            backgroundColor: 'transparent',
-                            fill: false,
-                            tension: 0.35,
-                            borderWidth: 2.4,
-                            pointRadius: 4.0,
-                            pointHoverRadius: 6.5,
-                            pointBackgroundColor: '#ffffff',
-                            pointBorderColor: '#7e22ce',
-                            pointBorderWidth: 2,
-                            spanGaps: true,
-                        });
-                    }
-                    const hasBoth = chartStemsPpData.has_siembra && chartStemsPpData.has_poda;
-                    datasets.push({
-                        label: hasBoth ? `Total Real Ponderado ${selYear} (T/pl)` : `Rendimiento Real ${selYear} (T/pl)`,
-                        data: chartStemsPpData.series_total,
-                        borderColor: '#2563eb',
-                        backgroundColor: function(context) {
-                            return getChartCanvasGradient(context, 'rgba(37, 99, 235, 0.22)', 'rgba(37, 99, 235, 0.01)');
-                        },
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: hasBoth ? 2.8 : 3.0,
-                        pointRadius: hasBoth ? 4.5 : 5.0,
-                        pointHoverRadius: 7.5,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#2563eb',
-                        pointBorderWidth: 2.5,
-                        spanGaps: true,
-                    });
-                }
+            if (selectedAct === 'SIEMBRA') {
+                datasets.push({
+                    label: '🌱 Siembra Real (T/pl)',
+                    data: chartStemsPpData.series_siembra || chartStemsPpData.series_total,
+                    borderColor: '#059669',
+                    backgroundColor: function(context) {
+                        return getChartCanvasGradient(context, 'rgba(5, 150, 105, 0.28)', 'rgba(5, 150, 105, 0.01)');
+                    },
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.8,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6.5,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#059669',
+                    pointBorderWidth: 2.0,
+                    spanGaps: true,
+                });
+            } else if (selectedAct === 'PODA') {
+                datasets.push({
+                    label: '✂️ Poda Real (T/pl)',
+                    data: chartStemsPpData.series_poda || chartStemsPpData.series_total,
+                    borderColor: '#7e22ce',
+                    backgroundColor: function(context) {
+                        return getChartCanvasGradient(context, 'rgba(126, 34, 206, 0.28)', 'rgba(126, 34, 206, 0.01)');
+                    },
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.8,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6.5,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#7e22ce',
+                    pointBorderWidth: 2.0,
+                    spanGaps: true,
+                });
             } else {
-                // Multi-Year mode across all years
-                const yearColorPalette = {
-                    '2026': { line: '#7e22ce', width: 2.8, ptRadius: 4.0 },
-                    '2025': { line: '#2563eb', width: 2.6, ptRadius: 3.5 },
-                    '2024': { line: '#059669', width: 2.2, ptRadius: 3.5 },
-                    '2023': { line: '#d97706', width: 2.0, ptRadius: 3.0 },
-                };
-                const fallbackPalette = ['#0891b2', '#db2777', '#4f46e5', '#65a30d'];
-
-                (chartStemsPpData.years || []).forEach((yr, idx) => {
-                    const cfg = yearColorPalette[yr] || {
-                        line: fallbackPalette[idx % fallbackPalette.length],
-                        width: 2.2,
-                        ptRadius: 3.5
-                    };
-                    const dataPoints = (chartStemsPpData.series_by_year && chartStemsPpData.series_by_year[yr]) ? chartStemsPpData.series_by_year[yr] : [];
+                if (chartStemsPpData.has_siembra) {
                     datasets.push({
-                        label: `Año ${yr}${selectedAct ? ' (' + selectedAct + ')' : ''}`,
-                        data: dataPoints,
-                        borderColor: cfg.line,
+                        label: '🌱 Siembra Real (T/pl)',
+                        data: chartStemsPpData.series_siembra,
+                        borderColor: '#059669',
                         backgroundColor: 'transparent',
                         fill: false,
                         tension: 0.35,
-                        borderWidth: cfg.width,
-                        pointRadius: cfg.ptRadius,
-                        pointHoverRadius: cfg.ptRadius + 2.5,
+                        borderWidth: 2.2,
+                        pointRadius: 3.0,
+                        pointHoverRadius: 5.5,
                         pointBackgroundColor: '#ffffff',
-                        pointBorderColor: cfg.line,
-                        pointBorderWidth: 2,
+                        pointBorderColor: '#059669',
+                        pointBorderWidth: 1.8,
                         spanGaps: true,
                     });
+                }
+                if (chartStemsPpData.has_poda) {
+                    datasets.push({
+                        label: '✂️ Poda Real (T/pl)',
+                        data: chartStemsPpData.series_poda,
+                        borderColor: '#7e22ce',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.35,
+                        borderWidth: 2.2,
+                        pointRadius: 3.0,
+                        pointHoverRadius: 5.5,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#7e22ce',
+                        pointBorderWidth: 1.8,
+                        spanGaps: true,
+                    });
+                }
+                const hasBoth = chartStemsPpData.has_siembra && chartStemsPpData.has_poda;
+                datasets.push({
+                    label: hasBoth ? 'Total Real Ponderado (T/pl)' : 'Rendimiento Real (T/pl)',
+                    data: chartStemsPpData.series_total,
+                    borderColor: '#2563eb',
+                    backgroundColor: function(context) {
+                        return getChartCanvasGradient(context, 'rgba(37, 99, 235, 0.22)', 'rgba(37, 99, 235, 0.01)');
+                    },
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.8,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6.5,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#2563eb',
+                    pointBorderWidth: 2.0,
+                    spanGaps: true,
                 });
             }
 
@@ -6966,88 +6914,6 @@
                 pointRadius: 0,
                 pointHoverRadius: 0
             });
-
-            // Plugin to draw a vertical indicator line & shaded closed zone where closed blocks end
-            const closedCutoffPlugin = {
-                id: 'closedCutoffLine',
-                beforeDatasetsDraw(chart) {
-                    if (!hasClosedCutoff) return;
-                    const idx = chartStemsPpData.last_closed_index;
-                    const meta = chart.getDatasetMeta(0);
-                    if (!meta || !meta.data || !meta.data[idx]) return;
-
-                    const x = meta.data[idx].x;
-                    const top = chart.chartArea.top;
-                    const bottom = chart.chartArea.bottom;
-                    const left = chart.chartArea.left;
-                    const ctx = chart.ctx;
-
-                    // Light zone shading behind closed blocks
-                    ctx.save();
-                    ctx.fillStyle = 'rgba(5, 150, 105, 0.035)';
-                    ctx.fillRect(left, top, x - left, bottom - top);
-                    ctx.restore();
-                },
-                afterDatasetsDraw(chart) {
-                    if (!hasClosedCutoff) return;
-                    const idx = chartStemsPpData.last_closed_index;
-                    const meta = chart.getDatasetMeta(0);
-                    if (!meta || !meta.data || !meta.data[idx]) return;
-
-                    const x = meta.data[idx].x;
-                    const top = chart.chartArea.top;
-                    const bottom = chart.chartArea.bottom;
-                    const ctx = chart.ctx;
-
-                    ctx.save();
-
-                    // 1. Subtle glow behind vertical line
-                    ctx.beginPath();
-                    ctx.lineWidth = 6;
-                    ctx.strokeStyle = 'rgba(217, 119, 6, 0.12)';
-                    ctx.moveTo(x, top + 22);
-                    ctx.lineTo(x, bottom);
-                    ctx.stroke();
-
-                    // 2. Vertical indicator line (dashed amber/gold)
-                    ctx.beginPath();
-                    ctx.setLineDash([5, 4]);
-                    ctx.lineWidth = 2.2;
-                    ctx.strokeStyle = '#d97706';
-                    ctx.moveTo(x, top + 22);
-                    ctx.lineTo(x, bottom);
-                    ctx.stroke();
-
-                    // 3. Top badge pill indicator
-                    const lbl = chartStemsPpData.last_closed_label || `Sem ${chartStemsPpData.labels[idx]}`;
-                    const text = `🔒 Cierre: ${lbl}`;
-                    ctx.font = `bold 10px ${pbiFontFamily}`;
-                    const textWidth = ctx.measureText(text).width;
-                    const pillW = textWidth + 14;
-                    const pillH = 19;
-                    let pillX = x - pillW / 2;
-                    pillX = Math.max(chart.chartArea.left + 2, Math.min(chart.chartArea.right - pillW - 2, pillX));
-                    const pillY = top + 1;
-
-                    // Pill background
-                    ctx.fillStyle = '#d97706';
-                    ctx.beginPath();
-                    if (ctx.roundRect) {
-                        ctx.roundRect(pillX, pillY, pillW, pillH, 4);
-                    } else {
-                        ctx.rect(pillX, pillY, pillW, pillH);
-                    }
-                    ctx.fill();
-
-                    // Pill text
-                    ctx.fillStyle = '#ffffff';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(text, pillX + pillW / 2, pillY + pillH / 2 + 1);
-
-                    ctx.restore();
-                }
-            };
 
             new Chart(ctxStemsPp, {
                 type: 'line',
@@ -7085,9 +6951,7 @@
                             callbacks: {
                                 title: function(items) {
                                     if (!items.length) return '';
-                                    const raw = items[0].label;
-                                    const cleanWk = raw ? String(raw).replace(/^Sem\s*/i, '') : raw;
-                                    return `Semana ${cleanWk}`;
+                                    return 'Semana ' + items[0].label;
                                 },
                                 label: function(context) {
                                     const ds = context.dataset;
@@ -7095,38 +6959,22 @@
                                     if (val === null || val === undefined) return null;
 
                                     if (ds.label && ds.label.startsWith('Meta')) {
-                                        return `🎯 ${ds.label}: ${val} T/pl`;
+                                        return '🎯 ' + ds.label + ': ' + val + ' T/pl';
                                     }
 
                                     const meta = (chartStemsPpData && chartStemsPpData.target_stems_pp) ? chartStemsPpData.target_stems_pp[context.dataIndex] : 0;
                                     const icon = (meta && val >= meta) ? '🟢' : (meta ? '🔴' : '');
 
-                                    if (isSingleYear) {
-                                        const d = (chartStemsPpData.details && chartStemsPpData.details[context.dataIndex]) || null;
-                                        let extra = '';
-                                        if (d && (ds.label.includes('Total') || ds.label.includes('Rendimiento'))) {
-                                            if (d.siem_t_pl !== null && d.poda_t_pl !== null) {
-                                                extra = ` (🌱 Siem: ${d.siem_t_pl} | ✂️ Poda: ${d.poda_t_pl})`;
-                                            }
+                                    const d = (chartStemsPpData.details && chartStemsPpData.details[context.dataIndex]) || null;
+                                    let extra = '';
+                                    if (d) {
+                                        if (d.siem_t_pl !== null && d.poda_t_pl !== null && (ds.label.includes('Total') || ds.label.includes('Rendimiento'))) {
+                                            extra = ' (🌱 Siem: ' + d.siem_t_pl + ' | ✂️ Poda: ' + d.poda_t_pl + ') · ' + (d.total_plants || 0).toLocaleString() + ' pl (' + d.blocks_count + ' blq)';
+                                        } else if (d.total_plants) {
+                                            extra = ' · ' + (d.total_plants || 0).toLocaleString() + ' pl (' + d.blocks_count + ' blq)';
                                         }
-                                        return `${ds.label}: ${val} T/pl ${icon}${extra}`;
-                                    } else {
-                                        const yr = ds.label ? ds.label.replace('Año ', '').split(' ')[0] : '';
-                                        let extra = '';
-                                        if (chartStemsPpData.details_by_year && chartStemsPpData.details_by_year[yr]) {
-                                            const d = chartStemsPpData.details_by_year[yr][context.dataIndex];
-                                            if (d) {
-                                                if (d.siem_t_pl !== null && d.poda_t_pl !== null) {
-                                                    extra = ` (🌱 Siem: ${d.siem_t_pl} | ✂️ Poda: ${d.poda_t_pl})`;
-                                                } else if (d.siem_t_pl !== null) {
-                                                    extra = ` (🌱 Siem: ${d.siem_t_pl})`;
-                                                } else if (d.poda_t_pl !== null) {
-                                                    extra = ` (✂️ Poda: ${d.poda_t_pl})`;
-                                                }
-                                            }
-                                        }
-                                        return `${ds.label}: ${val} T/pl ${icon}${extra}`;
                                     }
+                                    return ds.label + ': ' + val + ' T/pl ' + icon + extra;
                                 }
                             },
                             titleFont: { family: pbiFontFamily, weight: '800', size: 12 },
@@ -7147,21 +6995,16 @@
                             ticks: {
                                 color: '#64748b',
                                 font: { family: pbiFontFamily, size: 10, weight: '700' },
-                                maxRotation: 0,
+                                maxRotation: 45,
                                 minRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 26,
+                                maxTicksLimit: 28,
                                 padding: 6,
-                                callback: function(val, index) {
-                                    const lbl = this.getLabelForValue(val);
-                                    return lbl ? String(lbl).replace(/^Sem\s*/i, '') : val;
-                                }
                             },
                             grid: { display: false }
                         }
                     }
-                },
-                plugins: [closedCutoffPlugin]
+                }
             });
         }
 

@@ -2063,27 +2063,57 @@ def get_statistics_data(
         )
         available_years = [str(y) for y in extracted_years]
 
+        # Resolve default year:
+        # Default year is 2026 (or most recent available year)
+        if year_filter is None:
+            resolved_year = "2026" if "2026" in available_years else (available_years[0] if available_years else "2026")
+        elif str(year_filter).strip().upper() in ("", "ALL"):
+            resolved_year = ""
+        else:
+            resolved_year = str(year_filter).strip()
+
+        def resolve_week_filter_code(raw_value: Any, default_year: str) -> int | None:
+            if raw_value is None:
+                return None
+            digits = re.sub(r"\D", "", str(raw_value).strip())
+            if not digits:
+                return None
+            num = int(digits)
+            # 1 or 2 digits, or week number <= 53 (e.g. "30", "W30")
+            if len(digits) in (1, 2) or num <= 53:
+                yr = int(default_year) if default_year and default_year.isdigit() else date.today().isocalendar()[0]
+                return yr * 100 + num
+            # 4 digits (e.g. "2530" or "2646")
+            elif len(digits) == 4:
+                yr = 2000 + int(digits[:2])
+                wk = int(digits[2:])
+                return yr * 100 + wk
+            # 6 digits (e.g. "202530")
+            elif len(digits) == 6:
+                yr = int(digits[:4])
+                wk = int(digits[4:])
+                return yr * 100 + wk
+            return parse_week_code(raw_value)
+
         selected_weeks_set: set[int] = set()
-        if isinstance(weeks_filter, list):
-            for w in weeks_filter:
-                w_str = str(w).strip()
-                if w_str and w_str.upper() not in ("ALL", "TODAS", "(TODAS)", "(TODAS LAS SEMANAS)"):
-                    for sub in w_str.split(","):
-                        sub_str = sub.strip()
-                        if sub_str:
-                            c = parse_week_code(sub_str)
-                            if c: selected_weeks_set.add(c)
-        elif isinstance(weeks_filter, str) and weeks_filter.strip():
-            w_str = weeks_filter.strip()
-            if w_str.upper() not in ("ALL", "TODAS", "(TODAS)", "(TODAS LAS SEMANAS)"):
+        raw_weeks_list = weeks_filter if isinstance(weeks_filter, list) else ([weeks_filter] if weeks_filter else [])
+        for w in raw_weeks_list:
+            w_str = str(w).strip()
+            if w_str and w_str.upper() not in ("ALL", "TODAS", "(TODAS)", "(TODAS LAS SEMANAS)"):
                 for sub in w_str.split(","):
                     sub_str = sub.strip()
                     if sub_str:
-                        c = parse_week_code(sub_str)
-                        if c: selected_weeks_set.add(c)
+                        c = resolve_week_filter_code(sub_str, resolved_year)
+                        if c:
+                            # If resolved_year is set, only accept weeks matching this year
+                            if resolved_year and resolved_year.isdigit():
+                                if c // 100 == int(resolved_year):
+                                    selected_weeks_set.add(c)
+                            else:
+                                selected_weeks_set.add(c)
 
-        parsed_sw_from = parse_week_code(week_from) if week_from and str(week_from).strip() else None
-        parsed_sw_to = parse_week_code(week_to) if week_to and str(week_to).strip() else None
+        parsed_sw_from = resolve_week_filter_code(week_from, resolved_year) if week_from and str(week_from).strip() else None
+        parsed_sw_to = resolve_week_filter_code(week_to, resolved_year) if week_to and str(week_to).strip() else None
         if parsed_sw_from and parsed_sw_to and parsed_sw_from > parsed_sw_to:
             parsed_sw_from, parsed_sw_to = parsed_sw_to, parsed_sw_from
         # 2. Cycle Definitions Map & Valid Curve PMs
@@ -2108,15 +2138,6 @@ def get_statistics_data(
 
         available_pms = sorted(list(set(pm_varieties_map.keys())))
         available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
-
-        # Resolve defaults:
-        # Default year is 2026 (or most recent available year)
-        if year_filter is None:
-            resolved_year = "2026" if "2026" in available_years else (available_years[0] if available_years else "2026")
-        elif str(year_filter).strip().upper() in ("", "ALL"):
-            resolved_year = ""
-        else:
-            resolved_year = str(year_filter).strip()
 
         # Build year to weeks mapping and filter available_weeks for resolved_year
         year_weeks_map: dict[str, list[str]] = {}
@@ -2616,6 +2637,15 @@ def get_statistics_data(
             chart_real_curve.append(round(r_val, 1))
             chart_ideal_curve.append(round(i_val, 1))
 
+        if sum(chart_ideal_curve) <= 0:
+            target_pm_norm = normalize_text("VERONICA" if (resolved_pm and "VERONICA" in resolved_pm.upper()) else (resolved_pm or "GYPSOPHILA"))
+            target_var_norm = normalize_text(selected_varieties[0]) if selected_varieties else ""
+            target_ac_norm = normalize_text(activity_filter or "SIEMBRA")
+            fallback_cdef = find_cycle_definition(cycles_map, target_pm_norm, target_var_norm, target_ac_norm)
+            chart_ideal_curve = [round(pct * 100.0, 1) for pct in fallback_cdef["curve"][:8]]
+            while len(chart_ideal_curve) < 8:
+                chart_ideal_curve.append(0.0)
+
         def normalize_curve_100(curve: list[float]) -> list[float]:
             total = sum(curve)
             if total <= 0:
@@ -2643,35 +2673,26 @@ def get_statistics_data(
             for r, a in zip(chrono_real_data, chrono_agro_data)
         ]
 
-        # Chart 3: Multi-Year Real Stems / Plant Comparison by Calendar Week (Format 45, 46 etc. comparing 2026 vs 2025 vs 2024)
-        year_week_stems: dict[str, dict[int, dict[str, Any]]] = {}
-        all_calendar_weeks_set: set[int] = set()
+        # Chart 3: Multi-Year Continuous Historical Real Stems / Plant Timeline vs Meta Ideal
+        # Power BI "Edit Interactions: None" for Year and Week slicers:
+        # Responds ONLY to Product Master, Variety, Activity, and Block filters (via chart_candidate_rows).
+        # X-axis: All historical source planting/pruning weeks in continuous chronological order, format YYWW (e.g. 2415, 2530, 2646).
+        sw_accumulator: dict[int, dict[str, Any]] = {}
 
         for b in chart_candidate_rows:
-            if not b["is_closed"]:
+            if not b.get("is_closed"):
                 continue
             sw_val = b.get("source_week")
             if not sw_val:
                 continue
-            sw_str = str(sw_val)
-            if len(sw_str) < 6:
-                continue
-            try:
-                y_str = sw_str[:4]
-                wk_num = int(sw_str[-2:])
-            except ValueError:
-                continue
-
             b_plants = b.get("plants", 0)
             b_prod = b.get("total_production", 0)
             if b_plants <= 0 or b_prod <= 0:
                 continue
 
-            all_calendar_weeks_set.add(wk_num)
-            if y_str not in year_week_stems:
-                year_week_stems[y_str] = {}
-            if wk_num not in year_week_stems[y_str]:
-                year_week_stems[y_str][wk_num] = {
+            if sw_val not in sw_accumulator:
+                sw_accumulator[sw_val] = {
+                    "source_week": sw_val,
                     "plants": 0,
                     "prod": 0,
                     "siem_plants": 0,
@@ -2680,92 +2701,83 @@ def get_statistics_data(
                     "poda_prod": 0,
                     "blocks_count": 0,
                 }
-            acc = year_week_stems[y_str][wk_num]
+            acc = sw_accumulator[sw_val]
             acc["plants"] += b_plants
             acc["prod"] += b_prod
             acc["blocks_count"] += 1
-            if b.get("activity") == "SIEMBRA":
+            act_b = normalize_text(b.get("activity") or "")
+            if act_b == "SIEMBRA":
                 acc["siem_plants"] += b_plants
                 acc["siem_prod"] += b_prod
-            elif b.get("activity") == "PODA":
+            elif act_b == "PODA":
                 acc["poda_plants"] += b_plants
                 acc["poda_prod"] += b_prod
 
-        is_single_year = bool(resolved_year)
-        available_chart_years = sorted(list(year_week_stems.keys()), reverse=True)
-        primary_year = resolved_year if (resolved_year and resolved_year in year_week_stems) else ("2026" if "2026" in year_week_stems else (available_chart_years[0] if available_chart_years else None))
+        sorted_sws = sorted(list(sw_accumulator.keys()))
+        chart3_sorted_labels = []
+        chart3_details = []
+        chart3_real = []
+        chart3_siem = []
+        chart3_poda = []
 
-        # Determine calendar weeks to display on X-axis:
-        # If single year selected, focus strictly on that year's active weeks
-        if is_single_year and primary_year and primary_year in year_week_stems:
-            year_active_weeks = sorted(list(year_week_stems[primary_year].keys()))
-            if selected_weeks_set:
-                wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
-                sorted_calendar_weeks = [w for w in year_active_weeks if w in wk_filter_set]
+        for sw in sorted_sws:
+            acc = sw_accumulator[sw]
+            sw_str = str(sw)
+            if len(sw_str) >= 6:
+                lbl = f"{sw_str[2:4]}{sw_str[-2:]}"
+                yr_val = sw_str[:4]
+                wk_val = int(sw_str[-2:])
+            elif len(sw_str) == 4:
+                lbl = sw_str
+                yr_val = f"20{sw_str[:2]}"
+                wk_val = int(sw_str[2:])
             else:
-                sorted_calendar_weeks = year_active_weeks
-        else:
-            if selected_weeks_set:
-                wk_filter_set = {int(str(w)[-2:]) for w in selected_weeks_set if len(str(w)) >= 2}
-                sorted_calendar_weeks = sorted([w for w in all_calendar_weeks_set if w in wk_filter_set])
+                lbl = sw_str
+                yr_val = ""
+                wk_val = int(sw)
+
+            chart3_sorted_labels.append(lbl)
+
+            tot_pp = round(acc["prod"] / acc["plants"], 2) if acc["plants"] > 0 else None
+            siem_pp = round(acc["siem_prod"] / acc["siem_plants"], 2) if acc["siem_plants"] > 0 else None
+            poda_pp = round(acc["poda_prod"] / acc["poda_plants"], 2) if acc["poda_plants"] > 0 else None
+
+            if activity_filter == "SIEMBRA":
+                chart3_real.append(siem_pp)
+            elif activity_filter == "PODA":
+                chart3_real.append(poda_pp)
             else:
-                sorted_calendar_weeks = sorted(list(all_calendar_weeks_set))
+                chart3_real.append(tot_pp)
 
-        if primary_year and len(primary_year) >= 4:
-            y_prefix = primary_year[2:4]
-            chart3_sorted_labels = [f"{y_prefix}{w:02d}" for w in sorted_calendar_weeks]
-        else:
-            chart3_sorted_labels = [f"26{w:02d}" for w in sorted_calendar_weeks]
-        series_by_year: dict[str, list[float | None]] = {}
-        details_by_year: dict[str, list[dict[str, Any] | None]] = {}
+            chart3_siem.append(siem_pp)
+            chart3_poda.append(poda_pp)
 
-        for y_str in available_chart_years:
-            y_data = []
-            y_details = []
-            for wk_num in sorted_calendar_weeks:
-                if wk_num in year_week_stems[y_str]:
-                    cell = year_week_stems[y_str][wk_num]
-                    t_pl = round(cell["prod"] / cell["plants"], 2) if cell["plants"] > 0 else None
-                    siem_pp = round(cell["siem_prod"] / cell["siem_plants"], 2) if cell["siem_plants"] > 0 else None
-                    poda_pp = round(cell["poda_prod"] / cell["poda_plants"], 2) if cell["poda_plants"] > 0 else None
+            chart3_details.append({
+                "source_week": sw,
+                "label": lbl,
+                "year": yr_val,
+                "week": wk_val,
+                "total_t_pl": tot_pp,
+                "siem_t_pl": siem_pp,
+                "poda_t_pl": poda_pp,
+                "total_plants": acc["plants"],
+                "total_production": acc["prod"],
+                "siem_plants": acc["siem_plants"],
+                "siem_prod": acc["siem_prod"],
+                "poda_plants": acc["poda_plants"],
+                "poda_prod": acc["poda_prod"],
+                "blocks_count": acc["blocks_count"],
+                "target": avg_ideal_stems_pp,
+            })
 
-                    # If activity filter is specified, the year series reflects that specific activity
-                    if activity_filter == "SIEMBRA":
-                        y_data.append(siem_pp)
-                    elif activity_filter == "PODA":
-                        y_data.append(poda_pp)
-                    else:
-                        y_data.append(t_pl)
-
-                    y_details.append({
-                        "year": y_str,
-                        "week": wk_num,
-                        "total_t_pl": t_pl,
-                        "siem_t_pl": siem_pp,
-                        "poda_t_pl": poda_pp,
-                        "total_plants": cell["plants"],
-                        "total_production": cell["prod"],
-                        "siem_plants": cell["siem_plants"],
-                        "siem_prod": cell["siem_prod"],
-                        "poda_plants": cell["poda_plants"],
-                        "poda_prod": cell["poda_prod"],
-                        "blocks_count": cell["blocks_count"],
-                        "target": avg_ideal_stems_pp,
-                    })
-                else:
-                    y_data.append(None)
-                    y_details.append(None)
-            series_by_year[y_str] = y_data
-            details_by_year[y_str] = y_details
-
-        primary_details = details_by_year.get(primary_year, []) if primary_year else []
-        chart_stems_pp_real = [d["total_t_pl"] if d else None for d in primary_details]
-        chart_stems_pp_siembra = [d["siem_t_pl"] if d else None for d in primary_details]
-        chart_stems_pp_poda = [d["poda_t_pl"] if d else None for d in primary_details]
+        chart_stems_pp_real = chart3_real
+        chart_stems_pp_siembra = chart3_siem
+        chart_stems_pp_poda = chart3_poda
         chart_stems_pp_target = [avg_ideal_stems_pp] * len(chart3_sorted_labels)
-        chart_stems_pp_details = primary_details
+        chart_stems_pp_details = chart3_details
         last_closed_label = chart3_sorted_labels[-1] if chart3_sorted_labels else None
         last_closed_index = len(chart3_sorted_labels) - 1 if chart3_sorted_labels else -1
+        available_chart_years = sorted(list(set(str(sw)[:4] for sw in sorted_sws if len(str(sw)) >= 4)), reverse=True)
 
         # Chart 4: Hybrid Lifecycle Curve (Closed Real Stems + Future Projected Estimates)
         hybrid_weeks = sorted_chrono_weeks
@@ -2837,14 +2849,13 @@ def get_statistics_data(
                 "variation_pct": chrono_variation_pct,
             },
             "chart_stems_pp": {
-                "is_single_year": is_single_year,
+                "is_single_year": False,
                 "selected_year": resolved_year or "ALL",
                 "selected_activity": activity_filter,
                 "labels": chart3_sorted_labels,
-                "calendar_weeks": sorted_calendar_weeks,
-                "series_by_year": series_by_year,
+                "source_weeks": sorted_sws,
+                "calendar_weeks": [d["week"] for d in chart3_details],
                 "years": available_chart_years,
-                "details_by_year": details_by_year,
                 "real_stems_pp": chart_stems_pp_real,
                 "series_total": chart_stems_pp_real,
                 "series_siembra": chart_stems_pp_siembra,
