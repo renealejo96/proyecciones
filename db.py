@@ -1,6 +1,8 @@
 import os
 import re
 import time
+import gzip
+import json
 import unicodedata
 from datetime import datetime, date
 from pathlib import Path
@@ -292,8 +294,71 @@ def float_or_zero(value: Any) -> float:
         return 0.0
 
 
+def restore_snapshot_if_needed():
+    snapshot_path = Path(__file__).resolve().parent / "siembras_podas" / "full_db_snapshot.json.gz"
+    if not snapshot_path.exists():
+        return
+
+    with SessionLocal() as db:
+        try:
+            closure_2025_count = db.query(BlockClosureDB).filter(BlockClosureDB.source_week < 202600).count()
+            tpsr_2025_count = db.query(TpsrRecord).filter(TpsrRecord.source_week < 202600).count()
+            if closure_2025_count > 1000 and tpsr_2025_count > 1000:
+                return
+
+            print("Restoring historical database snapshot from full_db_snapshot.json.gz...")
+            with gzip.open(snapshot_path, "rt", encoding="utf-8") as f:
+                data = json.load(f)
+
+            table_models = [
+                ("users", UserDB),
+                ("cycle_definitions", CycleDefinitionDB),
+                ("tpsr_records", TpsrRecord),
+                ("block_closures", BlockClosureDB),
+                ("week_adjustments", WeekAdjustmentDB),
+                ("row_adjustments", RowAdjustmentDB),
+                ("mass_adjustments", MassAdjustmentDB),
+                ("app_meta", AppMetaDB),
+            ]
+
+            for name, model in table_models:
+                rows_data = data.get(name, [])
+                if not rows_data:
+                    continue
+
+                existing_ids = set(r[0] for r in db.query(model.id).all()) if hasattr(model, 'id') else set()
+                to_insert = [r for r in rows_data if r.get('id') not in existing_ids]
+
+                for r in to_insert:
+                    for k, v in list(r.items()):
+                        if isinstance(v, str) and len(v) == 19 and v[10] == 'T':
+                            try:
+                                r[k] = datetime.fromisoformat(v)
+                            except Exception:
+                                pass
+
+                if to_insert:
+                    db.bulk_insert_mappings(model, to_insert)
+                    db.commit()
+                    print(f"Restored {len(to_insert)} rows into {name}")
+
+            if engine.dialect.name == "postgresql":
+                for tbl in ["tpsr_records", "block_closures", "week_adjustments", "cycle_definitions", "app_users", "row_adjustments", "mass_adjustments"]:
+                    try:
+                        db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 1)) FROM {tbl};"))
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+
+            print("Database historical snapshot restored successfully!")
+        except Exception as e:
+            db.rollback()
+            print(f"Warning: could not restore historical snapshot: {e}")
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    restore_snapshot_if_needed()
 
     # 1. Fast check: if migrations and data healing have already been applied, return immediately!
     db = SessionLocal()
