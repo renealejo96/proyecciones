@@ -2772,6 +2772,233 @@
             color: #7e22ce;
             border: 1px solid #e9d5ff;
         }
+
+        /* ---------------- EXECUTIVE SUMMARY MATRIX CARD & TABLE ---------------- */
+        .summary-matrix-card {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--shadow-card);
+            margin-top: 18px;
+            box-sizing: border-box;
+        }
+
+        .summary-matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .summary-matrix-title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .summary-matrix-main-title {
+            font-size: 1.02rem;
+            font-weight: 850;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .summary-matrix-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .sm-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2.5px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+        }
+        .sm-chip-highlight {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+            font-weight: 800;
+        }
+        .sm-chip-emerald {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+            font-weight: 800;
+        }
+        .sm-chip-purple {
+            background: #faf5ff;
+            border-color: #e9d5ff;
+            color: #6b21a8;
+            font-weight: 800;
+        }
+
+        .summary-matrix-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .summary-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.76rem;
+            font-family: inherit;
+            color: #1e293b;
+            text-align: left;
+        }
+
+        .summary-matrix-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.71rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 9px 8px;
+            border-bottom: 2px solid #cbd5e1;
+            white-space: nowrap;
+        }
+
+        .summary-matrix-table td {
+            padding: 8px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .summary-matrix-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        .sm-tr-crop-header td {
+            background: #f1f5f9;
+            font-weight: 850;
+            color: #0f172a;
+            font-size: 0.81rem;
+            border-top: 2px solid #cbd5e1;
+            border-bottom: 1.5px solid #cbd5e1;
+            padding: 10px 8px;
+        }
+
+        .sm-tr-variety td {
+            background: #ffffff;
+        }
+        .sm-var-indent {
+            padding-left: 20px !important;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .sm-tr-grand-total td {
+            background: #e2e8f0;
+            font-weight: 900;
+            color: #0f172a;
+            font-size: 0.83rem;
+            border-top: 2.5px solid #94a3b8;
+            border-bottom: 2px solid #94a3b8;
+            padding: 10px 8px;
+        }
+
+        .sm-td-sparkline {
+            width: 128px;
+            min-width: 128px;
+            text-align: center;
+            padding: 4px 6px !important;
+        }
+
+        .sm-th-wk {
+            text-align: center !important;
+            width: 44px;
+            min-width: 44px;
+        }
+
+        .sm-td-wk {
+            text-align: center;
+            width: 44px;
+            min-width: 44px;
+            font-weight: 700;
+            font-size: 0.71rem;
+            padding: 6px 3px !important;
+        }
+        .sm-wk-val {
+            display: block;
+            margin-bottom: 2px;
+        }
+        .sm-wk-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #3b82f6;
+            margin: 0 auto;
+            opacity: 0.85;
+        }
+
+        .sm-badge-tp {
+            font-weight: 850;
+            font-size: 0.82rem;
+            color: #0f172a;
+        }
+        .sm-badge-meta {
+            font-weight: 650;
+            color: #64748b;
+            font-size: 0.73rem;
+        }
+        .sm-badge-diff {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 1.5px 6px;
+            border-radius: 4px;
+            font-size: 0.69rem;
+            font-weight: 800;
+        }
+        .sm-diff-pos {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .sm-diff-neg {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        @media print {
+            body * { visibility: hidden !important; }
+            #summary-matrix-section, #summary-matrix-section * { visibility: visible !important; }
+            #summary-matrix-section {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .summary-matrix-table-wrap {
+                overflow: visible !important;
+                border: none !important;
+            }
+            #btn-copy-summary-tsv, #btn-print-summary {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3333,6 +3560,244 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 3. TABLA RESUMEN EJECUTIVO: CULTIVO, VARIEDADES Y CURVAS PONDERADAS CON SVG -->
+            <!-- ========================================================================= -->
+            <div class="summary-matrix-card" id="summary-matrix-section">
+                <div class="summary-matrix-header">
+                    <div class="summary-matrix-title-block">
+                        <div class="summary-matrix-main-title">
+                            <span>📋 Resumen Ejecutivo de Rendimiento y Curvas de Cosecha Ponderadas</span>
+                        </div>
+                        <div class="summary-matrix-chips">
+                            <span class="sm-chip sm-chip-highlight" title="Cultivo activo">
+                                🌿 Cultivo: <strong>{{ stats.selected_pm or 'TODOS LOS CULTIVOS' }}</strong>
+                            </span>
+                            <span class="sm-chip sm-chip-emerald" title="Año analizado">
+                                📅 Año: <strong>{{ stats.selected_year or 'HISTÓRICO MULTI-AÑO' }}</strong>
+                            </span>
+                            {% if stats.selected_varieties %}
+                            <span class="sm-chip" title="Variedades filtradas">
+                                🌸 Variedad: <strong>{{ stats.selected_varieties|join(', ') }}</strong>
+                            </span>
+                            {% else %}
+                            <span class="sm-chip" title="Todas las variedades del cultivo">
+                                🌸 Variedades: <strong>Todas</strong>
+                            </span>
+                            {% endif %}
+                            <span class="sm-chip" title="Actividad">
+                                ⚙️ Actividad: <strong>{{ stats.selected_activity or 'Siembra y Poda' }}</strong>
+                            </span>
+                            {% if stats.selected_weeks %}
+                            <span class="sm-chip sm-chip-purple" title="Semanas seleccionadas">
+                                ⏱️ Semanas: <strong>{{ stats.selected_weeks|join(', ') }}</strong>
+                            </span>
+                            {% endif %}
+                            <span class="sm-chip" style="background: #f1f5f9; color: #334155;">
+                                🏆 <strong>{{ stats.kpis.total_closed_blocks }}</strong> Bloques Cerrados Analizados
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn-table-action" id="btn-copy-summary-tsv" title="Copiar tabla al portapapeles en formato compatible con Excel">
+                            📋 Copiar Tabla (Excel)
+                        </button>
+                        <button type="button" class="btn-table-action" id="btn-print-summary" title="Imprimir o preparar captura limpia de este resumen">
+                            📸 Captura / Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <div class="summary-matrix-table-wrap">
+                    <table class="summary-matrix-table" id="summary-matrix-table">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 175px;">Cultivo / Variedad</th>
+                                <th style="text-align: center; width: 65px;" title="Cantidad de bloques cerrados">Bloques</th>
+                                <th style="text-align: right; width: 85px;" title="Total de plantas de los bloques cerrados">Plantas</th>
+                                <th style="text-align: right; width: 95px;" title="Producción total de tallos cerrados">Tallos Totales</th>
+                                <th style="text-align: right; width: 80px;" title="Tallos por planta ponderado real">T/Pl Real</th>
+                                <th style="text-align: right; width: 75px;" title="Meta de tallos por planta">T/Pl Meta</th>
+                                <th style="text-align: center; width: 105px;" title="Diferencia absoluta y cumplimiento porcentual">Desv / Cumpl</th>
+                                <th style="text-align: center; width: 130px;" title="Curva gráfica de entrada a cosecha ponderada (vectorial SVG)">Gráfica de Curva</th>
+                                <th class="sm-th-wk" title="Semana 0 (Inicio de cosecha)">Sem 0</th>
+                                <th class="sm-th-wk" title="Semana +1">Sem +1</th>
+                                <th class="sm-th-wk" title="Semana +2">Sem +2</th>
+                                <th class="sm-th-wk" title="Semana +3">Sem +3</th>
+                                <th class="sm-th-wk" title="Semana +4">Sem +4</th>
+                                <th class="sm-th-wk" title="Semana +5">Sem +5</th>
+                                <th class="sm-th-wk" title="Semana +6">Sem +6</th>
+                                <th class="sm-th-wk" title="Semana +7 o posterior">Sem +7+</th>
+                                <th style="text-align: left; min-width: 150px;" title="Rendimiento detallado por Siembra y Poda">Desglose Siem / Poda</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if stats.variety_summary_groups %}
+                                {% for pm_g in stats.variety_summary_groups %}
+                                    <!-- FILA TOTAL / CONSOLIDADO DEL CULTIVO (PRODUCTO MAESTRO) -->
+                                    <tr class="sm-tr-crop-header">
+                                        <td>
+                                            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                                                📦 <strong>TOTAL {{ pm_g.product_master }}</strong>
+                                            </span>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="kpi-badge" style="background: #e2e8f0; color: #1e293b; font-weight: 800;">
+                                                {{ pm_g.closed_blocks }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;">{{ '{:,}'.format(pm_g.total_plants) }}</td>
+                                        <td style="text-align: right; font-weight: 800; color: #0284c7;">{{ '{:,}'.format(pm_g.total_production) }}</td>
+                                        <td style="text-align: right;">
+                                            <span class="sm-badge-tp" style="font-size: 0.88rem; color: {{ '#059669' if pm_g.real_stems_pp >= pm_g.ideal_stems_pp else '#0f172a' }};">
+                                                {{ pm_g.real_stems_pp }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;"><span class="sm-badge-meta">{{ pm_g.ideal_stems_pp }}</span></td>
+                                        <td style="text-align: center;">
+                                            {% if pm_g.diff_pp >= 0 %}
+                                                <span class="sm-badge-diff sm-diff-pos">▲ +{{ pm_g.diff_pp }} ({{ pm_g.fulfillment_pct }}%)</span>
+                                            {% else %}
+                                                <span class="sm-badge-diff sm-diff-neg">▼ {{ pm_g.diff_pp }} ({{ pm_g.fulfillment_pct }}%)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="sm-td-sparkline">
+                                            {{ pm_g.svg_curve | safe }}
+                                        </td>
+                                        {% for idx in range(8) %}
+                                            {% set pct = pm_g.relative_curve[idx] if idx < pm_g.relative_curve|length else 0.0 %}
+                                            <td class="sm-td-wk">
+                                                <span class="sm-wk-val" style="color: {{ '#0369a1' if pct >= 25 else ('#1e293b' if pct > 0 else '#94a3b8') }}; font-weight: {{ '800' if pct >= 20 else '600' }};">
+                                                    {{ '%.1f'|format(pct) }}%
+                                                </span>
+                                                <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: {{ '#0284c7' if pct >= 25 else '#38bdf8' }};"></div>
+                                            </td>
+                                        {% endfor %}
+                                        <td style="font-size: 0.69rem;">
+                                            {% if pm_g.siem_pp is not none and pm_g.poda_pp is not none %}
+                                                <span style="color: #047857; font-weight: 700;">🌱 Siem: <strong>{{ pm_g.siem_pp }}</strong></span>
+                                                <span style="color: #94a3b8; margin: 0 2px;">|</span>
+                                                <span style="color: #7e22ce; font-weight: 700;">✂️ Poda: <strong>{{ pm_g.poda_pp }}</strong></span>
+                                            {% elif pm_g.siem_pp is not none %}
+                                                <span style="color: #047857; font-weight: 700;">🌱 Siembra: <strong>{{ pm_g.siem_pp }}</strong></span>
+                                            {% elif pm_g.poda_pp is not none %}
+                                                <span style="color: #7e22ce; font-weight: 700;">✂️ Poda: <strong>{{ pm_g.poda_pp }}</strong></span>
+                                            {% else %}
+                                                <span style="color: #94a3b8;">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- FILAS DE CADA VARIEDAD -->
+                                    {% for v in pm_g.varieties %}
+                                    <tr class="sm-tr-variety">
+                                        <td class="sm-var-indent">
+                                            <span>🌿 {{ v.variety }}</span>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="kpi-badge" style="background: #f8fafc; color: #475569; font-weight: 700;">
+                                                {{ v.closed_blocks }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;">{{ '{:,}'.format(v.total_plants) }}</td>
+                                        <td style="text-align: right; font-weight: 700;">{{ '{:,}'.format(v.total_production) }}</td>
+                                        <td style="text-align: right;">
+                                            <span class="sm-badge-tp" style="color: {{ '#059669' if v.real_stems_pp >= v.ideal_stems_pp else '#0f172a' }};">
+                                                {{ v.real_stems_pp }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;"><span class="sm-badge-meta">{{ v.ideal_stems_pp }}</span></td>
+                                        <td style="text-align: center;">
+                                            {% if v.diff_pp >= 0 %}
+                                                <span class="sm-badge-diff sm-diff-pos">▲ +{{ v.diff_pp }} ({{ v.fulfillment_pct }}%)</span>
+                                            {% else %}
+                                                <span class="sm-badge-diff sm-diff-neg">▼ {{ v.diff_pp }} ({{ v.fulfillment_pct }}%)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="sm-td-sparkline">
+                                            {{ v.svg_curve | safe }}
+                                        </td>
+                                        {% for idx in range(8) %}
+                                            {% set pct = v.relative_curve[idx] if idx < v.relative_curve|length else 0.0 %}
+                                            <td class="sm-td-wk">
+                                                <span class="sm-wk-val" style="color: {{ '#1d4ed8' if pct >= 25 else ('#334155' if pct > 0 else '#94a3b8') }}; font-weight: {{ '800' if pct >= 20 else '600' }};">
+                                                    {{ '%.1f'|format(pct) }}%
+                                                </span>
+                                                <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: {{ '#2563eb' if pct >= 25 else '#60a5fa' }};"></div>
+                                            </td>
+                                        {% endfor %}
+                                        <td style="font-size: 0.68rem;">
+                                            {% if v.siem_pp is not none and v.poda_pp is not none %}
+                                                <span style="color: #047857;">🌱 Siem: <strong>{{ v.siem_pp }}</strong> ({{ v.siem_blocks }} b)</span>
+                                                <span style="color: #cbd5e1; margin: 0 2px;">|</span>
+                                                <span style="color: #7e22ce;">✂️ Poda: <strong>{{ v.poda_pp }}</strong> ({{ v.poda_blocks }} b)</span>
+                                            {% elif v.siem_pp is not none %}
+                                                <span style="color: #047857;">🌱 Siembra: <strong>{{ v.siem_pp }}</strong> ({{ v.siem_blocks }} b)</span>
+                                            {% elif v.poda_pp is not none %}
+                                                <span style="color: #7e22ce;">✂️ Poda: <strong>{{ v.poda_pp }}</strong> ({{ v.poda_blocks }} b)</span>
+                                            {% else %}
+                                                <span style="color: #94a3b8;">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% endfor %}
+
+                                <!-- FILA TOTAL GENERAL FINCA (SI HAY MÁS DE 1 CULTIVO EN PANTALLA) -->
+                                {% if stats.variety_summary_groups|length > 1 %}
+                                <tr class="sm-tr-grand-total">
+                                    <td>
+                                        <span style="display: inline-flex; align-items: center; gap: 5px;">
+                                            🏆 <strong>TOTAL FINCA CONSOLIDADO</strong>
+                                        </span>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="kpi-badge" style="background: #0f172a; color: #ffffff; font-weight: 850;">
+                                            {{ stats.summary_farm_total.closed_blocks }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right;">{{ '{:,}'.format(stats.summary_farm_total.total_plants) }}</td>
+                                    <td style="text-align: right; color: #4338ca;">{{ '{:,}'.format(stats.summary_farm_total.total_production) }}</td>
+                                    <td style="text-align: right;">
+                                        <span class="sm-badge-tp" style="font-size: 0.90rem; color: #4338ca;">
+                                            {{ stats.summary_farm_total.real_stems_pp }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right;"><span class="sm-badge-meta">{{ stats.summary_farm_total.ideal_stems_pp }}</span></td>
+                                    <td style="text-align: center;">
+                                        {% if stats.summary_farm_total.diff_pp >= 0 %}
+                                            <span class="sm-badge-diff sm-diff-pos">▲ +{{ stats.summary_farm_total.diff_pp }} ({{ stats.summary_farm_total.fulfillment_pct }}%)</span>
+                                        {% else %}
+                                            <span class="sm-badge-diff sm-diff-neg">▼ {{ stats.summary_farm_total.diff_pp }} ({{ stats.summary_farm_total.fulfillment_pct }}%)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="sm-td-sparkline">
+                                        {{ stats.summary_farm_total.svg_curve | safe }}
+                                    </td>
+                                    {% for idx in range(8) %}
+                                        {% set pct = stats.summary_farm_total.relative_curve[idx] if idx < stats.summary_farm_total.relative_curve|length else 0.0 %}
+                                        <td class="sm-td-wk">
+                                            <span class="sm-wk-val" style="color: #312e81; font-weight: 800;">
+                                                {{ '%.1f'|format(pct) }}%
+                                            </span>
+                                            <div class="sm-wk-bar" style="width: {{ [pct * 2.4, 38.0]|min }}px; background: #6366f1;"></div>
+                                        </td>
+                                    {% endfor %}
+                                    <td style="font-size: 0.69rem; font-weight: 700; color: #475569;">Consolidado General</td>
+                                </tr>
+                                {% endif %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="17" style="text-align: center; padding: 25px; color: #64748b; font-size: 0.85rem;">
+                                        ℹ️ No se registraron bloques cerrados para los filtros seleccionados ({{ stats.selected_pm or 'Cultivo' }} · {{ stats.selected_year or 'Año' }}).
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -7288,6 +7753,56 @@
                     const containerWidth = scrollContainer.clientWidth || 700;
                     canvasWrapper.style.width = Math.max(containerWidth, totalLabels * minWeekWidth) + 'px';
                 }
+            });
+        }
+
+        // Summary Matrix Action Buttons (Copy to Excel TSV & Print/Screenshot)
+        const btnCopyTsv = document.getElementById('btn-copy-summary-tsv');
+        if (btnCopyTsv) {
+            btnCopyTsv.addEventListener('click', () => {
+                const table = document.getElementById('summary-matrix-table');
+                if (!table) return;
+                let tsv = [];
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('th, td'));
+                    const rowData = cells.map(cell => {
+                        if (cell.classList.contains('sm-td-sparkline') || cell.querySelector('svg')) {
+                            return 'Gráfica Curva';
+                        }
+                        return cell.innerText.replace(/[\r\n\t]+/g, ' ').trim();
+                    });
+                    tsv.push(rowData.join('\t'));
+                });
+                const tsvString = tsv.join('\n');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(tsvString).then(() => {
+                        const origText = btnCopyTsv.innerHTML;
+                        btnCopyTsv.innerHTML = '✓ ¡Copiado a Excel!';
+                        btnCopyTsv.style.background = '#dcfce7';
+                        btnCopyTsv.style.color = '#15803d';
+                        setTimeout(() => {
+                            btnCopyTsv.innerHTML = origText;
+                            btnCopyTsv.style.background = '';
+                            btnCopyTsv.style.color = '';
+                        }, 2500);
+                    }).catch(err => {
+                        console.error('Error al copiar:', err);
+                    });
+                }
+            });
+        }
+
+        const btnPrintSummary = document.getElementById('btn-print-summary');
+        if (btnPrintSummary) {
+            btnPrintSummary.addEventListener('click', () => {
+                const section = document.getElementById('summary-matrix-section');
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                setTimeout(() => {
+                    window.print();
+                }, 300);
             });
         }
 

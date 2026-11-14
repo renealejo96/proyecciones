@@ -2850,6 +2850,247 @@ def get_statistics_data(
                     if h.get("stems", 0) > 0
                 ]
 
+        # 10. Summary Matrix of Closed Blocks: Crop & Variety Breakdown with Weighted Curves and Inline SVG Curves
+        def generate_curve_svg_markup(curve: list[float], stroke_color: str = "#2563eb", fill_color: str = "rgba(37, 99, 235, 0.16)", width: int = 120, height: int = 28) -> str:
+            if not curve or sum(curve) <= 0:
+                return (
+                    f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" style="display:inline-block;vertical-align:middle;">'
+                    f'<line x1="4" y1="{height//2}" x2="{width-4}" y2="{height//2}" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="2,2"/>'
+                    f'<text x="{width//2}" y="{height//2+3}" fill="#94a3b8" font-size="8" text-anchor="middle" font-family="sans-serif">s/d</text>'
+                    f'</svg>'
+                )
+            pad_x = 5
+            pad_y = 3
+            w = width - 2 * pad_x
+            h = height - 2 * pad_y
+            n = len(curve)
+            max_val = max(max(curve), 1.0)
+            coords = []
+            for i, val in enumerate(curve):
+                x = pad_x + (i / max(n - 1, 1)) * w
+                y = (height - pad_y) - (val / max_val) * h
+                coords.append((round(x, 1), round(y, 1), val))
+            line_pts = " ".join(f"{x},{y}" for x, y, _ in coords)
+            poly_pts = f"{pad_x},{height - pad_y} " + line_pts + f" {width - pad_x},{height - pad_y}"
+            max_i = max(range(n), key=lambda idx: curve[idx])
+            circles = []
+            for i, (x, y, val) in enumerate(coords):
+                r = 3.0 if i == max_i else 1.8
+                c_fill = "#dc2626" if i == max_i else stroke_color
+                circles.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{c_fill}"><title>Sem +{i}: {val}%</title></circle>')
+            return (
+                f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" style="overflow:visible;display:inline-block;vertical-align:middle;">'
+                f'<polygon points="{poly_pts}" fill="{fill_color}" />'
+                f'<polyline points="{line_pts}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />'
+                f'{"".join(circles)}'
+                f'</svg>'
+            )
+
+        summary_pm_dict: dict[str, dict[str, Any]] = {}
+        for b in flat_block_rows:
+            if not b.get("is_closed") or b.get("plants", 0) <= 0:
+                continue
+            pm = b.get("product_master") or "GENERAL"
+            var = b.get("variety") or "GENERAL"
+            if pm not in summary_pm_dict:
+                summary_pm_dict[pm] = {
+                    "product_master": pm,
+                    "closed_blocks": 0,
+                    "total_plants": 0,
+                    "total_production": 0,
+                    "ideal_weighted_sum": 0.0,
+                    "siem_plants": 0,
+                    "siem_prod": 0,
+                    "siem_blocks": 0,
+                    "poda_plants": 0,
+                    "poda_prod": 0,
+                    "poda_blocks": 0,
+                    "relative_offsets": [0] * 8,
+                    "varieties_map": {},
+                }
+            pm_entry = summary_pm_dict[pm]
+            pm_entry["closed_blocks"] += 1
+            pm_entry["total_plants"] += b["plants"]
+            pm_entry["total_production"] += b["total_production"]
+            pm_entry["ideal_weighted_sum"] += b.get("ideal_stems_per_plant", 0.0) * b["plants"]
+
+            act_b = normalize_text(b.get("activity") or "")
+            if act_b == "SIEMBRA":
+                pm_entry["siem_plants"] += b["plants"]
+                pm_entry["siem_prod"] += b["total_production"]
+                pm_entry["siem_blocks"] += 1
+            elif act_b == "PODA":
+                pm_entry["poda_plants"] += b["plants"]
+                pm_entry["poda_prod"] += b["total_production"]
+                pm_entry["poda_blocks"] += 1
+
+            if var not in pm_entry["varieties_map"]:
+                pm_entry["varieties_map"][var] = {
+                    "variety": var,
+                    "product_master": pm,
+                    "closed_blocks": 0,
+                    "total_plants": 0,
+                    "total_production": 0,
+                    "ideal_weighted_sum": 0.0,
+                    "siem_plants": 0,
+                    "siem_prod": 0,
+                    "siem_blocks": 0,
+                    "poda_plants": 0,
+                    "poda_prod": 0,
+                    "poda_blocks": 0,
+                    "relative_offsets": [0] * 8,
+                }
+            v_entry = pm_entry["varieties_map"][var]
+            v_entry["closed_blocks"] += 1
+            v_entry["total_plants"] += b["plants"]
+            v_entry["total_production"] += b["total_production"]
+            v_entry["ideal_weighted_sum"] += b.get("ideal_stems_per_plant", 0.0) * b["plants"]
+            if act_b == "SIEMBRA":
+                v_entry["siem_plants"] += b["plants"]
+                v_entry["siem_prod"] += b["total_production"]
+                v_entry["siem_blocks"] += 1
+            elif act_b == "PODA":
+                v_entry["poda_plants"] += b["plants"]
+                v_entry["poda_prod"] += b["total_production"]
+                v_entry["poda_blocks"] += 1
+
+            real_hws = [item for item in b.get("harvest_breakdown", []) if item["source"] == "REAL"]
+            if real_hws:
+                start_hw = real_hws[0]["harvest_week"]
+                for h_item in real_hws:
+                    offset = calculate_week_difference(start_hw, h_item["harvest_week"])
+                    if 0 <= offset < 8:
+                        stems = h_item["exportable_stems"]
+                        v_entry["relative_offsets"][offset] += stems
+                        pm_entry["relative_offsets"][offset] += stems
+
+        variety_summary_groups: list[dict[str, Any]] = []
+        farm_total_plants = 0
+        farm_total_prod = 0
+        farm_total_blocks = 0
+        farm_total_ideal_sum = 0.0
+        farm_relative_offsets = [0] * 8
+
+        for pm in sorted(summary_pm_dict.keys()):
+            pm_data = summary_pm_dict[pm]
+            pm_plants = pm_data["total_plants"]
+            pm_prod = pm_data["total_production"]
+            pm_real_pp = round(pm_prod / pm_plants, 2) if pm_plants > 0 else 0.0
+            pm_ideal_pp = round(pm_data["ideal_weighted_sum"] / pm_plants, 2) if pm_plants > 0 else 0.0
+            pm_diff_pp = round(pm_real_pp - pm_ideal_pp, 2)
+            pm_fulfill = round((pm_real_pp / pm_ideal_pp) * 100.0, 1) if pm_ideal_pp > 0 else 100.0
+
+            pm_tot_stems_curve = sum(pm_data["relative_offsets"])
+            if pm_tot_stems_curve > 0:
+                pm_curve = [round((val / pm_tot_stems_curve) * 100.0, 1) for val in pm_data["relative_offsets"]]
+                pm_curve = normalize_curve_100(pm_curve)
+            else:
+                pm_curve = [0.0] * 8
+
+            pm_svg = generate_curve_svg_markup(pm_curve, stroke_color="#0284c7", fill_color="rgba(2, 132, 199, 0.18)")
+
+            varieties_list = []
+            for v_name in sorted(pm_data["varieties_map"].keys()):
+                v_data = pm_data["varieties_map"][v_name]
+                v_plants = v_data["total_plants"]
+                v_prod = v_data["total_production"]
+                v_real_pp = round(v_prod / v_plants, 2) if v_plants > 0 else 0.0
+                v_ideal_pp = round(v_data["ideal_weighted_sum"] / v_plants, 2) if v_plants > 0 else 0.0
+                v_diff_pp = round(v_real_pp - v_ideal_pp, 2)
+                v_fulfill = round((v_real_pp / v_ideal_pp) * 100.0, 1) if v_ideal_pp > 0 else 100.0
+
+                v_tot_stems_curve = sum(v_data["relative_offsets"])
+                if v_tot_stems_curve > 0:
+                    v_curve = [round((val / v_tot_stems_curve) * 100.0, 1) for val in v_data["relative_offsets"]]
+                    v_curve = normalize_curve_100(v_curve)
+                else:
+                    v_curve = [0.0] * 8
+
+                v_svg = generate_curve_svg_markup(v_curve, stroke_color="#2563eb", fill_color="rgba(37, 99, 235, 0.14)")
+
+                v_siem_pp = round(v_data["siem_prod"] / v_data["siem_plants"], 2) if v_data["siem_plants"] > 0 else None
+                v_poda_pp = round(v_data["poda_prod"] / v_data["poda_plants"], 2) if v_data["poda_plants"] > 0 else None
+
+                varieties_list.append({
+                    "variety": v_name,
+                    "product_master": pm,
+                    "closed_blocks": v_data["closed_blocks"],
+                    "total_plants": v_plants,
+                    "total_production": v_prod,
+                    "real_stems_pp": v_real_pp,
+                    "ideal_stems_pp": v_ideal_pp,
+                    "diff_pp": v_diff_pp,
+                    "fulfillment_pct": v_fulfill,
+                    "siem_plants": v_data["siem_plants"],
+                    "siem_prod": v_data["siem_prod"],
+                    "siem_pp": v_siem_pp,
+                    "siem_blocks": v_data["siem_blocks"],
+                    "poda_plants": v_data["poda_plants"],
+                    "poda_prod": v_data["poda_prod"],
+                    "poda_pp": v_poda_pp,
+                    "poda_blocks": v_data["poda_blocks"],
+                    "relative_curve": v_curve,
+                    "svg_curve": v_svg,
+                })
+
+            pm_siem_pp = round(pm_data["siem_prod"] / pm_data["siem_plants"], 2) if pm_data["siem_plants"] > 0 else None
+            pm_poda_pp = round(pm_data["poda_prod"] / pm_data["poda_plants"], 2) if pm_data["poda_plants"] > 0 else None
+
+            variety_summary_groups.append({
+                "product_master": pm,
+                "closed_blocks": pm_data["closed_blocks"],
+                "total_plants": pm_plants,
+                "total_production": pm_prod,
+                "real_stems_pp": pm_real_pp,
+                "ideal_stems_pp": pm_ideal_pp,
+                "diff_pp": pm_diff_pp,
+                "fulfillment_pct": pm_fulfill,
+                "siem_plants": pm_data["siem_plants"],
+                "siem_prod": pm_data["siem_prod"],
+                "siem_pp": pm_siem_pp,
+                "siem_blocks": pm_data["siem_blocks"],
+                "poda_plants": pm_data["poda_plants"],
+                "poda_prod": pm_data["poda_prod"],
+                "poda_pp": pm_poda_pp,
+                "poda_blocks": pm_data["poda_blocks"],
+                "relative_curve": pm_curve,
+                "svg_curve": pm_svg,
+                "varieties": varieties_list,
+            })
+
+            farm_total_plants += pm_plants
+            farm_total_prod += pm_prod
+            farm_total_blocks += pm_data["closed_blocks"]
+            farm_total_ideal_sum += pm_data["ideal_weighted_sum"]
+            for idx in range(8):
+                farm_relative_offsets[idx] += pm_data["relative_offsets"][idx]
+
+        farm_real_pp = round(farm_total_prod / farm_total_plants, 2) if farm_total_plants > 0 else 0.0
+        farm_ideal_pp = round(farm_total_ideal_sum / farm_total_plants, 2) if farm_total_plants > 0 else 0.0
+        farm_diff_pp = round(farm_real_pp - farm_ideal_pp, 2)
+        farm_fulfill = round((farm_real_pp / farm_ideal_pp) * 100.0, 1) if farm_ideal_pp > 0 else 100.0
+
+        farm_tot_stems_curve = sum(farm_relative_offsets)
+        if farm_tot_stems_curve > 0:
+            farm_curve = [round((val / farm_tot_stems_curve) * 100.0, 1) for val in farm_relative_offsets]
+            farm_curve = normalize_curve_100(farm_curve)
+        else:
+            farm_curve = [0.0] * 8
+
+        farm_svg = generate_curve_svg_markup(farm_curve, stroke_color="#4f46e5", fill_color="rgba(79, 70, 229, 0.20)")
+
+        summary_farm_total = {
+            "closed_blocks": farm_total_blocks,
+            "total_plants": farm_total_plants,
+            "total_production": farm_total_prod,
+            "real_stems_pp": farm_real_pp,
+            "ideal_stems_pp": farm_ideal_pp,
+            "diff_pp": farm_diff_pp,
+            "fulfillment_pct": farm_fulfill,
+            "relative_curve": farm_curve,
+            "svg_curve": farm_svg,
+        }
+
         res = {
             "kpis": {
                 "total_real_stems": closed_prod_sum,
@@ -2938,6 +3179,8 @@ def get_statistics_data(
             "selected_variety": selected_varieties[0] if len(selected_varieties) == 1 else (", ".join(selected_varieties) if selected_varieties else ""),
             "selected_activity": activity_filter,
             "selected_block": block_filter,
+            "variety_summary_groups": variety_summary_groups,
+            "summary_farm_total": summary_farm_total,
         }
         _STATS_CACHE[cache_key] = res
         return res
