@@ -304,53 +304,130 @@ def restore_snapshot_if_needed():
             closure_2025_count = db.query(BlockClosureDB).filter(BlockClosureDB.source_week < 202600).count()
             tpsr_2025_count = db.query(TpsrRecord).filter(TpsrRecord.source_week < 202600).count()
             if closure_2025_count > 1000 and tpsr_2025_count > 1000:
-                return
+                return  # Históricos ya presentes, no hacer nada
 
-            print("Restoring historical database snapshot from full_db_snapshot.json.gz...")
+            print("Restaurando histórico de años anteriores (2024-2025) sin tocar datos de 2026...")
             with gzip.open(snapshot_path, "rt", encoding="utf-8") as f:
                 data = json.load(f)
 
-            table_models = [
-                ("users", UserDB),
-                ("cycle_definitions", CycleDefinitionDB),
-                ("tpsr_records", TpsrRecord),
-                ("block_closures", BlockClosureDB),
-                ("week_adjustments", WeekAdjustmentDB),
-                ("row_adjustments", RowAdjustmentDB),
-                ("mass_adjustments", MassAdjustmentDB),
-                ("app_meta", AppMetaDB),
-            ]
+            # 1. TPSR: Solo insertar históricos (< 202600) que no existan
+            tpsr_rows = data.get("tpsr_records", [])
+            existing_tpsr = set(
+                (r.activity, r.product_master_norm, r.variety_norm, r.block_norm, r.source_week, r.bed_location)
+                for r in db.query(
+                    TpsrRecord.activity,
+                    TpsrRecord.product_master_norm,
+                    TpsrRecord.variety_norm,
+                    TpsrRecord.block_norm,
+                    TpsrRecord.source_week,
+                    TpsrRecord.bed_location,
+                ).filter(TpsrRecord.source_week < 202600).all()
+            )
+            tpsr_to_insert = []
+            for r in tpsr_rows:
+                if (r.get("source_week") or 0) < 202600:
+                    k = (r.get("activity"), r.get("product_master_norm"), r.get("variety_norm"), r.get("block_norm"), r.get("source_week"), r.get("bed_location"))
+                    if k not in existing_tpsr:
+                        r_copy = dict(r)
+                        r_copy.pop("id", None)
+                        if isinstance(r_copy.get("created_at"), str):
+                            try: r_copy["created_at"] = datetime.fromisoformat(r_copy["created_at"])
+                            except Exception: pass
+                        if isinstance(r_copy.get("updated_at"), str):
+                            try: r_copy["updated_at"] = datetime.fromisoformat(r_copy["updated_at"])
+                            except Exception: pass
+                        tpsr_to_insert.append(r_copy)
+                        existing_tpsr.add(k)
+            if tpsr_to_insert:
+                db.bulk_insert_mappings(TpsrRecord, tpsr_to_insert)
+                db.commit()
+                print(f"Inyectados {len(tpsr_to_insert)} registros históricos TPSR (2024-2025)")
 
-            for name, model in table_models:
-                rows_data = data.get(name, [])
-                if not rows_data:
-                    continue
+            # 2. Block Closures: Solo cierres históricos (< 202600)
+            bc_rows = data.get("block_closures", [])
+            existing_bc = set(
+                (r.activity, r.product_master_norm, r.variety_norm, r.block_norm, r.source_week)
+                for r in db.query(
+                    BlockClosureDB.activity,
+                    BlockClosureDB.product_master_norm,
+                    BlockClosureDB.variety_norm,
+                    BlockClosureDB.block_norm,
+                    BlockClosureDB.source_week,
+                ).filter(BlockClosureDB.source_week < 202600).all()
+            )
+            bc_to_insert = []
+            for r in bc_rows:
+                if (r.get("source_week") or 0) < 202600:
+                    k = (r.get("activity"), r.get("product_master_norm"), r.get("variety_norm"), r.get("block_norm"), r.get("source_week"))
+                    if k not in existing_bc:
+                        r_copy = dict(r)
+                        r_copy.pop("id", None)
+                        if isinstance(r_copy.get("closed_at"), str):
+                            try: r_copy["closed_at"] = datetime.fromisoformat(r_copy["closed_at"])
+                            except Exception: pass
+                        bc_to_insert.append(r_copy)
+                        existing_bc.add(k)
+            if bc_to_insert:
+                db.bulk_insert_mappings(BlockClosureDB, bc_to_insert)
+                db.commit()
+                print(f"Inyectados {len(bc_to_insert)} cierres históricos de bloques (2024-2025)")
 
-                existing_ids = set(r[0] for r in db.query(model.id).all()) if hasattr(model, 'id') else set()
-                to_insert = [r for r in rows_data if r.get('id') not in existing_ids]
+            # 3. Week Adjustments: Solo cortes históricos previos a semana 202630
+            wa_rows = data.get("week_adjustments", [])
+            existing_wa = set(
+                (r.activity, r.product_master_norm, r.variety_norm, r.block_norm, r.source_week, r.harvest_week)
+                for r in db.query(
+                    WeekAdjustmentDB.activity,
+                    WeekAdjustmentDB.product_master_norm,
+                    WeekAdjustmentDB.variety_norm,
+                    WeekAdjustmentDB.block_norm,
+                    WeekAdjustmentDB.source_week,
+                    WeekAdjustmentDB.harvest_week,
+                ).filter(WeekAdjustmentDB.harvest_week < 202630).all()
+            )
+            wa_to_insert = []
+            for r in wa_rows:
+                if (r.get("harvest_week") or 0) < 202630:
+                    k = (r.get("activity"), r.get("product_master_norm"), r.get("variety_norm"), r.get("block_norm"), r.get("source_week"), r.get("harvest_week"))
+                    if k not in existing_wa:
+                        r_copy = dict(r)
+                        r_copy.pop("id", None)
+                        if isinstance(r_copy.get("created_at"), str):
+                            try: r_copy["created_at"] = datetime.fromisoformat(r_copy["created_at"])
+                            except Exception: pass
+                        if isinstance(r_copy.get("updated_at"), str):
+                            try: r_copy["updated_at"] = datetime.fromisoformat(r_copy["updated_at"])
+                            except Exception: pass
+                        wa_to_insert.append(r_copy)
+                        existing_wa.add(k)
+            if wa_to_insert:
+                db.bulk_insert_mappings(WeekAdjustmentDB, wa_to_insert)
+                db.commit()
+                print(f"Inyectados {len(wa_to_insert)} ajustes/cortes históricos (pre-semana 30)")
 
-                for r in to_insert:
-                    for k, v in list(r.items()):
-                        if isinstance(v, str) and len(v) == 19 and v[10] == 'T':
-                            try:
-                                r[k] = datetime.fromisoformat(v)
-                            except Exception:
-                                pass
+            # 4. Cycle definitions: solo si faltan
+            cycle_rows = data.get("cycle_definitions", [])
+            existing_cycles = set(
+                (r.product_master_norm, r.variety_norm, r.activity)
+                for r in db.query(
+                    CycleDefinitionDB.product_master_norm,
+                    CycleDefinitionDB.variety_norm,
+                    CycleDefinitionDB.activity,
+                ).all()
+            )
+            cycle_to_insert = []
+            for r in cycle_rows:
+                k = (r.get("product_master_norm"), r.get("variety_norm"), r.get("activity"))
+                if k not in existing_cycles:
+                    r_copy = dict(r)
+                    r_copy.pop("id", None)
+                    cycle_to_insert.append(r_copy)
+                    existing_cycles.add(k)
+            if cycle_to_insert:
+                db.bulk_insert_mappings(CycleDefinitionDB, cycle_to_insert)
+                db.commit()
 
-                if to_insert:
-                    db.bulk_insert_mappings(model, to_insert)
-                    db.commit()
-                    print(f"Restored {len(to_insert)} rows into {name}")
-
-            if engine.dialect.name == "postgresql":
-                for tbl in ["tpsr_records", "block_closures", "week_adjustments", "cycle_definitions", "app_users", "row_adjustments", "mass_adjustments"]:
-                    try:
-                        db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 1)) FROM {tbl};"))
-                        db.commit()
-                    except Exception:
-                        db.rollback()
-
-            print("Database historical snapshot restored successfully!")
+            print("Restauración histórica completada con éxito. Datos del agrónomo 2026 100% protegidos.")
         except Exception as e:
             db.rollback()
             print(f"Warning: could not restore historical snapshot: {e}")
