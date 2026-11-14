@@ -433,9 +433,50 @@ def restore_snapshot_if_needed():
             print(f"Warning: could not restore historical snapshot: {e}")
 
 
+def cleanup_outlier_hyp_2023_data():
+    """
+    Elimina datos atípicos erróneos de Hypericum de las semanas 202330 y 202331 (lote bloque 12 con ~20-30 T/pl).
+    Es idempotente: si ya se eliminaron, no realiza ninguna acción.
+    """
+    with SessionLocal() as db:
+        try:
+            flag = db.query(AppMetaDB).filter_by(key="cleanup_hyp_2330_2331_done").first()
+            if flag and flag.value == "1":
+                return
+
+            wa_del = db.query(WeekAdjustmentDB).filter(
+                WeekAdjustmentDB.source_week.in_([202330, 202331]),
+                WeekAdjustmentDB.product_master_norm == "HYPERICUM"
+            ).delete(synchronize_session=False)
+
+            bc_del = db.query(BlockClosureDB).filter(
+                BlockClosureDB.source_week.in_([202330, 202331]),
+                BlockClosureDB.product_master_norm == "HYPERICUM"
+            ).delete(synchronize_session=False)
+
+            tpsr_del = db.query(TpsrRecord).filter(
+                TpsrRecord.source_week.in_([202330, 202331]),
+                TpsrRecord.product_master_norm == "HYPERICUM"
+            ).delete(synchronize_session=False)
+
+            if not flag:
+                db.add(AppMetaDB(key="cleanup_hyp_2330_2331_done", value="1"))
+            else:
+                flag.value = "1"
+
+            bump_data_version(db)
+            db.commit()
+            if wa_del > 0 or bc_del > 0 or tpsr_del > 0:
+                print(f"Limpieza de datos atípicos HYP 202330-202331 completada: {wa_del} ajustes, {bc_del} cierres, {tpsr_del} tpsr eliminados.")
+        except Exception as e:
+            db.rollback()
+            print(f"Warning en cleanup_outlier_hyp_2023_data: {e}")
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
     restore_snapshot_if_needed()
+    cleanup_outlier_hyp_2023_data()
 
     # 1. Fast check: if migrations and data healing have already been applied, return immediately!
     db = SessionLocal()

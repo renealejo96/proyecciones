@@ -1274,7 +1274,7 @@ def index() -> str:
         page_title="Llenado Agronomo",
         active_view="agro",
         selected_year=str(requested_year),
-        year_options=["2026", "2025", "2024"],
+        year_options=["2026", "2025", "2024", "2023"],
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
@@ -1335,7 +1335,7 @@ def reales() -> str:
         page_title="Datos Reales",
         active_view="reales",
         selected_year=str(requested_year),
-        year_options=["2026", "2025", "2024"],
+        year_options=["2026", "2025", "2024", "2023"],
         week_options=[
             {"week_code": week_code, "week_short": format_short_week(week_code)}
             for week_code in available_weeks(snapshot)
