@@ -2783,6 +2783,7 @@
 
         <!-- GLOBAL FILTERS (POWER BI SLICERS) WITH SELECTOR DROPDOWNS FOR WEEKS -->
         <form class="slicers-card" id="slicers-form" method="GET" action="/estadistica">
+            <input type="hidden" name="tab" id="slicer-tab" value="{{ request.args.get('tab', 'dashboard') }}">
             <div class="slicer-group">
                 <label for="slicer-year">Año:</label>
                 <select name="year" id="slicer-year" class="slicer-select">
@@ -3740,19 +3741,19 @@
             [dashboard, semanas, bloques].forEach(el => { if (el) el.style.display = 'none'; });
             [btnDashboard, btnSemanas, btnBloques].forEach(btn => { if (btn) btn.classList.remove('active'); });
 
+            const tabInput = document.getElementById('slicer-tab');
+            if (tabInput) tabInput.value = tabName;
+
             if (tabName === 'semanas') {
                 if (semanas) semanas.style.display = 'block';
                 if (btnSemanas) btnSemanas.classList.add('active');
-                localStorage.setItem('estadistica_active_tab', 'semanas');
             } else if (tabName === 'bloques') {
                 if (bloques) bloques.style.display = 'block';
                 if (btnBloques) btnBloques.classList.add('active');
-                localStorage.setItem('estadistica_active_tab', 'bloques');
                 initBotoneraIfNeeded();
             } else {
                 if (dashboard) dashboard.style.display = 'block';
                 if (btnDashboard) btnDashboard.classList.add('active');
-                localStorage.setItem('estadistica_active_tab', 'dashboard');
             }
         }
 
@@ -6958,10 +6959,13 @@
 
         // Restore tab and initialize components on DOMContentLoaded
         window.addEventListener('DOMContentLoaded', () => {
-            const savedTab = localStorage.getItem('estadistica_active_tab');
-            if (savedTab === 'semanas' || savedTab === 'desglose') {
+            try { localStorage.removeItem('estadistica_active_tab'); } catch (e) {}
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedTab = urlParams.get('tab');
+            if (requestedTab === 'semanas' || requestedTab === 'desglose') {
                 switchSubTab('semanas');
-            } else if (savedTab === 'bloques') {
+            } else if (requestedTab === 'bloques') {
                 switchSubTab('bloques');
             } else {
                 switchSubTab('dashboard');
