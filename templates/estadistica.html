@@ -5443,6 +5443,20 @@
             };
         }
 
+        function formatCleanBlock(blk) {
+            if (!blk) return '';
+            return String(blk).trim().toUpperCase().replace(/^(?:BLOQUE|BL\.?)\s*/i, '');
+        }
+
+        function formatCleanVariety(v) {
+            if (!v) return '';
+            let s = String(v).trim();
+            if (/xcelence|xelence/i.test(s)) {
+                s = s.replace(/xcelence|xelence/gi, 'Xlence');
+            }
+            return s;
+        }
+
         // Agrupa cronológicamente los ciclos del bloque por producto maestro (de más antiguo a más nuevo)
         function getChronologicalCropStages(cblock) {
             if (!cblock || !cblock.productions || !cblock.productions.length) return [];
@@ -5466,7 +5480,7 @@
                         has_real_stems: (prod.total_production || 0) > 0,
                         start_week: prod.source_weeks_short ? prod.source_weeks_short[0] : (prod.source_weeks_str || ''),
                         end_week: prod.source_weeks_short ? prod.source_weeks_short[prod.source_weeks_short.length - 1] : (prod.source_weeks_str || ''),
-                        variety_list: prod.variety_display ? [prod.variety_display] : []
+                        variety_list: prod.variety_display ? [formatCleanVariety(prod.variety_display)] : []
                     };
                     stages.push(currentStage);
                 } else {
@@ -5481,8 +5495,9 @@
                     if (prod.source_weeks_short && prod.source_weeks_short.length) {
                         currentStage.end_week = prod.source_weeks_short[prod.source_weeks_short.length - 1];
                     }
-                    if (prod.variety_display && !currentStage.variety_list.includes(prod.variety_display)) {
-                        currentStage.variety_list.push(prod.variety_display);
+                    const cVar = formatCleanVariety(prod.variety_display);
+                    if (cVar && !currentStage.variety_list.includes(cVar)) {
+                        currentStage.variety_list.push(cVar);
                     }
                 }
             });
@@ -5888,7 +5903,7 @@
             const hasReal = targetProds.length > 0 ? targetProds.some(p => p.has_real_data) : Boolean(cblock.has_real_data);
 
             const cropName = targetStage ? targetStage.product_master : (cblock.crops_display || 'CULTIVO');
-            const varietyName = targetStage ? targetStage.variety_display : '';
+            const varietyName = targetStage ? formatCleanVariety(targetStage.variety_display) : '';
             const cropDisplay = varietyName ? `${cropName}, ${varietyName}` : cropName;
 
             let tpVal = 0.0;
@@ -5975,12 +5990,12 @@
                 <div class="b-card ${stateClass}" 
                      id="bcard-${cblock.uid}" 
                      data-zona="${blkZona}"
-                     title="Bloque ${cblock.block} (${blkZona}) · ${cblock.total_productions} Ciclos · ${totalPlantsDisplay} plantas · Haz clic para abrir Ficha Técnica y Curvas"
+                     title="Bloque ${formatCleanBlock(cblock.block)} (${blkZona}) · ${cblock.total_productions} Ciclos · ${totalPlantsDisplay} plantas · Haz clic para abrir Ficha Técnica y Curvas"
                      onclick="openBlockDetailModal('${cblock.uid}')">
 
                     <!-- ROW 1: BL CODE & EDIT ICON -->
                     <div class="blq-tile-row1">
-                        <span class="blq-code">BL ${cblock.block}</span>
+                        <span class="blq-code">BL ${formatCleanBlock(cblock.block)}</span>
                         <span class="blq-edited-badge" title="Ficha Técnica y Curvas"><i class="fa-solid fa-pen-to-square"></i></span>
                     </div>
 
@@ -6265,9 +6280,9 @@
                     const isPoda = (currentProdForTitle.activity || '').toUpperCase() === 'PODA';
                     const actName = isPoda ? 'Poda' : 'Siembra';
                     const actIcon = isPoda ? '✂️' : '🌱';
-                    titleEl.textContent = `Bloque ${cblock.block} · ${actIcon} ${actName} (Ciclo ${currentProdForTitle.production_num || ''})`;
+                    titleEl.textContent = `Bloque ${formatCleanBlock(cblock.block)} · ${actIcon} ${actName} (Ciclo ${currentProdForTitle.production_num || ''})`;
                 } else {
-                    titleEl.textContent = `Bloque ${cblock.block} · Historial Completo`;
+                    titleEl.textContent = `Bloque ${formatCleanBlock(cblock.block)} · Historial Completo`;
                 }
             }
             if (pmEl) {
@@ -6275,18 +6290,20 @@
             }
             if (varEl) {
                 if (effectiveVar !== 'ALL') {
-                    varEl.textContent = `${effectiveVar} (Bloque ${cblock.block})`;
+                    varEl.textContent = `${formatCleanVariety(effectiveVar)} (Bloque ${formatCleanBlock(cblock.block)})`;
                 } else {
                     const distinctVars = [];
                     productions.forEach(p => {
                         (p.variety_breakdown || []).forEach(vb => {
-                            if (!distinctVars.includes(vb.variety)) distinctVars.push(vb.variety);
+                            const cV = formatCleanVariety(vb.variety);
+                            if (cV && !distinctVars.includes(cV)) distinctVars.push(cV);
                         });
-                        if (!distinctVars.length && p.variety_display && !distinctVars.includes(p.variety_display)) {
-                            distinctVars.push(p.variety_display);
+                        if (!distinctVars.length && p.variety_display) {
+                            const cV = formatCleanVariety(p.variety_display);
+                            if (cV && !distinctVars.includes(cV)) distinctVars.push(cV);
                         }
                     });
-                    varEl.textContent = distinctVars.length ? distinctVars.join(' / ') : (cblock.variety_display || '-');
+                    varEl.textContent = distinctVars.length ? distinctVars.join(' / ') : formatCleanVariety(cblock.variety_display || '-');
                 }
             }
             if (statusEl) {

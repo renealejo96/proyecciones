@@ -302,10 +302,10 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 product_master = "HYPERICUM"
 
             product_master_norm = normalize_text(product_master)
-            variety = str(rec.variety or "").strip()
-            variety_norm = normalize_text(rec.variety_norm or variety)
-            block = str(rec.block or "").strip()
-            block_norm = normalize_text(rec.block_norm or block)
+            variety = normalize_variety_name(rec.variety, product_master)
+            variety_norm = normalize_text(variety)
+            block = normalize_block_name(rec.block)
+            block_norm = normalize_text(block)
 
             if "VERONICA" in product_master_norm or "SPLASH" in variety_norm:
                 product_master = "VERONICA"
@@ -675,9 +675,30 @@ def product_variety_sort_key(product_master: str, variety: str) -> tuple[str, in
     return (product, 100, variety_upper)
 
 
+def normalize_block_name(raw_block: Any) -> str:
+    if not raw_block:
+        return ""
+    b = str(raw_block).strip().upper()
+    # Strip accidental prefixes like 'BL.', 'BL ', 'BLOQUE '
+    b = re.sub(r"^(?:BLOQUE|BL\.?)\s*", "", b, flags=re.I).strip()
+    return b
+
+
+def normalize_variety_name(raw_var: Any, pm: str = "") -> str:
+    if not raw_var:
+        return ""
+    v = str(raw_var).strip().upper()
+    # Homologate Gypsophila typos
+    if ("GYP" in str(pm).upper() or not pm) and ("XCELENCE" in v or "XELENCE" in v or v == "XLENCE"):
+        return "XLENCE"
+    return v
+
+
 def format_variety_display(variety: str) -> str:
     v = (variety or "").strip()
     v_upper = v.upper()
+    if "XCELENCE" in v_upper or "XELENCE" in v_upper or v_upper == "XLENCE":
+        return "Xlence"
     if v_upper.startswith("SKYLER SPLASH "):
         return "Splash " + v[14:].title()
     elif v_upper == "SKYLER WHITE IMPROVED":
@@ -1678,9 +1699,10 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     activity = first["activity"]
     pm = first["product_master"]
     
-    distinct_vars = sorted(list(set(r.get("variety_display") or r["variety"] for r in cluster_rows if r.get("variety"))))
-    var_disp = " / ".join(distinct_vars) if distinct_vars else (first.get("variety_display") or first["variety"])
-    raw_vars = sorted(list(set(r["variety"] for r in cluster_rows if r.get("variety"))))
+    block = normalize_block_name(block)
+    distinct_vars = sorted(list(set(format_variety_display(r.get("variety_display") or r["variety"]) for r in cluster_rows if r.get("variety"))))
+    var_disp = " / ".join(distinct_vars) if distinct_vars else format_variety_display(first.get("variety_display") or first["variety"])
+    raw_vars = sorted(list(set(normalize_variety_name(r["variety"], pm) for r in cluster_rows if r.get("variety"))))
     var = ", ".join(raw_vars)
 
     source_weeks = sorted(list(set(r["source_week"] for r in cluster_rows)))
@@ -1705,7 +1727,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     variety_breakdown: dict[str, dict[str, Any]] = {}
     variety_hw_maps: dict[str, dict[int, dict[str, Any]]] = {}
     for r in cluster_rows:
-        v_name = r.get("variety_display") or r["variety"]
+        v_name = format_variety_display(r.get("variety_display") or r["variety"])
         if v_name not in variety_breakdown:
             variety_breakdown[v_name] = {
                 "variety": v_name,
@@ -1858,7 +1880,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
 def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     by_block: dict[str, list[dict[str, Any]]] = {}
     for r in flat_block_rows:
-        blk = str(r["block"]).strip()
+        blk = normalize_block_name(r["block"])
         by_block.setdefault(blk, []).append(r)
 
     def block_sort_key(b_str: str):
@@ -2280,9 +2302,10 @@ def get_statistics_data(
             pm_norm = normalize_text(pm)
             if pm_norm not in allowed_pm_norms and not any(norm in pm_norm for norm in allowed_pm_norms):
                 continue
-            var = r.variety
+            var = normalize_variety_name(r.variety, pm)
+            blk = normalize_block_name(r.block)
 
-            k = (pm, var, r.source_week, r.activity, r.block)
+            k = (pm, var, r.source_week, r.activity, blk)
             if k not in grouped_block_lots:
                 grouped_block_lots[k] = {
                     "product_master": pm,
@@ -2291,7 +2314,7 @@ def get_statistics_data(
                     "source_week": r.source_week,
                     "source_week_short": format_short_week(r.source_week),
                     "activity": r.activity,
-                    "block": r.block,
+                    "block": blk,
                     "year": int(str(r.source_week)[:4]) if len(str(r.source_week)) >= 4 else None,
                     "plants": 0,
                 }
