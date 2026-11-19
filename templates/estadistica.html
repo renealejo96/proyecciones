@@ -5544,7 +5544,32 @@
 
             container.style.display = 'block';
             const isAllActive = (!activeProdUid || activeProdUid === 'ALL');
+            const blockIdStr = String(cblock.block || cblock.uid || '');
 
+            // Fast-path: If the timeline DOM for this exact block is already mounted,
+            // DO NOT wipe container.innerHTML as that resets scrollLeft to 0 and jumps to 2022!
+            // Just update .active classes on the buttons and cards, and scroll the active card smoothly into view.
+            if (container.dataset.blockId === blockIdStr && container.querySelector('.modal-timeline-flow')) {
+                const allBtn = container.querySelector('.timeline-all-btn');
+                if (allBtn) allBtn.classList.toggle('active', isAllActive);
+
+                let targetActiveCard = null;
+                container.querySelectorAll('.timeline-stage-card').forEach(card => {
+                    const cardUid = card.getAttribute('data-prod-uid');
+                    const match = (!isAllActive && cardUid === activeProdUid);
+                    card.classList.toggle('active', match);
+                    if (match) targetActiveCard = card;
+                });
+
+                if (targetActiveCard) {
+                    targetActiveCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                } else if (isAllActive && allBtn) {
+                    allBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+                return;
+            }
+
+            container.dataset.blockId = blockIdStr;
             let html = `
                 <div class="modal-chronology-title">
                     <div style="display: flex; align-items: center; gap: 6px;">
@@ -5588,6 +5613,7 @@
 
                 html += `
                     <div class="timeline-stage-card ${isCycleActive ? 'active' : ''}" 
+                         data-prod-uid="${prod.uid}"
                          onclick="selectModalCycle('${prod.uid}')"
                          title="Clic para ver detalles, selector de variedades y curva de cosecha de este ciclo">
                         <div class="stage-card-top">
@@ -5618,6 +5644,14 @@
 
             html += `</div>`;
             container.innerHTML = html;
+
+            // Scroll suave a la tarjeta activa o más reciente al abrir el bloque
+            setTimeout(() => {
+                const targetEl = container.querySelector('.timeline-stage-card.active') || container.querySelector('.timeline-stage-card:last-child');
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+            }, 60);
         }
 
         function selectModalCycle(uid) {
@@ -5729,6 +5763,10 @@
 
             const modal = document.getElementById('block-detail-modal');
             if (!modal) return;
+
+            // Reset block id on container to ensure a clean initial render with auto-scroll
+            const tContainer = document.getElementById('modal-chronology-container');
+            if (tContainer) delete tContainer.dataset.blockId;
 
             renderModalChronologyTimeline(cblock, activeModalProdUid);
             renderBlockDossier('modal', cblock, activeModalProdUid, activeModalVariety);
@@ -6252,17 +6290,30 @@
                 }
             }
             if (statusEl) {
-                const allClosed = productions.length > 0 && productions.every(p => p.is_closed);
-                const anyReal = productions.some(p => p.has_real_data || (p.total_production || 0) > 0);
-                if (allClosed) {
-                    statusEl.className = 'badge-status-closed';
-                    statusEl.textContent = 'CERRADO';
-                } else if (anyReal) {
-                    statusEl.className = 'badge-status-harvest';
-                    statusEl.textContent = 'EN COSECHA';
+                if (currentProdForTitle) {
+                    if (currentProdForTitle.is_closed) {
+                        statusEl.className = 'badge-status-closed';
+                        statusEl.textContent = 'CERRADO';
+                    } else if (currentProdForTitle.has_real_data || (currentProdForTitle.total_production || 0) > 0) {
+                        statusEl.className = 'badge-status-harvest';
+                        statusEl.textContent = 'EN COSECHA';
+                    } else {
+                        statusEl.className = 'badge-status-pending';
+                        statusEl.textContent = 'PENDIENTE';
+                    }
                 } else {
-                    statusEl.className = 'badge-status-pending';
-                    statusEl.textContent = 'PENDIENTE';
+                    const allClosed = productions.length > 0 && productions.every(p => p.is_closed);
+                    const anyReal = productions.some(p => p.has_real_data || (p.total_production || 0) > 0);
+                    if (allClosed) {
+                        statusEl.className = 'badge-status-closed';
+                        statusEl.textContent = 'CERRADO';
+                    } else if (anyReal) {
+                        statusEl.className = 'badge-status-harvest';
+                        statusEl.textContent = 'EN COSECHA';
+                    } else {
+                        statusEl.className = 'badge-status-pending';
+                        statusEl.textContent = 'PENDIENTE';
+                    }
                 }
             }
 

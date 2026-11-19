@@ -521,6 +521,7 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 )
 
         return {
+            "year": year,
             "source_rows": source_rows,
             "projection_rows": projection_rows,
             "missing_cycles": [
@@ -1262,11 +1263,11 @@ def index() -> str:
         requested_product_master = request.args.get("producto", "").strip()
 
     if requested_horizon and not requested_horizon_back and not requested_horizon_forward:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon or 4)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon or 4)))
     else:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon_back or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon_forward or 8)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon_back or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon_forward or 8)))
 
     weekly_view = aggregate_for_week(
         snapshot,
@@ -1323,11 +1324,11 @@ def reales() -> str:
         requested_product_master = request.args.get("producto", "").strip()
 
     if requested_horizon and not requested_horizon_back and not requested_horizon_forward:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon or 4)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon or 4)))
     else:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon_back or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon_forward or 8)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon_back or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon_forward or 8)))
 
     weekly_view = aggregate_for_week(
         snapshot,
@@ -3805,11 +3806,11 @@ def projections_api():
     snapshot: dict[str, Any] = get_snapshot(force_refresh=force_refresh, year=requested_year)
     selected_week = resolve_selected_week(requested_week, snapshot, target_year=requested_year)
     if requested_horizon and not requested_horizon_back and not requested_horizon_forward:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon or 4)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon or 4)))
     else:
-        horizon_weeks_back = max(0, min(20, int(requested_horizon_back or 4)))
-        horizon_weeks_forward = max(1, min(20, int(requested_horizon_forward or 8)))
+        horizon_weeks_back = max(0, min(52, int(requested_horizon_back or 4)))
+        horizon_weeks_forward = max(1, min(52, int(requested_horizon_forward or 8)))
 
     weekly_view = aggregate_for_week(
         snapshot,

@@ -495,6 +495,16 @@
             white-space: nowrap;
             box-sizing: border-box;
         }
+        .summary-table th.col-week-header,
+        .summary-table td.summary-val-cell {
+            min-width: 75px !important;
+            width: auto;
+            padding: 6px 6px !important;
+            box-sizing: border-box !important;
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
         .summary-table thead th {
             position: sticky;
             top: 0;
@@ -616,6 +626,14 @@
         }
         .summary-table tr.row-grandtotal td.col-name { 
             color: #fbbf24 !important; 
+        }
+        .summary-table tr.row-grandtotal td.summary-val-cell { 
+            font-size: 0.80rem !important; 
+            font-weight: 900 !important; 
+            min-width: 78px !important;
+            padding: 6px 4px !important;
+            letter-spacing: -0.2px;
+            overflow: visible;
         }
         .summary-table tr.row-grandtotal td.col-total-window { 
             color: #38bdf8 !important; 
@@ -1582,7 +1600,7 @@
                 </div>
                 <div class="field">
                     <label for="semana">Semana corte</label>
-                    <select id="semana" name="semana" style="width: 72px;">
+                    <select id="semana" name="semana" style="width: 72px;" onchange="this.form.submit();">
                         {% for item in week_options %}
                             <option value="{{ item.week_code }}" {{ 'selected' if item.week_code == weekly_view.selected_week else '' }}>{{ item.week_short }}</option>
                         {% endfor %}
@@ -1590,7 +1608,7 @@
                 </div>
                 <div class="field">
                     <label for="producto">Producto</label>
-                    <select id="producto" name="producto">
+                    <select id="producto" name="producto" onchange="const s = document.getElementById('semana'); if (s) s.value = ''; this.form.submit();">
                         <option value="">Todos</option>
                         {% for product in product_options %}
                             <option value="{{ product }}" {{ 'selected' if product == weekly_view.selected_product_master else '' }}>{{ product }}</option>
@@ -1599,11 +1617,11 @@
                 </div>
                 <div class="field">
                     <label for="horizonte_atras">Atrás</label>
-                    <input id="horizonte_atras" name="horizonte_atras" value="{{ weekly_view.horizon_weeks_back }}" type="number" min="0" max="20" step="1" style="width: 44px;">
+                    <input id="horizonte_atras" name="horizonte_atras" value="{{ weekly_view.horizon_weeks_back }}" type="number" min="0" max="52" step="1" style="width: 44px;">
                 </div>
                 <div class="field">
                     <label for="horizonte_adelante">Adelante</label>
-                    <input id="horizonte_adelante" name="horizonte_adelante" value="{{ weekly_view.horizon_weeks_forward }}" type="number" min="1" max="20" step="1" style="width: 44px;">
+                    <input id="horizonte_adelante" name="horizonte_adelante" value="{{ weekly_view.horizon_weeks_forward }}" type="number" min="1" max="52" step="1" style="width: 44px;">
                 </div>
 
                 <!-- EXPORTABLE SEMANA CUTOFF METRIC COMPONENT IN TOOLBAR -->
@@ -2401,7 +2419,7 @@
                 // Generous cap per column (220px) to prevent absurd sizing when very few weeks are filtered
                 targetWidth = Math.min(targetWidth, 220);
                 const widthStyle = targetWidth + 'px';
-                cssRules.push(`[data-week-label="${w.label}"] { width: ${widthStyle} !important; min-width: ${widthStyle} !important; max-width: ${widthStyle} !important; }`);
+                cssRules.push(`.master-table [data-week-label="${w.label}"] { width: ${widthStyle} !important; min-width: ${widthStyle} !important; max-width: ${widthStyle} !important; }`);
             });
 
             styleEl.textContent = cssRules.join('\n');
