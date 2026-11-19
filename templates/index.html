@@ -1246,6 +1246,156 @@
             opacity: 0.25 !important;
         }
 
+        /* FLOATING BATCH CLOSURE ACTION BAR */
+        .batch-closure-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            animation: slideUpBatchBar 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpBatchBar {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 18px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .batch-bar-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .batch-bar-icon {
+            font-size: 1.15rem;
+        }
+
+        .batch-bar-text {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .batch-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-batch-close {
+            background: #16a34a;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.80rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 5px rgba(22, 163, 74, 0.4);
+        }
+
+        .btn-batch-close:hover {
+            background: #15803d;
+            transform: translateY(-1px);
+        }
+
+        .btn-batch-reopen {
+            background: #ea580c;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.80rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 5px rgba(234, 88, 12, 0.4);
+        }
+
+        .btn-batch-reopen:hover {
+            background: #c2410c;
+            transform: translateY(-1px);
+        }
+
+        .btn-batch-cancel {
+            background: rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-batch-cancel:hover {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }
+
+        /* PENDING SELECTION HIGHLIGHT ON ROWS */
+        tr.row-pending-close td {
+            background-color: #ecfdf5 !important;
+        }
+        tr.row-pending-close td.sticky-col {
+            background-color: #d1fae5 !important;
+        }
+        tr.row-pending-close .block-close-checkbox {
+            outline: 2px solid #10b981;
+            outline-offset: 1px;
+        }
+
+        tr.row-pending-reopen td {
+            background-color: #fff7ed !important;
+        }
+        tr.row-pending-reopen td.sticky-col {
+            background-color: #ffedd5 !important;
+        }
+        tr.row-pending-reopen .block-close-checkbox {
+            outline: 2px solid #f97316;
+            outline-offset: 1px;
+        }
+
+        @media (max-width: 640px) {
+            .batch-closure-bar {
+                width: 94%;
+                max-width: 380px;
+                padding: 8px 12px;
+                gap: 8px;
+                bottom: 14px;
+            }
+            .batch-bar-content {
+                gap: 8px;
+                justify-content: space-between;
+                width: 100%;
+            }
+        }
+
         /* CURRENT CUTOFF WEEK COLUMN HIGHLIGHT */
         th.col-cutoff-week {
             background: #0369a1 !important;
@@ -1739,7 +1889,12 @@
                             <th class="js-master-total col-total-final" data-val="{{ weekly_view.grand_total }}">{{ weekly_view.grand_total }}</th>
                         </tr>
                         <tr class="header-row">
-                            <th class="sticky-col sticky-1">Cierre</th>
+                            <th class="sticky-col sticky-1" title="Cierre de bloques">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 2px 0;">
+                                    <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Cierre</span>
+                                    <input type="checkbox" id="master-closure-checkbox" class="master-closure-checkbox" title="Seleccionar/Deseleccionar bloques abiertos visibles para cerrar de una sola vez" style="cursor: pointer; width: 13px; height: 13px; margin: 0;">
+                                </div>
+                            </th>
                             <th class="sticky-col sticky-2" title="Actividad: S = Siembra, P = Poda">
                                 <div class="header-filter-cell">
                                     <span>AC</span>
@@ -2063,6 +2218,27 @@
             </div>
         </div>
 
+        <!-- FLOATING BATCH CLOSURE ACTION BAR -->
+        <div id="batch-closure-bar" class="batch-closure-bar" style="display: none;">
+            <div class="batch-bar-content">
+                <span class="batch-bar-icon">📋</span>
+                <span id="batch-bar-text" class="batch-bar-text">0 bloques seleccionados</span>
+                <div class="batch-bar-actions">
+                    <button type="button" id="btn-batch-close" class="btn-batch-close" style="display: none;" title="Cerrar todos los bloques seleccionados de una sola vez">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span id="btn-batch-close-label">Cerrar Bloques</span>
+                    </button>
+                    <button type="button" id="btn-batch-reopen" class="btn-batch-reopen" style="display: none;" title="Reabrir todos los bloques seleccionados de una sola vez">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                        <span id="btn-batch-reopen-label">Reabrir Bloques</span>
+                    </button>
+                    <button type="button" id="btn-batch-cancel" class="btn-batch-cancel" title="Descartar selección">
+                        ✕ Descartar
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -2174,7 +2350,11 @@
         function applyRowEditLocks() {
             document.querySelectorAll('.projection-row').forEach((row) => {
                 const checkbox = row.querySelector('.block-close-checkbox');
-                const isClosed = (row.dataset.blockClosed === 'true') || (checkbox && checkbox.checked);
+                const isClosed = (row.dataset.blockClosed === 'true');
+
+                if (checkbox && !row.classList.contains('row-pending-close') && !row.classList.contains('row-pending-reopen')) {
+                    checkbox.checked = isClosed;
+                }
 
                 if (isClosed) {
                     row.classList.add('row-closed');
@@ -2188,6 +2368,16 @@
                     if (pageMode === 'AGRONOMO' && checkbox) {
                         checkbox.disabled = true;
                         checkbox.title = 'Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.';
+                        const parentDiv = checkbox.parentElement;
+                        if (parentDiv && !parentDiv.querySelector('.badge-closed-lock')) {
+                            const lockSpan = document.createElement('span');
+                            lockSpan.className = 'badge-closed-lock';
+                            lockSpan.style.display = 'inline-flex';
+                            lockSpan.style.alignItems = 'center';
+                            lockSpan.title = 'Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.';
+                            lockSpan.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+                            parentDiv.appendChild(lockSpan);
+                        }
                     } else if (checkbox) {
                         checkbox.disabled = false;
                         checkbox.title = 'Desmarcar para reabrir este bloque';
@@ -2197,6 +2387,9 @@
                     if (checkbox) {
                         checkbox.disabled = false;
                         checkbox.title = 'Marcar para cerrar este bloque';
+                        const parentDiv = checkbox.parentElement;
+                        const lockSpan = parentDiv ? parentDiv.querySelector('.badge-closed-lock') : null;
+                        if (lockSpan) lockSpan.remove();
                     }
                     row.querySelectorAll('.input-cycle, .input-stems, .input-waste').forEach(inp => {
                         inp.disabled = false;
@@ -2437,24 +2630,30 @@
         }
 
         async function saveBlockClosure(row, isClosed) {
-            const body = {
+            return saveBlockClosures([row], isClosed);
+        }
+
+        async function saveBlockClosures(rows, isClosed) {
+            if (!rows || rows.length === 0) return { ok: true, count: 0 };
+            const items = rows.map(row => ({
                 activity: row.dataset.activity,
                 product_master: row.dataset.productMaster,
                 variety: row.dataset.variety,
                 block: row.dataset.block,
                 source_week: String(row.dataset.sourceWeek),
                 is_closed: Boolean(isClosed),
-            };
+            }));
 
             const response = await fetch('/api/cierre-bloque', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
+                body: JSON.stringify({ items }),
             });
             const result = await parseApiResponse(response);
             if (!response.ok || !result.ok) {
-                throw new Error(result.message || 'No se pudo guardar el cierre del bloque.');
+                throw new Error(result.message || 'No se pudo guardar el cierre de los bloques.');
             }
+            return result;
         }
 
         function debounce(func, wait = 90) {
@@ -3880,34 +4079,209 @@
 
         applyWeekCellEditLocks();
 
+        function updateBatchClosureBar() {
+            const bar = document.getElementById('batch-closure-bar');
+            const barText = document.getElementById('batch-bar-text');
+            const btnClose = document.getElementById('btn-batch-close');
+            const btnCloseLabel = document.getElementById('btn-batch-close-label');
+            const btnReopen = document.getElementById('btn-batch-reopen');
+            const btnReopenLabel = document.getElementById('btn-batch-reopen-label');
+            const masterChk = document.getElementById('master-closure-checkbox');
+
+            if (!bar) return;
+
+            const pendingClose = document.querySelectorAll('.projection-row.row-pending-close');
+            const pendingReopen = document.querySelectorAll('.projection-row.row-pending-reopen');
+            const totalPending = pendingClose.length + pendingReopen.length;
+
+            if (totalPending === 0) {
+                bar.style.display = 'none';
+                if (masterChk) {
+                    masterChk.checked = false;
+                    masterChk.indeterminate = false;
+                }
+                return;
+            }
+
+            bar.style.display = 'flex';
+
+            if (pendingClose.length > 0 && pendingReopen.length === 0) {
+                barText.textContent = `${pendingClose.length} bloque${pendingClose.length > 1 ? 's' : ''} seleccionado${pendingClose.length > 1 ? 's' : ''} para CERRAR`;
+            } else if (pendingReopen.length > 0 && pendingClose.length === 0) {
+                barText.textContent = `${pendingReopen.length} bloque${pendingReopen.length > 1 ? 's' : ''} seleccionado${pendingReopen.length > 1 ? 's' : ''} para REABRIR`;
+            } else {
+                barText.textContent = `${pendingClose.length} para cerrar, ${pendingReopen.length} para reabrir`;
+            }
+
+            if (btnClose) {
+                if (pendingClose.length > 0) {
+                    btnClose.style.display = 'inline-flex';
+                    if (btnCloseLabel) {
+                        btnCloseLabel.textContent = pendingClose.length === 1 ? 'Cerrar 1 Bloque' : `Cerrar ${pendingClose.length} Bloques`;
+                    }
+                } else {
+                    btnClose.style.display = 'none';
+                }
+            }
+
+            if (btnReopen) {
+                if (pendingReopen.length > 0) {
+                    btnReopen.style.display = 'inline-flex';
+                    if (btnReopenLabel) {
+                        btnReopenLabel.textContent = pendingReopen.length === 1 ? 'Reabrir 1 Bloque' : `Reabrir ${pendingReopen.length} Bloques`;
+                    }
+                } else {
+                    btnReopen.style.display = 'none';
+                }
+            }
+
+            if (masterChk) {
+                const visibleOpenRows = Array.from(document.querySelectorAll('.projection-row')).filter(r => r.style.display !== 'none' && r.dataset.blockClosed !== 'true');
+                if (visibleOpenRows.length > 0) {
+                    const allSelected = visibleOpenRows.every(r => r.classList.contains('row-pending-close'));
+                    const someSelected = visibleOpenRows.some(r => r.classList.contains('row-pending-close'));
+                    masterChk.checked = allSelected;
+                    masterChk.indeterminate = !allSelected && someSelected;
+                } else {
+                    masterChk.checked = false;
+                    masterChk.indeterminate = false;
+                }
+            }
+        }
+
         document.querySelectorAll('.block-close-checkbox').forEach((checkbox) => {
-            checkbox.addEventListener('change', async () => {
+            checkbox.addEventListener('change', () => {
                 const row = checkbox.closest('.projection-row');
                 if (!row) return;
-                const isChecking = checkbox.checked;
-                const blockName = row.dataset.block || '';
-                const confirmMessage = isChecking
-                    ? `¿Confirmas que deseas CERRAR el Bloque ${blockName}? Se bloquearán las celdas para edición.`
-                    : `¿Confirmas que deseas REABRIR el Bloque ${blockName}? Se habilitarán nuevamente las celdas para edición.`;
-                if (!window.confirm(confirmMessage)) {
-                    checkbox.checked = !isChecking;
-                    return;
+
+                const originallyClosed = (row.dataset.blockClosed === 'true');
+                const isChecked = checkbox.checked;
+
+                if (originallyClosed) {
+                    if (!isChecked) {
+                        row.classList.add('row-pending-reopen');
+                        row.classList.remove('row-pending-close');
+                    } else {
+                        row.classList.remove('row-pending-reopen', 'row-pending-close');
+                    }
+                } else {
+                    if (isChecked) {
+                        row.classList.add('row-pending-close');
+                        row.classList.remove('row-pending-reopen');
+                    } else {
+                        row.classList.remove('row-pending-close', 'row-pending-reopen');
+                    }
                 }
-                try {
-                    await saveBlockClosure(row, isChecking);
-                    row.dataset.blockClosed = isChecking ? 'true' : 'false';
-                    row.dataset.wasClosed = 'true';
-                    applyRowEditLocks();
-                    updateRowTotalsFromWeekInputs(row);
-                    recalcAll();
-                    showToast(isChecking ? `Bloque ${blockName} cerrado con éxito.` : `Bloque ${blockName} reabierto para edición.`);
-                } catch (error) {
-                    checkbox.checked = !isChecking;
-                    applyRowEditLocks();
-                    alert(error.message);
-                }
+
+                updateBatchClosureBar();
             });
         });
+
+        const masterClosureChk = document.getElementById('master-closure-checkbox');
+        if (masterClosureChk) {
+            masterClosureChk.addEventListener('change', () => {
+                const checkAll = masterClosureChk.checked;
+                const visibleRows = Array.from(document.querySelectorAll('.projection-row')).filter(r => r.style.display !== 'none');
+
+                visibleRows.forEach(row => {
+                    const originallyClosed = (row.dataset.blockClosed === 'true');
+                    if (originallyClosed) return;
+
+                    const chk = row.querySelector('.block-close-checkbox');
+                    if (!chk || chk.disabled) return;
+
+                    chk.checked = checkAll;
+                    if (checkAll) {
+                        row.classList.add('row-pending-close');
+                        row.classList.remove('row-pending-reopen');
+                    } else {
+                        row.classList.remove('row-pending-close');
+                    }
+                });
+
+                updateBatchClosureBar();
+            });
+        }
+
+        const btnBatchClose = document.getElementById('btn-batch-close');
+        if (btnBatchClose) {
+            btnBatchClose.addEventListener('click', async () => {
+                const rowsToClose = Array.from(document.querySelectorAll('.projection-row.row-pending-close'));
+                if (rowsToClose.length === 0) return;
+
+                btnBatchClose.disabled = true;
+                const origHtml = btnBatchClose.innerHTML;
+                btnBatchClose.innerHTML = `<span>⏳ Cerrando ${rowsToClose.length}...</span>`;
+
+                try {
+                    await saveBlockClosures(rowsToClose, true);
+                    rowsToClose.forEach(row => {
+                        row.dataset.blockClosed = 'true';
+                        row.dataset.wasClosed = 'true';
+                        row.classList.remove('row-pending-close');
+                        const chk = row.querySelector('.block-close-checkbox');
+                        if (chk) chk.checked = true;
+                        updateRowTotalsFromWeekInputs(row);
+                    });
+                    applyRowEditLocks();
+                    recalcAll();
+                    updateBatchClosureBar();
+                    showToast(`🔒 ${rowsToClose.length} bloque(s) cerrado(s) con éxito.`);
+                } catch (error) {
+                    alert('Error al cerrar bloques: ' + error.message);
+                } finally {
+                    btnBatchClose.disabled = false;
+                    btnBatchClose.innerHTML = origHtml;
+                    updateBatchClosureBar();
+                }
+            });
+        }
+
+        const btnBatchReopen = document.getElementById('btn-batch-reopen');
+        if (btnBatchReopen) {
+            btnBatchReopen.addEventListener('click', async () => {
+                const rowsToReopen = Array.from(document.querySelectorAll('.projection-row.row-pending-reopen'));
+                if (rowsToReopen.length === 0) return;
+
+                btnBatchReopen.disabled = true;
+                const origHtml = btnBatchReopen.innerHTML;
+                btnBatchReopen.innerHTML = `<span>⏳ Reabriendo ${rowsToReopen.length}...</span>`;
+
+                try {
+                    await saveBlockClosures(rowsToReopen, false);
+                    rowsToReopen.forEach(row => {
+                        row.dataset.blockClosed = 'false';
+                        row.classList.remove('row-pending-reopen');
+                        const chk = row.querySelector('.block-close-checkbox');
+                        if (chk) chk.checked = false;
+                        updateRowTotalsFromWeekInputs(row);
+                    });
+                    applyRowEditLocks();
+                    recalcAll();
+                    updateBatchClosureBar();
+                    showToast(`🔓 ${rowsToReopen.length} bloque(s) reabierto(s) con éxito.`);
+                } catch (error) {
+                    alert('Error al reabrir bloques: ' + error.message);
+                } finally {
+                    btnBatchReopen.disabled = false;
+                    btnBatchReopen.innerHTML = origHtml;
+                    updateBatchClosureBar();
+                }
+            });
+        }
+
+        const btnBatchCancel = document.getElementById('btn-batch-cancel');
+        if (btnBatchCancel) {
+            btnBatchCancel.addEventListener('click', () => {
+                document.querySelectorAll('.projection-row.row-pending-close, .projection-row.row-pending-reopen').forEach(row => {
+                    const isClosed = (row.dataset.blockClosed === 'true');
+                    const chk = row.querySelector('.block-close-checkbox');
+                    if (chk) chk.checked = isClosed;
+                    row.classList.remove('row-pending-close', 'row-pending-reopen');
+                });
+                updateBatchClosureBar();
+            });
+        }
 
         const filtersForm = document.getElementById('filters-form');
         ['semana', 'producto', 'horizonte_atras', 'horizonte_adelante'].forEach((fieldId) => {

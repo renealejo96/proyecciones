@@ -4321,61 +4321,75 @@ def restore_estimate_api():
 @app.post("/api/cierre-bloque")
 def save_block_closure_api():
     payload = request.get_json(silent=True) or {}
-    activity = normalize_text(payload.get("activity"))
-    product_master = str(payload.get("product_master") or "").strip()
-    variety = str(payload.get("variety") or "").strip()
-    block = str(payload.get("block") or "").strip()
-    source_week = parse_week_code(payload.get("source_week"))
-    is_closed = bool(payload.get("is_closed"))
+    items = payload.get("items")
+    if items is None:
+        if isinstance(payload, list):
+            items = payload
+        else:
+            items = [payload]
 
-    if activity not in {"SIEMBRA", "PODA"}:
-        return jsonify({"ok": False, "message": "Actividad invalida."}), 400
-    if not product_master or not variety or not block or source_week is None:
-        return jsonify({"ok": False, "message": "Faltan llaves."}), 400
+    if not items:
+        return jsonify({"ok": False, "message": "No se enviaron datos de cierre."}), 400
 
     db = SessionLocal()
     try:
-        v_norm = normalize_text(variety)
-        b_norm = normalize_text(block)
+        updated_count = 0
+        for item in items:
+            activity = normalize_text(item.get("activity"))
+            product_master = str(item.get("product_master") or "").strip()
+            variety = str(item.get("variety") or "").strip()
+            block = str(item.get("block") or "").strip()
+            source_week = parse_week_code(item.get("source_week"))
+            is_closed = bool(item.get("is_closed"))
 
-        if "VERONICA" in product_master.upper():
-            product_master = "VERONICA"
-            pm_norm = "VERONICA"
-            existing = db.query(BlockClosureDB).filter(
-                BlockClosureDB.activity == activity,
-                BlockClosureDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
-                BlockClosureDB.variety_norm == v_norm,
-                BlockClosureDB.block_norm == b_norm,
-                BlockClosureDB.source_week == source_week,
-            ).first()
-        else:
-            pm_norm = normalize_text(product_master)
-            existing = db.query(BlockClosureDB).filter_by(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block_norm=b_norm,
-                source_week=source_week,
-            ).first()
+            if activity not in {"SIEMBRA", "PODA"}:
+                continue
+            if not product_master or not variety or not block or source_week is None:
+                continue
 
-        if existing:
-            existing.is_closed = is_closed
-            existing.updated_at = datetime.utcnow()
-        else:
-            new_cls = BlockClosureDB(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block=block,
-                block_norm=b_norm,
-                source_week=source_week,
-                is_closed=is_closed,
-            )
-            db.add(new_cls)
+            v_norm = normalize_variety_name(variety, product_master)
+            b_norm = normalize_block_name(block)
+
+            if "VERONICA" in product_master.upper():
+                product_master = "VERONICA"
+                pm_norm = "VERONICA"
+                existing = db.query(BlockClosureDB).filter(
+                    BlockClosureDB.activity == activity,
+                    BlockClosureDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
+                    BlockClosureDB.variety_norm == v_norm,
+                    BlockClosureDB.block_norm == b_norm,
+                    BlockClosureDB.source_week == source_week,
+                ).first()
+            else:
+                pm_norm = normalize_text(product_master)
+                existing = db.query(BlockClosureDB).filter_by(
+                    activity=activity,
+                    product_master_norm=pm_norm,
+                    variety_norm=v_norm,
+                    block_norm=b_norm,
+                    source_week=source_week,
+                ).first()
+
+            if existing:
+                existing.is_closed = is_closed
+                existing.updated_at = datetime.utcnow()
+            else:
+                new_cls = BlockClosureDB(
+                    activity=activity,
+                    product_master_norm=pm_norm,
+                    variety_norm=v_norm,
+                    block=b_norm,
+                    block_norm=b_norm,
+                    source_week=source_week,
+                    is_closed=is_closed,
+                )
+                db.add(new_cls)
+            updated_count += 1
 
         db.commit()
         invalidate_snapshot_cache()
-        return jsonify({"ok": True, "message": "Cierre de bloque actualizado en PostgreSQL."})
+        msg = f"{updated_count} bloque(s) actualizado(s) con éxito en PostgreSQL." if updated_count > 1 else "Cierre de bloque actualizado en PostgreSQL."
+        return jsonify({"ok": True, "count": updated_count, "message": msg})
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500
