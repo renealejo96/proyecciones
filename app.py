@@ -35,6 +35,7 @@ from db import (
     EstimateAuditDB,
     MassAdjustmentDB,
     RowAdjustmentDB,
+    RowDeactivationDB,
     SessionLocal,
     TpsrRecord,
     UserDB,
@@ -193,6 +194,21 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 BlockClosureDB.source_week < (year + 1) * 100
             )
         block_closes = block_closes_query.all()
+
+        row_deactivations_query = db.query(RowDeactivationDB).filter_by(is_deactivated=True)
+        if year:
+            row_deactivations_query = row_deactivations_query.filter(
+                RowDeactivationDB.source_week < (year + 1) * 100
+            )
+        row_deactivations = row_deactivations_query.all()
+        deactivated_map = {}
+        for d in row_deactivations:
+            pm_norm = "VERONICA" if "VERONICA" in d.product_master_norm else d.product_master_norm
+            v_norm = normalize_variety_name(d.variety_norm, pm_norm)
+            b_norm = normalize_block_name(d.block_norm or d.block)
+            deactivated_map[(d.activity, pm_norm, v_norm, b_norm, d.source_week)] = d.reason or "Pérdida"
+            if v_norm != d.variety_norm or b_norm != (d.block_norm or d.block):
+                deactivated_map[(d.activity, pm_norm, d.variety_norm, d.block_norm, d.source_week)] = d.reason or "Pérdida"
 
         cycle_map = {}
         cycle_map_by_var_act = {}
@@ -477,6 +493,12 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 block_closed = bool(source_week < 202630)
             source_rows[-1]["block_closed"] = block_closed
 
+            is_deactivated = (closure_key in deactivated_map)
+            deactivation_reason = deactivated_map.get(closure_key, "")
+            source_rows[-1]["is_deactivated"] = is_deactivated
+            source_rows[-1]["deactivation_reason"] = deactivation_reason
+            source_rows[-1]["original_plants"] = plants
+
             block_week_adjs = week_adjustments_by_block.get(closure_key, {})
             all_harvest_weeks = sorted(set(model_projection_by_week.keys()) | set(block_week_adjs.keys()))
 
@@ -510,6 +532,9 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                         "variety": variety,
                         "block": block,
                         "plants": plants,
+                        "original_plants": plants,
+                        "is_deactivated": is_deactivated,
+                        "deactivation_reason": deactivation_reason,
                         "bed_location": bed_location_str,
                         "source_week": source_week,
                         "source_week_short": format_short_week(source_week),
@@ -725,6 +750,7 @@ def aggregate_for_week(
     horizon_weeks_back: int,
     horizon_weeks_forward: int,
     selected_product_master: str = "",
+    page_mode: str = "AGRONOMO",
 ) -> dict[str, Any]:
     selected_product_master = (selected_product_master or "").strip()
     selected_norm = normalize_text(selected_product_master) if selected_product_master else None
@@ -754,6 +780,10 @@ def aggregate_for_week(
 
     for row in snapshot.get("projection_rows", []):
         if selected_norm and row.get("product_master_norm") != selected_norm:
+            continue
+
+        is_deact = bool(row.get("is_deactivated", False))
+        if page_mode in {"REAL", "CONSOLIDADO"} and is_deact:
             continue
 
         pm = str(row.get("product_master") or "")
@@ -813,11 +843,13 @@ def aggregate_for_week(
         b_key = (pm, var, act, sw_val, blk)
 
         is_closed = bool(row.get("block_closed", False))
+        is_deact = bool(row.get("is_deactivated", False))
         eff_cycle = int(row.get("cycle_weeks") or 0)
         h_start = shift_week(sw_val, eff_cycle) if eff_cycle else sw_val
 
         # Include if it has harvests in the current window OR is an active/growing batch whose harvest is current/upcoming
-        if b_key in source_keys or (not is_closed and sw_val in recent_source_weeks and h_start >= min_window_week):
+        # OR is deactivated (always keep deactivated rows visible in the matrix as requested by the user!)
+        if b_key in source_keys or is_deact or (not is_closed and sw_val in recent_source_weeks and h_start >= min_window_week):
             candidates.append(row)
 
     candidates.sort(key=lambda r: (r.get("product_master") or "", r.get("variety") or "", r.get("activity") or "", r.get("source_week") or 0, r.get("block") or ""))
@@ -860,12 +892,27 @@ def aggregate_for_week(
 
         b_key = (pm, var, act, sw, blk)
         b_lifetime = lifetime_metrics.get(b_key, {"total_production": 0, "total_exportable": 0, "total_dumps": 0})
+        is_deact = bool(row.get("is_deactivated", False))
+        orig_plants = int(row.get("original_plants", row.get("plants", 0)) or 0)
         plants_raw = int(row.get("plants") or 0)
-        plants_count = plants_raw if plants_raw > 0 else 1
-        lifetime_total_prod = b_lifetime["total_production"]
-        lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if plants_raw > 0 else 0.0
-
         is_closed = bool(row.get("block_closed", False))
+
+        if page_mode in {"REAL", "CONSOLIDADO"} and is_deact:
+            plants_raw = 0
+            program_total_val = 0
+            window_total_prod = 0
+            lifetime_total_prod = 0
+            lifetime_real_stems = 0.0
+            weekly_projection = {col["label"]: 0 for col in week_columns}
+            weekly_status = {col["label"]: "MODELO" for col in week_columns}
+            is_dump_by_week = {col["label"]: False for col in week_columns}
+            dump_stems_by_week = {col["label"]: 0 for col in week_columns}
+            is_closed = False
+        else:
+            plants_count = plants_raw if plants_raw > 0 else 1
+            lifetime_total_prod = b_lifetime["total_production"]
+            lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if plants_raw > 0 else 0.0
+            program_total_val = int(round(float(row.get("program_total") or 0)))
 
         matrix_rows.append(
             {
@@ -880,6 +927,9 @@ def aggregate_for_week(
                 "harvest_start_week_short": harvest_start_week_short,
                 "block": blk,
                 "plants": plants_raw,
+                "original_plants": orig_plants,
+                "is_deactivated": is_deact,
+                "deactivation_reason": str(row.get("deactivation_reason") or ""),
                 "cycle_weeks": row.get("cycle_weeks"),
                 "ideal_cycle_weeks": row.get("ideal_cycle_weeks"),
                 "curve_csv": str(row.get("curve_csv") or ""),
@@ -887,7 +937,7 @@ def aggregate_for_week(
                 "ideal_stems_per_plant": float(row.get("ideal_stems_per_plant") or 0.0),
                 "waste_rate": float(row.get("waste_rate") or 0.0),
                 "ideal_waste_rate": float(row.get("ideal_waste_rate") or 0.0),
-                "program_total": int(round(float(row.get("program_total") or 0))),
+                "program_total": program_total_val,
                 "weekly_projection": weekly_projection,
                 "weekly_status": weekly_status,
                 "is_dump": is_dump_by_week,
@@ -1112,7 +1162,7 @@ def require_login():
             if "estadistica" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo Estadístico."}), 403
         # Reales specific APIs
-        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch"}:
+        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch", "/api/desactivar-fila"}:
             if "reales" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo de Datos Reales."}), 403
         # Agro specific APIs
@@ -1305,6 +1355,7 @@ def index() -> str:
         horizon_weeks_back,
         horizon_weeks_forward,
         selected_product_master=requested_product_master,
+        page_mode="AGRONOMO",
     )
     missing_cycles = snapshot.get("missing_cycles", [])
 
@@ -1366,6 +1417,7 @@ def reales() -> str:
         horizon_weeks_back,
         horizon_weeks_forward,
         selected_product_master=requested_product_master,
+        page_mode="REAL",
     )
     # Load all curve projection rows so user can input real data for any stem/block
 
@@ -2305,6 +2357,17 @@ def get_statistics_data(
                     closed_blocks_set.add((c_pm, normalize_text(c.variety_norm), c.source_week, c_ac, normalize_text(c.block_norm or c.block)))
                 closed_blocks_by_lot.add((c_pm, c.source_week, c_ac, c_blk))
 
+        deactivated_query = db.query(RowDeactivationDB).filter_by(is_deactivated=True)
+        deactivated_list = deactivated_query.all()
+        deactivated_keys: set[tuple[str, str, int, str, str]] = set()
+        for d in deactivated_list:
+            d_pm = normalize_text(d.product_master_norm)
+            d_var = normalize_variety_name(d.variety_norm, d_pm)
+            d_ac = normalize_text(d.activity)
+            d_blk = normalize_block_name(d.block_norm or d.block)
+            deactivated_keys.add((d_pm, d_var, d.source_week, d_ac, d_blk))
+            deactivated_keys.add((d_ac, d_pm, d_var, d_blk, d.source_week))
+
         # 4. Query TPSR records across all crops
         tpsr_records = db.query(TpsrRecord).all()
 
@@ -2355,6 +2418,9 @@ def get_statistics_data(
             ac_norm = normalize_text(ac)
             blk_norm = normalize_text(blk)
             k_norm = (pm_norm, var_norm, sw, ac_norm, blk_norm)
+
+            if k_norm in deactivated_keys or (ac_norm, pm_norm, var_norm, blk_norm, sw) in deactivated_keys:
+                continue
 
             c_def = find_cycle_definition(cycles_map, pm_norm, var_norm, ac_norm)
             plants = lot["plants"]
@@ -3887,6 +3953,7 @@ def projections_api():
         horizon_weeks_back,
         horizon_weeks_forward,
         selected_product_master=requested_product_master,
+        page_mode=request.args.get("page_mode", "AGRONOMO"),
     )
     return jsonify(weekly_view)
 
@@ -4390,6 +4457,84 @@ def save_block_closure_api():
         invalidate_snapshot_cache()
         msg = f"{updated_count} bloque(s) actualizado(s) con éxito en PostgreSQL." if updated_count > 1 else "Cierre de bloque actualizado en PostgreSQL."
         return jsonify({"ok": True, "count": updated_count, "message": msg})
+    except SQLAlchemyError as exc:
+        db.rollback()
+        return jsonify({"ok": False, "message": str(exc)}), 500
+    finally:
+        db.close()
+
+
+@app.post("/api/desactivar-fila")
+def toggle_row_deactivation_api():
+    payload = request.get_json(silent=True) or {}
+    items = payload.get("items")
+    if items is None:
+        if isinstance(payload, list):
+            items = payload
+        else:
+            items = [payload]
+
+    if not items:
+        return jsonify({"ok": False, "message": "No se enviaron datos de fila."}), 400
+
+    db = SessionLocal()
+    try:
+        updated_count = 0
+        last_state = True
+        for item in items:
+            activity = normalize_text(item.get("activity"))
+            product_master = str(item.get("product_master") or "").strip()
+            variety = str(item.get("variety") or "").strip()
+            block = str(item.get("block") or "").strip()
+            source_week = parse_week_code(item.get("source_week"))
+            is_deactivated = bool(item.get("is_deactivated", True))
+            reason = str(item.get("reason") or "Pérdida de siembra / Se llevó la corriente").strip()
+            last_state = is_deactivated
+
+            if activity not in {"SIEMBRA", "PODA"}:
+                continue
+            if not product_master or not variety or not block or source_week is None:
+                continue
+
+            v_norm = normalize_variety_name(variety, product_master)
+            b_norm = normalize_block_name(block)
+
+            if "VERONICA" in product_master.upper():
+                pm_norm = "VERONICA"
+            else:
+                pm_norm = normalize_text(product_master)
+
+            existing = db.query(RowDeactivationDB).filter_by(
+                activity=activity,
+                product_master_norm=pm_norm,
+                variety_norm=v_norm,
+                block_norm=b_norm,
+                source_week=source_week,
+            ).first()
+
+            if existing:
+                existing.is_deactivated = is_deactivated
+                existing.reason = reason
+                existing.updated_at = datetime.utcnow()
+            else:
+                new_rec = RowDeactivationDB(
+                    activity=activity,
+                    product_master_norm=pm_norm,
+                    variety_norm=v_norm,
+                    block=b_norm,
+                    block_norm=b_norm,
+                    source_week=source_week,
+                    is_deactivated=is_deactivated,
+                    reason=reason,
+                )
+                db.add(new_rec)
+            updated_count += 1
+
+        db.commit()
+        invalidate_snapshot_cache()
+        state_txt = "desactivada(s) (plantas en 0)" if last_state else "reactivada(s)"
+        msg = f"{updated_count} fila(s) {state_txt} con éxito en PostgreSQL."
+        return jsonify({"ok": True, "count": updated_count, "is_deactivated": last_state, "message": msg})
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500

@@ -147,6 +147,25 @@ class BlockClosureDB(Base):
     )
 
 
+class RowDeactivationDB(Base):
+    __tablename__ = "row_deactivations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    activity = Column(String(50), nullable=False)
+    product_master_norm = Column(String(100), nullable=False)
+    variety_norm = Column(String(100), nullable=False)
+    block = Column(String(50), nullable=False)
+    block_norm = Column(String(50), nullable=False)
+    source_week = Column(Integer, nullable=False)
+    is_deactivated = Column(Boolean, default=True, nullable=False)
+    reason = Column(String(255), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_row_deactivations_lookup", "activity", "product_master_norm", "variety_norm", "block_norm", "source_week"),
+    )
+
+
 class EstimateAuditDB(Base):
     __tablename__ = "estimate_audits"
 
@@ -654,6 +673,8 @@ def init_db():
                 "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS is_dump BOOLEAN DEFAULT FALSE;",
                 "ALTER TABLE week_adjustments ADD COLUMN IF NOT EXISTS dump_stems INTEGER DEFAULT 0;",
                 "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS allowed_views VARCHAR(255);",
+                "CREATE TABLE IF NOT EXISTS row_deactivations (id SERIAL PRIMARY KEY, activity VARCHAR(50) NOT NULL, product_master_norm VARCHAR(100) NOT NULL, variety_norm VARCHAR(100) NOT NULL, block VARCHAR(50) NOT NULL, block_norm VARCHAR(50) NOT NULL, source_week INTEGER NOT NULL, is_deactivated BOOLEAN DEFAULT TRUE, reason VARCHAR(255), updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
+                "CREATE INDEX IF NOT EXISTS ix_row_deactivations_lookup ON row_deactivations (activity, product_master_norm, variety_norm, block_norm, source_week);",
             ]:
                 try:
                     conn.execute(text(alter_sql))
