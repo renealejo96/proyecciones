@@ -5534,23 +5534,65 @@
         function getProductionHarvestRangeText(prod) {
             if (!prod) return 'Sin corte';
             let hwList = [];
+
+            // 1. Direct harvest_breakdown on prod
             if (prod.harvest_breakdown && prod.harvest_breakdown.length) {
                 hwList = prod.harvest_breakdown
-                    .map(h => String(h.harvest_week_short || h.hw || '').trim())
+                    .map(h => String(h.harvest_week_short || h.hw || (h.harvest_week ? h.harvest_week % 100 : '')).trim())
                     .filter(Boolean);
-            } else if (prod.harvest_weeks_str) {
+            }
+
+            // 2. Direct harvest_weeks_str on prod
+            if (!hwList.length && prod.harvest_weeks_str) {
                 hwList = String(prod.harvest_weeks_str)
                     .split(',')
                     .map(s => s.trim())
                     .filter(Boolean);
             }
+
+            // 3. Fallback to HARVEST_BREAKDOWN_MAP by prod.uid or case variations
+            if (!hwList.length && typeof HARVEST_BREAKDOWN_MAP !== 'undefined' && HARVEST_BREAKDOWN_MAP && prod.uid) {
+                const mapItems = HARVEST_BREAKDOWN_MAP[prod.uid] || 
+                                 HARVEST_BREAKDOWN_MAP[prod.uid.toUpperCase()] || 
+                                 HARVEST_BREAKDOWN_MAP[prod.uid.toLowerCase()] || [];
+                if (mapItems && mapItems.length) {
+                    hwList = mapItems
+                        .map(h => String(h.hw || h.harvest_week_short || '').trim())
+                        .filter(Boolean);
+                }
+            }
+
+            // 4. Fallback to variety_breakdown
+            if (!hwList.length && prod.variety_breakdown && prod.variety_breakdown.length) {
+                prod.variety_breakdown.forEach(vb => {
+                    if (vb.harvest_breakdown && vb.harvest_breakdown.length) {
+                        vb.harvest_breakdown.forEach(h => {
+                            const w = String(h.harvest_week_short || h.hw || (h.harvest_week ? h.harvest_week % 100 : '')).trim();
+                            if (w && !hwList.includes(w)) hwList.push(w);
+                        });
+                    } else if (vb.harvest_weeks_str) {
+                        String(vb.harvest_weeks_str).split(',').map(s => s.trim()).filter(Boolean).forEach(w => {
+                            if (!hwList.includes(w)) hwList.push(w);
+                        });
+                    }
+                });
+            }
+
+            // 5. If still empty, check total stems
             if (!hwList.length) {
+                const totalSt = Number(prod.total_production || prod.real_stems || 0);
+                if (totalSt > 0) {
+                    const cleanSw = String(prod.source_week_max_short || (prod.source_weeks_short && prod.source_weeks_short[0]) || '').replace(/^S/i, '');
+                    return cleanSw ? `Sem ${cleanSw}+` : 'Cosecha registrada';
+                }
                 return prod.is_closed ? 'Sin corte registrado' : 'Cosecha en proceso';
             }
+
             const cleanW = w => String(w).trim().replace(/^Sem\s*/i, '').replace(/^S/i, '');
-            const firstW = cleanW(hwList[0]);
-            const lastW = cleanW(hwList[hwList.length - 1]);
-            if (!firstW && !lastW) return 'Sin corte';
+            const sortedHw = hwList.map(cleanW).filter(Boolean).sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
+            if (!sortedHw.length) return 'Sin corte';
+            const firstW = sortedHw[0];
+            const lastW = sortedHw[sortedHw.length - 1];
             if (firstW === lastW || !lastW) {
                 return `Sem ${firstW}`;
             }
@@ -5632,9 +5674,14 @@
                 const cleanSourceW = (prod.source_week_max_short || (prod.source_weeks_short && prod.source_weeks_short[0]) || '').replace(/^S/i, '');
                 const sourceStr = cleanSourceW ? `${isPoda ? 'Poda' : 'Siembra'} Sem ${cleanSourceW}` : '';
 
-                const realPP = Number(prod.real_stems_per_plant || 0);
-                const idealPP = Number(prod.ideal_stems_per_plant || 0);
-                const isOptimal = (idealPP > 0) ? (realPP >= idealPP) : true;
+                const realPPNum = Number(prod.real_stems_per_plant || 0);
+                const idealPPNum = Number(prod.ideal_stems_per_plant || 0);
+                const effectiveRealPP = (realPPNum > 0)
+                    ? realPPNum.toFixed(2)
+                    : (((prod.total_production || 0) > 0 && (prod.plants || 0) > 0)
+                        ? ((prod.total_production || 0) / prod.plants).toFixed(2)
+                        : '0.00');
+                const isOptimal = (idealPPNum > 0) ? (Number(effectiveRealPP) >= idealPPNum) : true;
 
                 html += `
                     <div class="timeline-stage-card ${isCycleActive ? 'active' : ''}" 
@@ -5656,7 +5703,7 @@
                         <div class="stage-perf-row">
                             <span class="stage-stems">${Number(prod.total_production || 0).toLocaleString()} tll</span>
                             <span class="stage-pp ${isOptimal ? 'optimal' : 'below'}">
-                                ${prod.real_stems_per_plant || '0.00'} T/pl
+                                ${effectiveRealPP} T/pl
                             </span>
                         </div>
                     </div>
@@ -5923,6 +5970,8 @@
                 tpVal = Number(targetProds[targetProds.length - 1].real_stems_per_plant);
             } else if (cblock.real_stems_per_plant && Number(cblock.real_stems_per_plant) > 0) {
                 tpVal = Number(cblock.real_stems_per_plant);
+            } else if (cblock.total_production > 0 && cblock.total_plants > 0) {
+                tpVal = Number((cblock.total_production / cblock.total_plants).toFixed(2));
             }
             const idealVal = Number(cblock.ideal_stems_per_plant || (targetStage ? targetStage.ideal_stems_pp : 0) || 0);
 
@@ -5986,6 +6035,20 @@
                 pill1Title = `Etapa 1 (${stg1.product_master}): ${stg1.real_stems_per_plant || 0} T/pl`;
                 pill2Text = `E2 ${stg2.real_stems_per_plant || '0.00'}`;
                 pill2Title = `Etapa 2 (${stg2.product_master}): ${stg2.real_stems_per_plant || 0} T/pl`;
+            } else if (productions.length > 1) {
+                const p1 = productions[0];
+                const p2 = productions[productions.length - 1];
+                pill1Text = `${p1.activity === 'PODA' ? 'Poda' : 'Siem'} ${p1.real_stems_per_plant || '0.00'}`;
+                pill1Title = `${p1.production_label || p1.activity}: ${p1.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `${p2.activity === 'PODA' ? 'Poda' : 'Siem'} ${p2.real_stems_per_plant || '0.00'}`;
+                pill2Title = `${p2.production_label || p2.activity}: ${p2.real_stems_per_plant || 0} T/pl`;
+            } else if (productions.length === 1) {
+                const pr = productions[0];
+                const actLbl = pr.activity === 'PODA' ? 'Poda' : 'Siem';
+                pill1Text = `${actLbl} ${pr.real_stems_per_plant || '0.00'}`;
+                pill1Title = `${pr.activity}: ${pr.real_stems_per_plant || 0} T/pl`;
+                pill2Text = `${pr.plants ? Number(pr.plants).toLocaleString() + ' pl' : '1c'}`;
+                pill2Title = `${Number(pr.plants || 0).toLocaleString()} plantas`;
             } else {
                 pill1Text = 'Sin datos';
                 pill2Text = '0.00 T/pl';
@@ -6385,13 +6448,23 @@
                     scopePlants = prod.plants || 0;
                     scopeProd = prod.total_production || 0;
                     scopeRealPP = prod.real_stems_per_plant || '0.00';
+                    if ((Number(scopeRealPP) === 0 || scopeRealPP === '0.00') && scopeProd > 0 && scopePlants > 0) {
+                        scopeRealPP = (scopeProd / scopePlants).toFixed(2);
+                    }
                     scopeIdealPP = (prod.ideal_stems_per_plant || 0).toFixed(2);
                     scopeCycle = prod.real_cycle_weeks || 0;
                     scopeWaste = prod.waste_pct || 0;
                     scopeDump = prod.dump_stems || 0;
                     scopeHWRange = prod.harvest_weeks_display || prod.harvest_weeks_str || 'Sin corte';
                     chartId = prod.uid;
-                    const rawSrc = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[prod.uid]) || prod.harvest_breakdown || [];
+                    const rawSrc = (HARVEST_BREAKDOWN_MAP && (
+                        HARVEST_BREAKDOWN_MAP[prod.uid] ||
+                        HARVEST_BREAKDOWN_MAP[prod.uid.toUpperCase()] ||
+                        HARVEST_BREAKDOWN_MAP[prod.uid.toLowerCase()] ||
+                        HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
+                        HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${prod.variety_display}`] ||
+                        HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${prod.variety}`]
+                    )) || prod.harvest_breakdown || [];
                     items = (rawSrc || []).map(h => normalizeHarvestItem(h, prod, prod.activity)).filter(Boolean);
 
                     if (effectiveVar && effectiveVar !== 'ALL') {
@@ -6412,6 +6485,13 @@
                             )) || vb.harvest_breakdown || [];
                             items = (rawVbHw || []).map(h => normalizeHarvestItem(h, prod, prod.activity)).filter(Boolean);
                         }
+                    }
+
+                    if ((!scopeHWRange || scopeHWRange === 'Sin corte') && items && items.length > 0) {
+                        const cleanW = w => String(w).trim().replace(/^Sem\s*/i, '').replace(/^S/i, '');
+                        const firstW = cleanW(items[0].hw);
+                        const lastW = cleanW(items[items.length - 1].hw);
+                        scopeHWRange = (firstW === lastW || !lastW) ? `Sem ${firstW}` : `Sem ${firstW} – ${lastW}`;
                     }
                 }
             } else {
@@ -6771,14 +6851,33 @@
                         HARVEST_BREAKDOWN_MAP[cKey] ||
                         HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
                         HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${effectiveVar.toUpperCase()}`] ||
-                        (curVb && HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${(curVb.variety || '').trim()}`])
+                        (curVb && HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${(curVb.variety || '').trim()}`]) ||
+                        HARVEST_BREAKDOWN_MAP[currentProd.uid] ||
+                        HARVEST_BREAKDOWN_MAP[currentProd.uid.toUpperCase()] ||
+                        HARVEST_BREAKDOWN_MAP[currentProd.uid.toLowerCase()]
                     )) || [];
 
                     if (!rawSource.length && curVb && curVb.harvest_breakdown && curVb.harvest_breakdown.length) {
                         rawSource = curVb.harvest_breakdown;
                     }
+                    if (!rawSource.length && currentProd.variety_breakdown && currentProd.variety_breakdown.length) {
+                        const vbHwList = [];
+                        currentProd.variety_breakdown.forEach(vb => {
+                            if (vb.harvest_breakdown && vb.harvest_breakdown.length) {
+                                vbHwList.push(...vb.harvest_breakdown);
+                            }
+                        });
+                        if (vbHwList.length) rawSource = vbHwList;
+                    }
                     if (!rawSource.length) {
                         rawSource = (items && items.length) ? items : (currentProd.harvest_breakdown || []);
+                    }
+                    if (!rawSource.length && HARVEST_BREAKDOWN_MAP && (
+                        HARVEST_BREAKDOWN_MAP[cblock.uid] ||
+                        HARVEST_BREAKDOWN_MAP[String(cblock.block)] ||
+                        HARVEST_BREAKDOWN_MAP[String(cblock.block).toUpperCase()]
+                    )) {
+                        rawSource = HARVEST_BREAKDOWN_MAP[cblock.uid] || HARVEST_BREAKDOWN_MAP[String(cblock.block)] || HARVEST_BREAKDOWN_MAP[String(cblock.block).toUpperCase()];
                     }
                     
                     pItems = (rawSource || []).map(h => normalizeHarvestItem(h, currentProd, act)).filter(Boolean);

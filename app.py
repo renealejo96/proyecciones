@@ -59,6 +59,8 @@ BASE_DIR = Path(__file__).resolve().parent
 WORKBOOK_PATH = BASE_DIR / "siembras_podas" / "tpsr.xlsx"
 
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "proyecciones_secret_session_key_2026_prod")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
@@ -2912,7 +2914,7 @@ def get_statistics_data(
         for p in consolidated_productions:
             p_uid = p.get("uid")
             if p_uid and p.get("harvest_breakdown"):
-                harvest_breakdown_map[p_uid] = [
+                p_items = [
                     {
                         "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
                         "sw": p.get("source_week_max_short", ""),
@@ -2926,6 +2928,9 @@ def get_statistics_data(
                     for h in p["harvest_breakdown"]
                     if h.get("stems", 0) > 0
                 ]
+                harvest_breakdown_map[p_uid] = p_items
+                harvest_breakdown_map[p_uid.upper()] = p_items
+                harvest_breakdown_map[p_uid.lower()] = p_items
             for vb in p.get("variety_breakdown", []):
                 v_name = vb.get("variety") or ""
                 if vb.get("harvest_breakdown"):
@@ -2950,8 +2955,11 @@ def get_statistics_data(
                         for key_alias in {v_name, v_disp, v_norm, v_name.upper(), v_name.lower()}:
                             if key_alias:
                                 harvest_breakdown_map[f"{p_uid}_var_{key_alias}"] = vb_items
+                                harvest_breakdown_map[f"{p_uid.upper()}_var_{key_alias}"] = vb_items
+                                harvest_breakdown_map[f"{p_uid.lower()}_var_{key_alias}"] = vb_items
         for cb in consolidated_blocks:
             c_uid = cb.get("uid")
+            c_blk = str(cb.get("block", "")).strip()
             if c_uid and cb.get("productions"):
                 cb_hw_map: dict[str, dict[str, Any]] = {}
                 for p in cb["productions"]:
@@ -2981,6 +2989,15 @@ def get_statistics_data(
                     x["pct"] = round(x["stems"] / tot_cb_stems * 100.0, 1) if tot_cb_stems > 0 else 0.0
                     x["pp"] = round(x["stems"] / tot_cb_plants, 2) if tot_cb_plants > 0 else 0.0
                 harvest_breakdown_map[c_uid] = sorted_cb_hw
+                harvest_breakdown_map[c_uid.upper()] = sorted_cb_hw
+                harvest_breakdown_map[c_uid.lower()] = sorted_cb_hw
+                if c_blk:
+                    harvest_breakdown_map[c_blk] = sorted_cb_hw
+                    harvest_breakdown_map[c_blk.upper()] = sorted_cb_hw
+                    harvest_breakdown_map[c_blk.lower()] = sorted_cb_hw
+                    harvest_breakdown_map[f"blk-cons-{c_blk}"] = sorted_cb_hw
+                    harvest_breakdown_map[f"blk-cons-{c_blk.upper()}"] = sorted_cb_hw
+                    harvest_breakdown_map[f"blk-cons-{c_blk.lower()}"] = sorted_cb_hw
 
         # 10. Summary Matrix of Closed Blocks: Crop & Variety Breakdown with Weighted Curves and Inline SVG Curves
         def generate_curve_svg_markup(curve: list[float], stroke_color: str = "#2563eb", fill_color: str = "rgba(37, 99, 235, 0.18)", width: int = 140, height: int = 48) -> str:
