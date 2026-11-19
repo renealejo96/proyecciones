@@ -190,7 +190,7 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
         block_closes_query = db.query(BlockClosureDB)
         if year:
             block_closes_query = block_closes_query.filter(
-                (BlockClosureDB.source_week >= year * 100) & (BlockClosureDB.source_week < (year + 1) * 100)
+                BlockClosureDB.source_week < (year + 1) * 100
             )
         block_closes = block_closes_query.all()
 
@@ -252,24 +252,27 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
         week_adjustments_by_block = defaultdict(dict)
         for w in week_adjs:
             pm_norm = "VERONICA" if "VERONICA" in w.product_master_norm else w.product_master_norm
-            b_key = (w.activity, pm_norm, w.variety_norm, w.block_norm, w.source_week)
-            week_adjustments_by_block[b_key][w.harvest_week] = {
+            v_norm = normalize_variety_name(w.variety_norm, pm_norm)
+            b_norm = normalize_block_name(w.block_norm)
+            b_key = (w.activity, pm_norm, v_norm, b_norm, w.source_week)
+            val = {
                 "agronomo_estimate": w.agronomo_estimate,
                 "real_closed": w.real_closed,
                 "dump_stems": w.dump_stems or 0,
                 "is_dump": bool(w.is_dump or (w.dump_stems and w.dump_stems > 0)),
             }
+            week_adjustments_by_block[b_key][w.harvest_week] = val
+            if v_norm != w.variety_norm or b_norm != w.block_norm:
+                week_adjustments_by_block[(w.activity, pm_norm, w.variety_norm, w.block_norm, w.source_week)][w.harvest_week] = val
 
-        block_closures = {
-            (
-                b.activity,
-                "VERONICA" if "VERONICA" in b.product_master_norm else b.product_master_norm,
-                b.variety_norm,
-                b.block_norm,
-                b.source_week,
-            ): b.is_closed
-            for b in block_closes
-        }
+        block_closures = {}
+        for b in block_closes:
+            pm_norm = "VERONICA" if "VERONICA" in b.product_master_norm else b.product_master_norm
+            v_norm = normalize_variety_name(b.variety_norm, pm_norm)
+            b_norm = normalize_block_name(b.block_norm or b.block)
+            block_closures[(b.activity, pm_norm, v_norm, b_norm, b.source_week)] = bool(b.is_closed)
+            if v_norm != b.variety_norm or b_norm != (b.block_norm or b.block):
+                block_closures[(b.activity, pm_norm, b.variety_norm, b.block_norm, b.source_week)] = bool(b.is_closed)
 
         # Consolidar registros TPSR a nivel de bloque único (activity, product_master, variety, block, source_week)
         consolidated_dict: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
@@ -467,7 +470,11 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 curve_meta_by_week.setdefault(harvest_week, (curve_index + 1, float(curve_pct)))
 
             closure_key = (activity, product_master_norm, variety_norm, block_norm, source_week)
-            block_closed = bool(block_closures.get(closure_key, False))
+            if closure_key in block_closures:
+                block_closed = bool(block_closures[closure_key])
+            else:
+                # Todo lote previo a semana 30 (202630) se marca como cerrado por defecto
+                block_closed = bool(source_week < 202630)
             source_rows[-1]["block_closed"] = block_closed
 
             block_week_adjs = week_adjustments_by_block.get(closure_key, {})
@@ -479,14 +486,14 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 exportable_stems = model_exportable
                 weekly_status = "MODELO"
                 is_dump = bool(week_override.get("is_dump", False))
-                if week_override.get("agronomo_estimate") is not None:
-                    exportable_stems = int(week_override["agronomo_estimate"])
-                    if exportable_stems > 0:
-                        weekly_status = "AGRONOMO"
                 if week_override.get("real_closed") is not None:
                     exportable_stems = int(week_override["real_closed"])
                     if exportable_stems > 0:
                         weekly_status = "REAL"
+                elif week_override.get("agronomo_estimate") is not None:
+                    exportable_stems = int(week_override["agronomo_estimate"])
+                    if exportable_stems > 0:
+                        weekly_status = "AGRONOMO"
                 elif block_closed:
                     exportable_stems = 0
                     weekly_status = "REAL"
@@ -2290,10 +2297,12 @@ def get_statistics_data(
         for c in closures_list:
             if c.is_closed:
                 c_pm = normalize_text(c.product_master_norm)
-                c_var = normalize_text(c.variety_norm)
+                c_var = normalize_variety_name(c.variety_norm, c_pm)
                 c_ac = normalize_text(c.activity)
-                c_blk = normalize_text(c.block_norm or c.block)
+                c_blk = normalize_block_name(c.block_norm or c.block)
                 closed_blocks_set.add((c_pm, c_var, c.source_week, c_ac, c_blk))
+                if c_var != c.variety_norm or c_blk != (c.block_norm or c.block):
+                    closed_blocks_set.add((c_pm, normalize_text(c.variety_norm), c.source_week, c_ac, normalize_text(c.block_norm or c.block)))
                 closed_blocks_by_lot.add((c_pm, c.source_week, c_ac, c_blk))
 
         # 4. Query TPSR records across all crops
@@ -2304,9 +2313,12 @@ def get_statistics_data(
         adj_map_by_block: dict[tuple[str, str, int, str, str], list[WeekAdjustmentDB]] = {}
         for adj in week_adjustments:
             adj_pm_norm = "VERONICA" if "VERONICA" in adj.product_master_norm else adj.product_master_norm
-            k = (adj_pm_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm)
+            v_norm = normalize_variety_name(adj.variety_norm, adj_pm_norm)
+            b_norm = normalize_block_name(adj.block_norm)
+            k = (adj_pm_norm, v_norm, adj.source_week, adj.activity, b_norm)
             adj_map_by_block.setdefault(k, []).append(adj)
-            adj_map_by_block.setdefault((adj.product_master_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm), []).append(adj)
+            if v_norm != adj.variety_norm or b_norm != adj.block_norm:
+                adj_map_by_block.setdefault((adj_pm_norm, adj.variety_norm, adj.source_week, adj.activity, adj.block_norm), []).append(adj)
 
         # 6. Group TPSR records by individual block: (product_master, variety, source_week, activity, block)
         grouped_block_lots: dict[tuple[str, str, int, str, str], dict[str, Any]] = {}
@@ -2357,7 +2369,7 @@ def get_statistics_data(
             adj_agro_map = {a.harvest_week: a.agronomo_estimate for a in adjs if a.agronomo_estimate is not None}
             adj_dump_map = {a.harvest_week: (a.dump_stems or 0) for a in adjs}
 
-            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot)
+            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot) or (sw < 202630)
 
             # Build complete curve weeks: if closed, ONLY real/agro/dump weeks are included; never fake model weeks
             all_hw_set = set()

@@ -473,10 +473,151 @@ def cleanup_outlier_hyp_2023_data():
             print(f"Warning en cleanup_outlier_hyp_2023_data: {e}")
 
 
+def migrate_homologate_and_pre30_closures():
+    """
+    1. Homologa nombres de variedad Gypsophila (XCELENCE, XELENCE -> XLENCE).
+    2. Homologa nombres de bloques removiendo prefijos 'BL ' o 'Bl '.
+    3. Marca como cerrados (is_closed=True) todos los lotes y semanas anteriores a la semana 30 (< 202630).
+    4. Inserta registros de cierre faltantes en BlockClosureDB para todo lote histórico pre-30.
+    Es completamente idempotente.
+    """
+    with SessionLocal() as db:
+        try:
+            flag = db.query(AppMetaDB).filter_by(key="migration_healed_pre30_and_xlence_v1").first()
+            if flag and flag.value == "1":
+                return
+
+            print("Aplicando migración: Homologación de XLENCE, limpieza de bloques y cierre pre-semana 30...")
+
+            # 1. Homologación XLENCE en Gypsophila
+            db.execute(text("""
+                UPDATE tpsr_records 
+                SET variety = 'XLENCE', variety_norm = 'XLENCE' 
+                WHERE (product_master_norm = 'GYPSOPHILA' OR UPPER(product_master) LIKE '%GYP%') 
+                AND (variety_norm IN ('XCELENCE', 'XELENCE') OR UPPER(variety) LIKE '%XCELENCE%' OR UPPER(variety) LIKE '%XELENCE%');
+
+                UPDATE week_adjustments 
+                SET variety_norm = 'XLENCE' 
+                WHERE (product_master_norm = 'GYPSOPHILA' OR UPPER(product_master_norm) LIKE '%GYP%') 
+                AND (variety_norm IN ('XCELENCE', 'XELENCE') OR UPPER(variety_norm) LIKE '%XCELENCE%' OR UPPER(variety_norm) LIKE '%XELENCE%');
+
+                UPDATE block_closures 
+                SET variety_norm = 'XLENCE' 
+                WHERE (product_master_norm = 'GYPSOPHILA' OR UPPER(product_master_norm) LIKE '%GYP%') 
+                AND (variety_norm IN ('XCELENCE', 'XELENCE') OR UPPER(variety_norm) LIKE '%XCELENCE%' OR UPPER(variety_norm) LIKE '%XELENCE%');
+
+                UPDATE cycle_definitions 
+                SET variety = 'XLENCE', variety_norm = 'XLENCE' 
+                WHERE (product_master_norm = 'GYPSOPHILA' OR UPPER(product_master_norm) LIKE '%GYP%') 
+                AND (variety_norm IN ('XCELENCE', 'XELENCE') OR UPPER(variety_norm) LIKE '%XCELENCE%' OR UPPER(variety_norm) LIKE '%XELENCE%');
+
+                UPDATE row_adjustments 
+                SET variety_norm = 'XLENCE' 
+                WHERE (product_master_norm = 'GYPSOPHILA' OR UPPER(product_master_norm) LIKE '%GYP%') 
+                AND (variety_norm IN ('XCELENCE', 'XELENCE') OR UPPER(variety_norm) LIKE '%XCELENCE%' OR UPPER(variety_norm) LIKE '%XELENCE%');
+            """))
+            db.commit()
+
+            # 2. Homologación nombres de bloques (remover 'BL ' o 'Bl ')
+            db.execute(text("""
+                UPDATE tpsr_records 
+                SET block = UPPER(REGEXP_REPLACE(block, '^(BL|Bl|bl)\\s*', '', 'i')), 
+                    block_norm = UPPER(REGEXP_REPLACE(block_norm, '^(BL|Bl|bl)\\s*', '', 'i')) 
+                WHERE block ~* '^(BL|Bl)\\s*';
+
+                UPDATE week_adjustments 
+                SET block = UPPER(REGEXP_REPLACE(block, '^(BL|Bl|bl)\\s*', '', 'i')), 
+                    block_norm = UPPER(REGEXP_REPLACE(block_norm, '^(BL|Bl|bl)\\s*', '', 'i')) 
+                WHERE block ~* '^(BL|Bl)\\s*';
+
+                UPDATE block_closures 
+                SET block = UPPER(REGEXP_REPLACE(block, '^(BL|Bl|bl)\\s*', '', 'i')), 
+                    block_norm = UPPER(REGEXP_REPLACE(block_norm, '^(BL|Bl|bl)\\s*', '', 'i')) 
+                WHERE block ~* '^(BL|Bl)\\s*';
+
+                UPDATE row_adjustments 
+                SET block = UPPER(REGEXP_REPLACE(block, '^(BL|Bl|bl)\\s*', '', 'i')), 
+                    block_norm = UPPER(REGEXP_REPLACE(block_norm, '^(BL|Bl|bl)\\s*', '', 'i')) 
+                WHERE block ~* '^(BL|Bl)\\s*';
+            """))
+            db.commit()
+
+            # 3. Marcar como cerrados todos los cierres existentes de semanas pre-30 (< 202630)
+            db.execute(text("UPDATE block_closures SET is_closed = TRUE WHERE source_week < 202630;"))
+            db.commit()
+
+            # 4. Insertar cierres faltantes para todos los lotes de semanas anteriores a 202630
+            existing_closures = set(
+                (c.activity, c.product_master_norm, c.variety_norm, c.block_norm, c.source_week)
+                for c in db.query(
+                    BlockClosureDB.activity,
+                    BlockClosureDB.product_master_norm,
+                    BlockClosureDB.variety_norm,
+                    BlockClosureDB.block_norm,
+                    BlockClosureDB.source_week
+                ).all()
+            )
+
+            tpsr_lots = db.query(
+                TpsrRecord.activity,
+                TpsrRecord.product_master,
+                TpsrRecord.product_master_norm,
+                TpsrRecord.variety,
+                TpsrRecord.variety_norm,
+                TpsrRecord.block,
+                TpsrRecord.block_norm,
+                TpsrRecord.source_week
+            ).filter(TpsrRecord.source_week < 202630).all()
+
+            closures_to_add = []
+            seen_keys = set()
+            for r in tpsr_lots:
+                act = "PODA" if "PODA" in (r.activity or "").upper() else "SIEMBRA"
+                pm = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else (r.product_master or "")
+                pm_norm = "VERONICA" if "VERONICA" in pm.upper() else (r.product_master_norm or "")
+                var_norm = (r.variety_norm or "").strip().upper()
+                if "GYP" in pm_norm and ("XCELENCE" in var_norm or "XELENCE" in var_norm):
+                    var_norm = "XLENCE"
+                blk_clean = re.sub(r'^(BL|Bl|bl)\s*', '', str(r.block_norm or r.block or '').strip(), flags=re.IGNORECASE).upper()
+                sw = r.source_week
+                if not sw:
+                    continue
+                k = (act, pm_norm, var_norm, blk_clean, sw)
+                if k not in existing_closures and k not in seen_keys:
+                    seen_keys.add(k)
+                    closures_to_add.append({
+                        "activity": act,
+                        "product_master_norm": pm_norm,
+                        "variety_norm": var_norm,
+                        "block": blk_clean,
+                        "block_norm": blk_clean,
+                        "source_week": sw,
+                        "is_closed": True
+                    })
+
+            if closures_to_add:
+                db.bulk_insert_mappings(BlockClosureDB, closures_to_add)
+                db.commit()
+                print(f"Insertados {len(closures_to_add)} cierres de bloques para semanas anteriores a 202630.")
+
+            if not flag:
+                db.add(AppMetaDB(key="migration_healed_pre30_and_xlence_v1", value="1"))
+            else:
+                flag.value = "1"
+
+            bump_data_version(db)
+            db.commit()
+            print("Migración de homologación y cierres pre-semana 30 completada con éxito.")
+        except Exception as e:
+            db.rollback()
+            print(f"Warning en migrate_homologate_and_pre30_closures: {e}")
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
     restore_snapshot_if_needed()
     cleanup_outlier_hyp_2023_data()
+    migrate_homologate_and_pre30_closures()
 
     # 1. Fast check: if migrations and data healing have already been applied, return immediately!
     db = SessionLocal()

@@ -1831,14 +1831,15 @@
                                     data-lifetime-total-prod="{{ row.lifetime_total_production }}"
                                     data-lifetime-real-stems="{{ '%.1f'|format(row.lifetime_real_stems_per_plant) if row.lifetime_real_stems_per_plant else '' }}"
                                     data-initial-window-prod="{{ row.window_total }}">
-                                    <td class="sticky-col sticky-1">
-                                        {% if page_mode == 'AGRONOMO' and row.block_closed %}
-                                            <span class="badge-closed-lock" title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                            </span>
-                                        {% else %}
+                                    <td class="sticky-col sticky-1" style="text-align: center; vertical-align: middle;">
+                                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 3px;">
                                             <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
-                                        {% endif %}
+                                            {% if page_mode == 'AGRONOMO' and row.block_closed %}
+                                                <span class="badge-closed-lock" style="display: inline-flex; align-items: center;" title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.">
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                     <td class="sticky-col sticky-ubi" title="Camas: {{ row.bed_location }}"><span class="badge-ubi">{{ row.bed_location or '-' }}</span></td>
@@ -1848,12 +1849,12 @@
                                     <td class="sticky-col sticky-6 harvest-start-col" title="Semana estimada en que entra a punteo / cosecha">{{ row.harvest_start_week_short }}</td>
                                     <td class="sticky-col sticky-7 plants-cell" data-val="{{ row.plants }}">{{ row.plants }}</td>
                                     <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
-                                    <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}"></td>
+                                    <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}" {{ 'disabled' if row.block_closed else '' }}></td>
                                     <td class="sticky-col sticky-10 param-col">{{ '%.1f'|format(row.ideal_stems_per_plant) }}</td>
-                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ '%.1f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.0' }}"></td>
+                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ '%.1f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.0' }}" {{ 'disabled' if row.block_closed else '' }}></td>
                                     
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
-                                    <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}"></td>
+                                    <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}" {{ 'disabled' if row.block_closed else '' }}></td>
                                     <td class="param-col cell-program-total col-param-export-stems" data-val="{{ row.program_total }}">{{ row.program_total }}</td>
                                     <td class="param-col cell-total-prod col-param-total-prod" data-val="{{ row.total_production }}">{{ row.total_production }}</td>
                                     <td class="param-col cell-real-stems col-param-real-stems" data-val="{{ row.real_stems_per_plant if row.real_stems_per_plant else '' }}">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
@@ -1888,7 +1889,7 @@
                                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                                 </button>
                                             {% endif %}
-                                            <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}">
+                                            <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}" {{ 'disabled' if (row.block_closed or (page_mode != 'REAL' and (cell_stat == 'REAL' or is_cell_dump))) else '' }}>
                                         </td>
                                     {% endfor %}
                                     <td class="cell-window-total col-total-final" data-val="{{ row.window_total }}">{{ row.window_total }}</td>

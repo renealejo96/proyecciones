@@ -5972,6 +5972,9 @@
                 tpVal = Number(cblock.real_stems_per_plant);
             } else if (cblock.total_production > 0 && cblock.total_plants > 0) {
                 tpVal = Number((cblock.total_production / cblock.total_plants).toFixed(2));
+            } else if (productions.length > 0) {
+                const prodWithTp = productions.find(p => Number(p.real_stems_per_plant) > 0);
+                if (prodWithTp) tpVal = Number(prodWithTp.real_stems_per_plant);
             }
             const idealVal = Number(cblock.ideal_stems_per_plant || (targetStage ? targetStage.ideal_stems_pp : 0) || 0);
 
