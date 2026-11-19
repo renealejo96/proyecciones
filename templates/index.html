@@ -514,8 +514,10 @@
             text-align: left;
             font-weight: 700;
             background: #f8fafc;
-            min-width: 170px;
+            min-width: 220px;
             box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+            box-sizing: border-box;
+            white-space: nowrap;
         }
         .summary-table thead th.col-name {
             z-index: 25;
@@ -524,12 +526,14 @@
         .summary-table th.col-act,
         .summary-table td.col-act {
             position: sticky;
-            left: 170px;
+            left: 220px;
             z-index: 5;
             text-align: center;
             background: #f8fafc;
-            min-width: 80px;
+            min-width: 85px;
             box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+            box-sizing: border-box;
+            white-space: nowrap;
         }
         .summary-table thead th.col-act {
             z-index: 25;
@@ -543,7 +547,11 @@
             text-align: right;
             font-weight: 800;
             background: #f1f5f9;
-            min-width: 90px;
+            min-width: 135px;
+            width: 135px;
+            padding: 6px 12px;
+            box-sizing: border-box;
+            white-space: nowrap;
             box-shadow: -2px 0 4px rgba(0,0,0,0.04);
         }
         .summary-table thead th.col-total-window {
@@ -611,6 +619,10 @@
         }
         .summary-table tr.row-grandtotal td.col-total-window { 
             color: #38bdf8 !important; 
+            min-width: 135px !important;
+            padding: 7px 12px !important;
+            font-size: 0.86rem !important;
+            white-space: nowrap !important;
         }
 
         .summary-table tr.row-grandtotal-dump,
@@ -1106,11 +1118,14 @@
         th.js-master-total,
         td.cell-window-total,
         td.subtotal-variety-window-val {
-            width: 54px !important;
-            min-width: 54px !important;
+            width: 78px !important;
+            min-width: 78px !important;
             font-weight: 800 !important;
             font-family: 'JetBrains Mono', monospace;
             font-feature-settings: "tnum" 1;
+            padding: 2px 4px !important;
+            box-sizing: border-box !important;
+            text-align: right !important;
         }
 
         /* WHEN PARAMETERS ARE HIDDEN (.hide-params):

@@ -1754,6 +1754,12 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
             item["pct_of_total"] = round((item["stems"] / v_prod * 100.0), 1) if v_prod > 0 else 0.0
             item["activity"] = activity
             item["variety"] = v_name
+            item["hw"] = item.get("harvest_week_short") or str(item["harvest_week"] % 100)
+            item["pp"] = item["stems_pp"]
+            item["pct"] = item["pct_of_total"]
+            item["dump"] = item.get("dump_stems", 0)
+            item["src"] = item.get("source", "MODELO")
+            item["sw"] = source_week_max_short
         v_info["harvest_breakdown"] = v_hw_list
         v_info["harvest_weeks_str"] = ", ".join(i["harvest_week_short"] for i in v_hw_list)
         v_info["harvest_weeks_display"] = format_week_range_display([i["harvest_week_short"] for i in v_hw_list])
@@ -1786,6 +1792,13 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
     for item in sorted_hw_list:
         item["stems_pp"] = round(item["stems"] / tot_plants, 2) if tot_plants > 0 else 0.0
         item["pct_of_total"] = round((item["stems"] / tot_prod * 100.0), 1) if tot_prod > 0 else 0.0
+        item["activity"] = activity
+        item["hw"] = item.get("harvest_week_short") or str(item["harvest_week"] % 100)
+        item["pp"] = item["stems_pp"]
+        item["pct"] = item["pct_of_total"]
+        item["dump"] = item.get("dump_stems", 0)
+        item["src"] = item.get("source", "MODELO")
+        item["sw"] = source_week_max_short
 
     harvest_weeks_str = ", ".join(i["harvest_week_short"] for i in sorted_hw_list)
     harvest_weeks_display = format_week_range_display([i["harvest_week_short"] for i in sorted_hw_list])
@@ -2860,6 +2873,73 @@ def get_statistics_data(
                     for h in b["harvest_breakdown"]
                     if h.get("stems", 0) > 0
                 ]
+
+        for p in consolidated_productions:
+            p_uid = p.get("uid")
+            if p_uid and p.get("harvest_breakdown"):
+                harvest_breakdown_map[p_uid] = [
+                    {
+                        "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
+                        "sw": p.get("source_week_max_short", ""),
+                        "stems": h.get("stems", 0),
+                        "pp": h.get("stems_pp", 0.0),
+                        "dump": h.get("dump_stems", 0),
+                        "pct": h.get("pct_of_total", 0.0),
+                        "src": h.get("source", "REAL"),
+                        "activity": p.get("activity", "SIEMBRA"),
+                    }
+                    for h in p["harvest_breakdown"]
+                    if h.get("stems", 0) > 0
+                ]
+            for vb in p.get("variety_breakdown", []):
+                v_key = f"{p_uid}_var_{vb['variety']}"
+                if vb.get("harvest_breakdown"):
+                    harvest_breakdown_map[v_key] = [
+                        {
+                            "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
+                            "sw": p.get("source_week_max_short", ""),
+                            "stems": h.get("stems", 0),
+                            "pp": h.get("stems_pp", 0.0),
+                            "dump": h.get("dump_stems", 0),
+                            "pct": h.get("pct_of_total", 0.0),
+                            "src": h.get("source", "REAL"),
+                            "activity": p.get("activity", "SIEMBRA"),
+                            "variety": vb["variety"],
+                        }
+                        for h in vb["harvest_breakdown"]
+                        if h.get("stems", 0) > 0
+                    ]
+        for cb in consolidated_blocks:
+            c_uid = cb.get("uid")
+            if c_uid and cb.get("productions"):
+                cb_hw_map: dict[str, dict[str, Any]] = {}
+                for p in cb["productions"]:
+                    for h in p.get("harvest_breakdown", []):
+                        if h.get("stems", 0) <= 0:
+                            continue
+                        hw_k = h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100)
+                        if hw_k not in cb_hw_map:
+                            cb_hw_map[hw_k] = {
+                                "hw": hw_k,
+                                "sw": cb.get("source_week_max_short", ""),
+                                "stems": 0,
+                                "pp": 0.0,
+                                "dump": 0,
+                                "pct": 0.0,
+                                "src": h.get("source", "REAL"),
+                                "activity": p.get("activity", "SIEMBRA"),
+                            }
+                        cb_hw_map[hw_k]["stems"] += h.get("stems", 0)
+                        cb_hw_map[hw_k]["dump"] += h.get("dump_stems", 0)
+                        if h.get("source") == "REAL":
+                            cb_hw_map[hw_k]["src"] = "REAL"
+                sorted_cb_hw = sorted(cb_hw_map.values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 0)
+                tot_cb_stems = sum(x["stems"] for x in sorted_cb_hw)
+                tot_cb_plants = cb.get("total_plants", 0)
+                for x in sorted_cb_hw:
+                    x["pct"] = round(x["stems"] / tot_cb_stems * 100.0, 1) if tot_cb_stems > 0 else 0.0
+                    x["pp"] = round(x["stems"] / tot_cb_plants, 2) if tot_cb_plants > 0 else 0.0
+                harvest_breakdown_map[c_uid] = sorted_cb_hw
 
         # 10. Summary Matrix of Closed Blocks: Crop & Variety Breakdown with Weighted Curves and Inline SVG Curves
         def generate_curve_svg_markup(curve: list[float], stroke_color: str = "#2563eb", fill_color: str = "rgba(37, 99, 235, 0.18)", width: int = 140, height: int = 48) -> str:
