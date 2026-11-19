@@ -1849,6 +1849,7 @@ def consolidate_production_cluster(block: str, prod_num: int, cluster_rows: list
         "variety_display": var_disp,
         "variety_breakdown": list(variety_breakdown.values()),
         "block": block,
+        "source_week": source_week_max,
         "source_weeks": source_weeks,
         "source_weeks_short": source_weeks_short,
         "source_weeks_str": source_weeks_str,
@@ -2259,7 +2260,17 @@ def get_statistics_data(
             parts = [p.strip() for p in variety_filter.split(",") if p.strip()]
             selected_varieties = [v for v in parts if v.upper() not in ("ALL", "TODAS")]
 
-        selected_varieties_norm = [normalize_text(v) for v in selected_varieties]
+        selected_varieties_norm = set()
+        for v in selected_varieties:
+            v_norm = normalize_text(v)
+            selected_varieties_norm.add(v_norm)
+            norm_alias = normalize_variety_name(v, resolved_pm)
+            if norm_alias:
+                selected_varieties_norm.add(normalize_text(norm_alias))
+            if "XCELENCE" in v_norm or "XELENCE" in v_norm or v_norm == "XLENCE":
+                selected_varieties_norm.add("XLENCE")
+                selected_varieties_norm.add("XCELENCE")
+                selected_varieties_norm.add("XELENCE")
 
         activity_filter = (activity_filter or "").strip()
         if activity_filter.upper() in ("ALL", "TODAS"):
@@ -2916,9 +2927,9 @@ def get_statistics_data(
                     if h.get("stems", 0) > 0
                 ]
             for vb in p.get("variety_breakdown", []):
-                v_key = f"{p_uid}_var_{vb['variety']}"
+                v_name = vb.get("variety") or ""
                 if vb.get("harvest_breakdown"):
-                    harvest_breakdown_map[v_key] = [
+                    vb_items = [
                         {
                             "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
                             "sw": p.get("source_week_max_short", ""),
@@ -2928,11 +2939,17 @@ def get_statistics_data(
                             "pct": h.get("pct_of_total", 0.0),
                             "src": h.get("source", "REAL"),
                             "activity": p.get("activity", "SIEMBRA"),
-                            "variety": vb["variety"],
+                            "variety": v_name,
                         }
                         for h in vb["harvest_breakdown"]
                         if h.get("stems", 0) > 0
                     ]
+                    if vb_items:
+                        v_disp = format_variety_display(v_name)
+                        v_norm = normalize_text(v_name)
+                        for key_alias in {v_name, v_disp, v_norm, v_name.upper(), v_name.lower()}:
+                            if key_alias:
+                                harvest_breakdown_map[f"{p_uid}_var_{key_alias}"] = vb_items
         for cb in consolidated_blocks:
             c_uid = cb.get("uid")
             if c_uid and cb.get("productions"):

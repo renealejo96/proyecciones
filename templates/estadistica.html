@@ -5451,10 +5451,20 @@
         function formatCleanVariety(v) {
             if (!v) return '';
             let s = String(v).trim();
-            if (/xcelence|xelence/i.test(s)) {
-                s = s.replace(/xcelence|xelence/gi, 'Xlence');
+            if (/xcelence|xelence|xlence/i.test(s)) {
+                return 'Xlence';
             }
             return s;
+        }
+
+        function isSameVariety(v1, v2) {
+            if (!v1 || !v2) return false;
+            if (v1 === v2) return true;
+            const c1 = formatCleanVariety(v1).trim().toUpperCase();
+            const c2 = formatCleanVariety(v2).trim().toUpperCase();
+            if (c1 === c2) return true;
+            const norm = s => String(s).trim().toUpperCase().replace(/XC/g, 'X').replace(/XE/g, 'X').replace(/[^A-Z0-9]/g, '');
+            return norm(v1) === norm(v2);
         }
 
         // Agrupa cronológicamente los ciclos del bloque por producto maestro (de más antiguo a más nuevo)
@@ -6252,14 +6262,14 @@
             if (effectiveVar !== 'ALL') {
                 if (selectedProdUid && selectedProdUid !== 'ALL') {
                     const currentP = productions.find(p => p.uid === selectedProdUid);
-                    const hasVar = currentP && (currentP.variety_breakdown || []).some(v => v.variety === effectiveVar);
+                    const hasVar = currentP && (currentP.variety_breakdown || []).some(v => isSameVariety(v.variety, effectiveVar));
                     if (!hasVar) {
                         effectiveVar = 'ALL';
                         if (isModal) activeModalVariety = 'ALL';
                         else activeInlineVariety = 'ALL';
                     }
                 } else {
-                    const hasVarInScope = productions.some(p => (p.variety_breakdown || []).some(v => v.variety === effectiveVar));
+                    const hasVarInScope = productions.some(p => (p.variety_breakdown || []).some(v => isSameVariety(v.variety, effectiveVar)));
                     if (!hasVarInScope) {
                         effectiveVar = 'ALL';
                         if (isModal) activeModalVariety = 'ALL';
@@ -6385,7 +6395,7 @@
                     items = (rawSrc || []).map(h => normalizeHarvestItem(h, prod, prod.activity)).filter(Boolean);
 
                     if (effectiveVar && effectiveVar !== 'ALL') {
-                        const vb = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
+                        const vb = (prod.variety_breakdown || []).find(v => isSameVariety(v.variety, effectiveVar));
                         if (vb) {
                             scopePlants = vb.plants || 0;
                             scopeProd = vb.production || 0;
@@ -6394,7 +6404,12 @@
                             scopeDump = vb.dump || 0;
                             scopeHWRange = vb.harvest_weeks_display || vb.harvest_weeks_str || scopeHWRange;
                             chartId = `${prod.uid}_var_${effectiveVar}`;
-                            const rawVbHw = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || vb.harvest_breakdown || [];
+                            const rawVbHw = (HARVEST_BREAKDOWN_MAP && (
+                                HARVEST_BREAKDOWN_MAP[chartId] ||
+                                HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
+                                HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${effectiveVar.toUpperCase()}`] ||
+                                HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${(vb.variety || '').trim()}`]
+                            )) || vb.harvest_breakdown || [];
                             items = (rawVbHw || []).map(h => normalizeHarvestItem(h, prod, prod.activity)).filter(Boolean);
                         }
                     }
@@ -6469,7 +6484,7 @@
                     let vIdealWeighted = 0;
                     let hwList = [];
                     productions.forEach(p => {
-                        const vb = (p.variety_breakdown || []).find(v => v.variety === effectiveVar);
+                        const vb = (p.variety_breakdown || []).find(v => isSameVariety(v.variety, effectiveVar));
                         if (vb) {
                             vPlants = Math.max(vPlants, vb.plants || 0);
                             vProd += (vb.production || 0);
@@ -6489,11 +6504,15 @@
                     scopeWaste = productions.length ? (productions.reduce((a, p) => a + (p.waste_pct || 0), 0) / productions.length).toFixed(1) : 0;
                     scopeHWRange = hwList.join(' | ') || 'Sin corte';
                     chartId = `${cblock.uid}_var_${effectiveVar}`;
-                    items = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[chartId]) || [];
+                    items = (HARVEST_BREAKDOWN_MAP && (
+                        HARVEST_BREAKDOWN_MAP[chartId] ||
+                        HARVEST_BREAKDOWN_MAP[`${cblock.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
+                        HARVEST_BREAKDOWN_MAP[`${cblock.uid}_var_${effectiveVar.toUpperCase()}`]
+                    )) || [];
                     if (!items.length) {
                         const combinedHw = {};
                         productions.forEach(p => {
-                            const vb = (p.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
+                            const vb = (p.variety_breakdown || []).find(v => isSameVariety(v.variety, effectiveVar));
                             if (vb && vb.harvest_breakdown) {
                                 vb.harvest_breakdown.forEach(h => {
                                     const hw = h.harvest_week_short || String((h.harvest_week || 0) % 100);
@@ -6604,7 +6623,7 @@
                         </button>
                     `;
                     chipsHtml += vbList.map(vb => {
-                        const isSel = (effectiveVar === vb.variety);
+                        const isSel = isSameVariety(effectiveVar, vb.variety);
                         return `
                             <button type="button" 
                                     class="btn-var-chip ${isSel ? 'active' : ''}" 
@@ -6636,10 +6655,15 @@
                     let vbItem = null;
                     if (effectiveVar && effectiveVar !== 'ALL') {
                         pKey = `${prod.uid}_var_${effectiveVar}`;
-                        vbItem = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === effectiveVar.trim());
+                        vbItem = (prod.variety_breakdown || []).find(v => isSameVariety(v.variety, effectiveVar));
                     }
 
-                    let rawPItems = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[pKey]) || [];
+                    let rawPItems = (HARVEST_BREAKDOWN_MAP && (
+                        HARVEST_BREAKDOWN_MAP[pKey] ||
+                        HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
+                        HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${effectiveVar.toUpperCase()}`] ||
+                        (vbItem && HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${(vbItem.variety || '').trim()}`])
+                    )) || [];
                     if (!rawPItems.length) {
                         if (vbItem && vbItem.harvest_breakdown && vbItem.harvest_breakdown.length) {
                             rawPItems = vbItem.harvest_breakdown;
@@ -6738,12 +6762,24 @@
                 let pItems = [];
                 if (currentProd) {
                     let cKey = currentProd.uid;
+                    let curVb = null;
                     if (effectiveVar && effectiveVar !== 'ALL') {
                         cKey = `${currentProd.uid}_var_${effectiveVar}`;
+                        curVb = (currentProd.variety_breakdown || []).find(v => isSameVariety(v.variety, effectiveVar));
                     }
-                    let rawSource = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[cKey] && HARVEST_BREAKDOWN_MAP[cKey].length)
-                        ? HARVEST_BREAKDOWN_MAP[cKey]
-                        : (items && items.length ? items : (currentProd.harvest_breakdown || []));
+                    let rawSource = (HARVEST_BREAKDOWN_MAP && (
+                        HARVEST_BREAKDOWN_MAP[cKey] ||
+                        HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${formatCleanVariety(effectiveVar)}`] ||
+                        HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${effectiveVar.toUpperCase()}`] ||
+                        (curVb && HARVEST_BREAKDOWN_MAP[`${currentProd.uid}_var_${(curVb.variety || '').trim()}`])
+                    )) || [];
+
+                    if (!rawSource.length && curVb && curVb.harvest_breakdown && curVb.harvest_breakdown.length) {
+                        rawSource = curVb.harvest_breakdown;
+                    }
+                    if (!rawSource.length) {
+                        rawSource = (items && items.length) ? items : (currentProd.harvest_breakdown || []);
+                    }
                     
                     pItems = (rawSource || []).map(h => normalizeHarvestItem(h, currentProd, act)).filter(Boolean);
                 } else {
@@ -7104,10 +7140,15 @@
                 let vbItem = null;
                 if (activeVariety && activeVariety !== 'ALL') {
                     pKey = `${prod.uid}_var_${activeVariety}`;
-                    vbItem = (prod.variety_breakdown || []).find(v => (v.variety || '').trim() === activeVariety.trim());
+                    vbItem = (prod.variety_breakdown || []).find(v => isSameVariety(v.variety, activeVariety));
                 }
 
-                let rawPItems = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[pKey]) || [];
+                let rawPItems = (HARVEST_BREAKDOWN_MAP && (
+                    HARVEST_BREAKDOWN_MAP[pKey] ||
+                    HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${formatCleanVariety(activeVariety)}`] ||
+                    HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${activeVariety.toUpperCase()}`] ||
+                    (vbItem && HARVEST_BREAKDOWN_MAP[`${prod.uid}_var_${(vbItem.variety || '').trim()}`])
+                )) || [];
                 if (!rawPItems.length) {
                     if (vbItem && vbItem.harvest_breakdown) {
                         rawPItems = vbItem.harvest_breakdown.map(h => ({
@@ -7537,7 +7578,7 @@
                 let mRange = foundProd.harvest_weeks_display || foundProd.harvest_weeks_str || 'Sin corte';
 
                 if (variety && variety !== 'ALL' && foundProd.variety_breakdown) {
-                    const vb = foundProd.variety_breakdown.find(v => (v.variety || '').trim() === String(variety).trim());
+                    const vb = foundProd.variety_breakdown.find(v => isSameVariety(v.variety, variety));
                     if (vb) {
                         mPlants = vb.plants || 0;
                         mProd = vb.production || 0;
@@ -7580,14 +7621,23 @@
 
             // 3. Cycle is closed: retrieve items and render the real closed curve!
             let lookupKey = prodUid;
+            let foundVb = null;
             if (variety && variety !== 'ALL') {
                 lookupKey = `${prodUid}_var_${variety}`;
+                if (foundProd && foundProd.variety_breakdown) {
+                    foundVb = foundProd.variety_breakdown.find(v => isSameVariety(v.variety, variety));
+                }
             }
 
-            let rawItems = (HARVEST_BREAKDOWN_MAP && HARVEST_BREAKDOWN_MAP[lookupKey]) || [];
+            let rawItems = (HARVEST_BREAKDOWN_MAP && (
+                HARVEST_BREAKDOWN_MAP[lookupKey] ||
+                HARVEST_BREAKDOWN_MAP[`${prodUid}_var_${formatCleanVariety(variety)}`] ||
+                HARVEST_BREAKDOWN_MAP[`${prodUid}_var_${String(variety).toUpperCase()}`] ||
+                (foundVb && HARVEST_BREAKDOWN_MAP[`${prodUid}_var_${(foundVb.variety || '').trim()}`])
+            )) || [];
             if (!rawItems.length && foundProd) {
                 if (variety && variety !== 'ALL' && foundProd.variety_breakdown) {
-                    const vb = foundProd.variety_breakdown.find(v => (v.variety || '').trim() === String(variety).trim());
+                    const vb = foundVb || foundProd.variety_breakdown.find(v => isSameVariety(v.variety, variety));
                     if (vb && vb.harvest_breakdown) {
                         rawItems = vb.harvest_breakdown.map(h => ({
                             hw: h.harvest_week_short || String((h.harvest_week || 0) % 100),
