@@ -1203,16 +1203,14 @@ def process_tpsr_excel_upload(file_input: Any, commit: bool = True) -> Dict[str,
             existing_rec = lookup_dict.get(nat_key) or fallback_dict.get(fallback_key)
 
             if existing_rec:
-                # Deduplication check
-                if existing_rec.plants == plants:
-                    skipped_count += 1
-                else:
-                    # Mismatch detected in plant reporting! (Correction)
-                    old_plants = existing_rec.plants
+                old_plants = existing_rec.plants
+                beds_val = float_or_zero(ws.cell(r, 14).value)
+                changed = False
+
+                if existing_rec.plants != plants:
                     if commit:
                         existing_rec.plants = plants
-                        existing_rec.updated_at = datetime.utcnow()
-                    updated_count += 1
+                    changed = True
                     plant_adjustments_details.append({
                         "id": existing_rec.id,
                         "activity": act,
@@ -1225,6 +1223,23 @@ def process_tpsr_excel_upload(file_input: Any, commit: bool = True) -> Dict[str,
                         "new_plants": plants,
                         "difference": plants - old_plants,
                     })
+
+                if bed_location and existing_rec.bed_location != bed_location:
+                    if commit:
+                        existing_rec.bed_location = bed_location
+                    changed = True
+
+                if beds_val and existing_rec.total_beds != beds_val:
+                    if commit:
+                        existing_rec.total_beds = beds_val
+                    changed = True
+
+                if changed:
+                    if commit:
+                        existing_rec.updated_at = datetime.utcnow()
+                    updated_count += 1
+                else:
+                    skipped_count += 1
             else:
                 # Brand new record
                 new_rec = TpsrRecord(
