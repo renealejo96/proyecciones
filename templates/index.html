@@ -1430,33 +1430,50 @@
             border-radius: 4px;
             line-height: 1.1;
         }
+        .plants-cell-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 1px;
+        }
         .btn-row-deactivate {
-            background: transparent;
-            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fee2e2;
+            border: 1px solid #f87171;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.72rem;
+            font-size: 0.65rem;
             padding: 1px 3px;
             line-height: 1;
-            opacity: 0.35;
+            color: #b91c1c;
+            flex-shrink: 0;
+            opacity: 0.75;
             transition: all 0.15s ease;
         }
         tr.projection-row:hover .btn-row-deactivate {
-            opacity: 0.85;
+            opacity: 1;
         }
         .btn-row-deactivate:hover {
             opacity: 1 !important;
-            background: #fee2e2;
-            border-color: #fca5a5;
+            background: #ef4444;
+            color: #ffffff;
+            border-color: #dc2626;
             transform: scale(1.15);
         }
         .btn-row-deactivate.is-deactivated {
-            opacity: 0.9;
+            opacity: 1;
             background: #e0f2fe;
-            border-color: #bae6fd;
+            border-color: #38bdf8;
+            color: #0369a1;
         }
         .btn-row-deactivate.is-deactivated:hover {
-            background: #bae6fd;
+            background: #0284c7;
+            color: #ffffff;
         }
 
         @media (max-width: 640px) {
@@ -2067,28 +2084,18 @@
                                     data-lifetime-real-stems="{{ '%.1f'|format(row.lifetime_real_stems_per_plant) if row.lifetime_real_stems_per_plant else '' }}"
                                     data-initial-window-prod="{{ row.window_total }}">
                                     <td class="sticky-col sticky-1" style="text-align: center; vertical-align: middle;">
-                                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 3px;">
-                                            {% if row.is_deactivated and page_mode == 'REAL' %}
-                                                <span class="badge-deactivated" title="Siembra perdida / anulada (Plantas en 0). No cuenta en cierres de bloques.">ANUL</span>
-                                                <button type="button" class="btn-row-deactivate is-deactivated" title="Fila anulada (plantas en 0). Clic para reactivar siembra." onclick="toggleRowDeactivation(this)">
-                                                    🔄
-                                                </button>
-                                            {% elif row.is_deactivated and page_mode == 'AGRONOMO' %}
-                                                <input class="block-close-checkbox" type="checkbox" disabled title="Siembra anulada en Datos Reales (pérdida). Preservada en Agrónomo.">
-                                                <span class="badge-deactivated-agro" title="Siembra anulada en Datos Reales (pérdida). Preservada en Agrónomo.">ANUL</span>
-                                            {% else %}
-                                                <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
-                                                {% if page_mode == 'AGRONOMO' and row.block_closed %}
-                                                    <span class="badge-closed-lock" style="display: inline-flex; align-items: center;" title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.">
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                                    </span>
-                                                {% elif page_mode == 'REAL' %}
-                                                    <button type="button" class="btn-row-deactivate" title="Desactivar fila (siembra perdida que se llevó la corriente / plantas en 0)" onclick="toggleRowDeactivation(this)">
-                                                        🚫
-                                                    </button>
-                                                {% endif %}
+                                        {% if row.is_deactivated and page_mode == 'REAL' %}
+                                            <span class="badge-deactivated" title="Siembra perdida / anulada (Plantas en 0). No cuenta en cierres de bloques.">ANUL</span>
+                                        {% elif row.is_deactivated and page_mode == 'AGRONOMO' %}
+                                            <span class="badge-deactivated-agro" title="Siembra anulada en Datos Reales (pérdida). Preservada en Agrónomo.">ANUL</span>
+                                        {% else %}
+                                            <input class="block-close-checkbox" type="checkbox" {{ 'checked' if row.block_closed else '' }} {{ 'disabled' if (page_mode == 'AGRONOMO' and row.block_closed) else '' }} title="{{ 'Bloque cerrado. Para deseleccionar o corregir, ingrese a la pestaña Datos Reales.' if (page_mode == 'AGRONOMO' and row.block_closed) else ('Desmarcar para reabrir este bloque' if row.block_closed else 'Marcar para cerrar este bloque') }}">
+                                            {% if page_mode == 'AGRONOMO' and row.block_closed %}
+                                                <span class="badge-closed-lock" style="display: inline-flex; align-items: center;" title="Bloque cerrado. Para deseleccionar o corregir el cierre, ingrese a la pestaña Datos Reales.">
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                                </span>
                                             {% endif %}
-                                        </div>
+                                        {% endif %}
                                     </td>
                                     <td class="sticky-col sticky-2"><span class="badge-ac {{ 'badge-s' if row.activity == 'SIEMBRA' else 'badge-p' }}">{{ 'S' if row.activity == 'SIEMBRA' else 'P' }}</span></td>
                                     <td class="sticky-col sticky-ubi" title="Camas: {{ row.bed_location }}"><span class="badge-ubi">{{ row.bed_location or '-' }}</span></td>
@@ -2096,15 +2103,27 @@
                                     <td class="sticky-col sticky-4 block-col">{{ row.block }}</td>
                                     <td class="sticky-col sticky-5" title="{{ row.variety }}">{{ row.variety_display or variety.variety_display or variety.variety }}</td>
                                     <td class="sticky-col sticky-6 harvest-start-col" title="Semana estimada en que entra a punteo / cosecha">{{ row.harvest_start_week_short }}</td>
-                                    <td class="sticky-col sticky-7 plants-cell {{ 'plants-cell-deactivated' if (row.is_deactivated and page_mode == 'REAL') else '' }}" data-val="{{ row.plants }}" data-original-val="{{ row.original_plants or row.plants }}">
-                                        {% if row.is_deactivated and page_mode == 'REAL' %}
-                                            <span style="color: #ef4444; font-weight: 700;">0</span>
-                                            {% if row.original_plants %}
-                                                <span style="font-size: 0.65rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Plantas originales antes de pérdida">({{ row.original_plants }})</span>
+                                    <td class="sticky-col sticky-7 plants-cell {{ 'plants-cell-deactivated' if (row.is_deactivated and page_mode == 'REAL') else '' }}" data-val="{{ 0 if (row.is_deactivated and page_mode == 'REAL') else row.plants }}" data-original-val="{{ row.original_plants or row.plants }}">
+                                        <div class="plants-cell-wrapper">
+                                            {% if row.is_deactivated and page_mode == 'REAL' %}
+                                                <div style="line-height: 1;">
+                                                    <span style="color: #ef4444; font-weight: 800; font-size: 0.76rem;">0</span>
+                                                    {% if row.original_plants %}
+                                                        <span style="font-size: 0.58rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Plantas originales antes de pérdida">({{ row.original_plants }})</span>
+                                                    {% endif %}
+                                                </div>
+                                                <button type="button" class="btn-row-deactivate is-deactivated" title="Fila anulada (plantas en 0). Clic para reactivar siembra." onclick="toggleRowDeactivation(this)">
+                                                    🔄
+                                                </button>
+                                            {% else %}
+                                                <span class="plants-val-num">{{ row.plants }}</span>
+                                                {% if page_mode == 'REAL' %}
+                                                    <button type="button" class="btn-row-deactivate" title="Desactivar fila (siembra perdida que se llevó la corriente / plantas en 0)" onclick="toggleRowDeactivation(this)">
+                                                        🚫
+                                                    </button>
+                                                {% endif %}
                                             {% endif %}
-                                        {% else %}
-                                            {{ row.plants }}
-                                        {% endif %}
+                                        </div>
                                     </td>
                                     <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
                                     <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}" {{ 'disabled' if row.block_closed else '' }}></td>
@@ -4451,10 +4470,21 @@
                 row.dataset.isDeactivated = targetDeactivated ? 'true' : 'false';
 
                 const plantsCell = row.querySelector('.plants-cell');
+                const chkCell = row.querySelector('.sticky-1');
+                const chk = row.querySelector('.block-close-checkbox');
+
                 if (targetDeactivated) {
                     row.classList.add('row-deactivated');
                     if (plantsCell) {
-                        plantsCell.innerHTML = `<span style="color: #ef4444; font-weight: 700;">0</span> <span style="font-size: 0.65rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Plantas originales antes de pérdida">(${origPlants})</span>`;
+                        plantsCell.innerHTML = `
+                            <div class="plants-cell-wrapper">
+                                <div style="line-height: 1;">
+                                    <span style="color: #ef4444; font-weight: 800; font-size: 0.76rem;">0</span>
+                                    <span style="font-size: 0.58rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Plantas originales antes de pérdida">(${origPlants})</span>
+                                </div>
+                                <button type="button" class="btn-row-deactivate is-deactivated" title="Fila anulada (plantas en 0). Clic para reactivar siembra." onclick="toggleRowDeactivation(this)">🔄</button>
+                            </div>
+                        `;
                         plantsCell.dataset.val = '0';
                     }
                     row.querySelectorAll('.week-input').forEach(inp => {
@@ -4462,38 +4492,35 @@
                         inp.dataset.val = '0';
                         inp.disabled = true;
                     });
-                    btn.innerHTML = '🔄';
-                    btn.title = 'Fila anulada/desactivada (plantas en 0). Clic para reactivar.';
-                    btn.classList.add('is-deactivated');
 
-                    const chk = row.querySelector('.block-close-checkbox');
                     if (chk) {
                         chk.checked = false;
                         chk.disabled = true;
                         chk.style.display = 'none';
                     }
                     let badge = row.querySelector('.badge-deactivated');
-                    if (!badge) {
+                    if (!badge && chkCell) {
                         badge = document.createElement('span');
                         badge.className = 'badge-deactivated';
                         badge.textContent = 'ANUL';
                         badge.title = 'Siembra anulada (plantas en 0). No cuenta en cierres de bloques.';
-                        btn.parentElement.insertBefore(badge, btn);
-                    } else {
+                        chkCell.appendChild(badge);
+                    } else if (badge) {
                         badge.style.display = 'inline-flex';
                     }
                     showToast(`Fila del Bloque ${blockName} desactivada con éxito (plantas en 0).`);
                 } else {
                     row.classList.remove('row-deactivated');
                     if (plantsCell) {
-                        plantsCell.textContent = origPlants;
+                        plantsCell.innerHTML = `
+                            <div class="plants-cell-wrapper">
+                                <span class="plants-val-num">${origPlants}</span>
+                                <button type="button" class="btn-row-deactivate" title="Desactivar fila (siembra perdida que se llevó la corriente / plantas en 0)" onclick="toggleRowDeactivation(this)">🚫</button>
+                            </div>
+                        `;
                         plantsCell.dataset.val = origPlants;
                     }
-                    btn.innerHTML = '🚫';
-                    btn.title = 'Desactivar fila (siembra perdida / plantas en 0)';
-                    btn.classList.remove('is-deactivated');
 
-                    const chk = row.querySelector('.block-close-checkbox');
                     if (chk) {
                         chk.disabled = false;
                         chk.style.display = 'inline-block';
