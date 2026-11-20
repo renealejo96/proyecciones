@@ -148,15 +148,18 @@ def normalize_optional_text(value: Any, fallback: str = "*") -> str:
 # In-memory snapshot cache synchronized across Gunicorn workers via PostgreSQL data_version
 _WORKER_CACHE: dict[str, Any] = {"version": -1, "timestamp": 0.0, "snapshot": None}
 _STATS_CACHE: dict[tuple, Any] = {}
+_STATS_CACHE_VERSION: int = -1
 
 
 def invalidate_snapshot_cache() -> None:
+    global _STATS_CACHE_VERSION
     bump_data_version()
     _WORKER_CACHE["snapshots"] = {}
     _WORKER_CACHE["snapshot"] = None
     _WORKER_CACHE["version"] = -1
     _WORKER_CACHE["timestamp"] = 0.0
     _STATS_CACHE.clear()
+    _STATS_CACHE_VERSION = -1
 
 
 def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]:
@@ -2134,6 +2137,183 @@ def build_consolidated_block_productions(flat_block_rows: list[dict[str, Any]]) 
     return consolidated_blocks, flat_productions
 
 
+def build_consolidated_blocks_cards(consolidated_blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cards_data = []
+    for b in consolidated_blocks:
+        prods = b.get("productions", [])
+        siems = [p for p in prods if p.get("activity") == "SIEMBRA"]
+        podas = [p for p in prods if p.get("activity") == "PODA"]
+        card_prods = []
+        if siems:
+            p = siems[-1]
+            card_prods.append({
+                "uid": p.get("uid"),
+                "activity": "SIEMBRA",
+                "source_week_max": p.get("source_week_max"),
+                "source_week_max_short": p.get("source_week_max_short"),
+                "harvest_weeks_str": p.get("harvest_weeks_str"),
+                "real_stems_per_plant": p.get("real_stems_per_plant"),
+                "ideal_stems_per_plant": p.get("ideal_stems_per_plant"),
+                "is_closed": p.get("is_closed"),
+                "has_real_data": p.get("has_real_data"),
+                "product_master": p.get("product_master"),
+                "variety_display": p.get("variety_display"),
+            })
+        if podas:
+            p = podas[-1]
+            card_prods.append({
+                "uid": p.get("uid"),
+                "activity": "PODA",
+                "source_week_max": p.get("source_week_max"),
+                "source_week_max_short": p.get("source_week_max_short"),
+                "harvest_weeks_str": p.get("harvest_weeks_str"),
+                "real_stems_per_plant": p.get("real_stems_per_plant"),
+                "ideal_stems_per_plant": p.get("ideal_stems_per_plant"),
+                "is_closed": p.get("is_closed"),
+                "has_real_data": p.get("has_real_data"),
+                "product_master": p.get("product_master"),
+                "variety_display": p.get("variety_display"),
+            })
+
+        stages = b.get("stages", [])
+        last_stage = stages[-1] if stages else None
+        crop_display = b.get("crops_display", "")
+        if last_stage:
+            crop_display = f"{last_stage.get('product_master', '')}, {last_stage.get('variety_display', '')}"
+
+        cards_data.append({
+            "block": b.get("block"),
+            "uid": b.get("uid"),
+            "zona": b.get("zona"),
+            "product_master": b.get("product_master"),
+            "variety": b.get("variety"),
+            "variety_display": b.get("variety_display"),
+            "crops_display": crop_display,
+            "total_plants": b.get("total_plants"),
+            "total_production": b.get("total_production"),
+            "total_dump": b.get("total_dump"),
+            "real_stems_per_plant": b.get("real_stems_per_plant"),
+            "ideal_stems_per_plant": b.get("ideal_stems_per_plant"),
+            "is_below_target": b.get("is_below_target"),
+            "status": b.get("status"),
+            "is_closed": b.get("is_closed"),
+            "is_all_closed": b.get("is_all_closed"),
+            "has_real_data": b.get("has_real_data"),
+            "total_productions": b.get("total_productions"),
+            "stages": [
+                {
+                    "product_master": s.get("product_master"),
+                    "crop": s.get("crop"),
+                    "variety_display": s.get("variety_display"),
+                    "real_stems_per_plant": s.get("real_stems_per_plant"),
+                    "ideal_stems_pp": s.get("ideal_stems_pp"),
+                    "is_closed": s.get("is_closed"),
+                    "has_real_data": s.get("has_real_data"),
+                    "production_uids": s.get("production_uids", []),
+                }
+                for s in stages
+            ],
+            "productions": card_prods,
+        })
+    return cards_data
+
+
+def build_block_harvest_breakdown_map(target_block: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    b_h_map: dict[str, list[dict[str, Any]]] = {}
+    c_uid = target_block.get("uid", "")
+    c_blk = str(target_block.get("block", "")).strip()
+
+    cb_hw_map: dict[str, dict[str, Any]] = {}
+
+    for p in target_block.get("productions", []):
+        p_uid = p.get("uid")
+        p_items = [
+            {
+                "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
+                "sw": p.get("source_week_max_short", ""),
+                "stems": h.get("stems", 0),
+                "pp": h.get("stems_pp", 0.0),
+                "dump": h.get("dump_stems", 0),
+                "pct": h.get("pct_of_total", 0.0),
+                "src": h.get("source", "REAL"),
+                "activity": p.get("activity", "SIEMBRA"),
+            }
+            for h in p.get("harvest_breakdown", [])
+            if h.get("stems", 0) > 0
+        ]
+        if p_uid:
+            b_h_map[p_uid] = p_items
+            b_h_map[p_uid.upper()] = p_items
+            b_h_map[p_uid.lower()] = p_items
+
+        for vb in p.get("variety_breakdown", []):
+            v_name = vb.get("variety") or ""
+            vb_items = [
+                {
+                    "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
+                    "sw": p.get("source_week_max_short", ""),
+                    "stems": h.get("stems", 0),
+                    "pp": h.get("stems_pp", 0.0),
+                    "dump": h.get("dump_stems", 0),
+                    "pct": h.get("pct_of_total", 0.0),
+                    "src": h.get("source", "REAL"),
+                    "activity": p.get("activity", "SIEMBRA"),
+                    "variety": v_name,
+                }
+                for h in vb.get("harvest_breakdown", [])
+                if h.get("stems", 0) > 0
+            ]
+            if vb_items:
+                v_disp = format_variety_display(v_name)
+                v_norm = normalize_text(v_name)
+                for key_alias in {v_name, v_disp, v_norm, v_name.upper(), v_name.lower()}:
+                    if key_alias and p_uid:
+                        b_h_map[f"{p_uid}_var_{key_alias}"] = vb_items
+                        b_h_map[f"{p_uid.upper()}_var_{key_alias}"] = vb_items
+                        b_h_map[f"{p_uid.lower()}_var_{key_alias}"] = vb_items
+
+        for h in p.get("harvest_breakdown", []):
+            if h.get("stems", 0) <= 0:
+                continue
+            hw_k = h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100)
+            if hw_k not in cb_hw_map:
+                cb_hw_map[hw_k] = {
+                    "hw": hw_k,
+                    "sw": target_block.get("source_week_max_short", ""),
+                    "stems": 0,
+                    "pp": 0.0,
+                    "dump": 0,
+                    "pct": 0.0,
+                    "src": h.get("source", "REAL"),
+                    "activity": p.get("activity", "SIEMBRA"),
+                }
+            cb_hw_map[hw_k]["stems"] += h.get("stems", 0)
+            cb_hw_map[hw_k]["dump"] += h.get("dump_stems", 0)
+            if h.get("source") == "REAL":
+                cb_hw_map[hw_k]["src"] = "REAL"
+
+    sorted_cb_hw = sorted(cb_hw_map.values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 0)
+    tot_cb_stems = sum(x["stems"] for x in sorted_cb_hw)
+    tot_cb_plants = target_block.get("total_plants", 0)
+    for x in sorted_cb_hw:
+        x["pct"] = round(x["stems"] / tot_cb_stems * 100.0, 1) if tot_cb_stems > 0 else 0.0
+        x["pp"] = round(x["stems"] / tot_cb_plants, 2) if tot_cb_plants > 0 else 0.0
+
+    if c_uid:
+        b_h_map[c_uid] = sorted_cb_hw
+        b_h_map[c_uid.upper()] = sorted_cb_hw
+        b_h_map[c_uid.lower()] = sorted_cb_hw
+    if c_blk:
+        b_h_map[c_blk] = sorted_cb_hw
+        b_h_map[c_blk.upper()] = sorted_cb_hw
+        b_h_map[c_blk.lower()] = sorted_cb_hw
+        b_h_map[f"blk-cons-{c_blk}"] = sorted_cb_hw
+        b_h_map[f"blk-cons-{c_blk.upper()}"] = sorted_cb_hw
+        b_h_map[f"blk-cons-{c_blk.lower()}"] = sorted_cb_hw
+
+    return b_h_map
+
+
 def get_statistics_data(
     year_filter: str | None = None,
     pm_filter: str | None = None,
@@ -2144,9 +2324,11 @@ def get_statistics_data(
     week_from: str | None = None,
     week_to: str | None = None,
 ) -> dict[str, Any]:
+    global _STATS_CACHE_VERSION
     current_version = get_data_version()
-    if _WORKER_CACHE.get("version") != current_version:
+    if _STATS_CACHE_VERSION != current_version:
         _STATS_CACHE.clear()
+        _STATS_CACHE_VERSION = current_version
 
     var_key = tuple(sorted(str(v) for v in (variety_filter if isinstance(variety_filter, list) else [variety_filter])))
     wk_key = tuple(sorted(str(w) for w in (weeks_filter if isinstance(weeks_filter, list) else [weeks_filter])))
@@ -2970,112 +3152,8 @@ def get_statistics_data(
         chart_hybrid_real = [chronological_real_stems.get(w, 0) for w in hybrid_weeks]
         chart_hybrid_projected = [chronological_agronomo_stems.get(w, 0) for w in hybrid_weeks]
 
-        harvest_breakdown_map: dict[str, list[dict[str, Any]]] = {}
-        for b in flat_block_rows:
-            uid = f"{b['product_master']}-{b['source_week']}-{b['activity']}-{b['block']}"
-            if b.get("harvest_breakdown"):
-                harvest_breakdown_map[uid] = [
-                    {
-                        "hw": h["harvest_week_short"],
-                        "sw": b["source_week_short"],
-                        "stems": h["stems"],
-                        "pp": h["stems_pp"],
-                        "dump": h.get("dump_stems", 0),
-                        "pct": h.get("pct_of_total", 0),
-                        "src": h.get("source", "MODELO"),
-                        "activity": b.get("activity", "SIEMBRA"),
-                    }
-                    for h in b["harvest_breakdown"]
-                    if h.get("stems", 0) > 0
-                ]
-
-        for p in consolidated_productions:
-            p_uid = p.get("uid")
-            if p_uid and p.get("harvest_breakdown"):
-                p_items = [
-                    {
-                        "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
-                        "sw": p.get("source_week_max_short", ""),
-                        "stems": h.get("stems", 0),
-                        "pp": h.get("stems_pp", 0.0),
-                        "dump": h.get("dump_stems", 0),
-                        "pct": h.get("pct_of_total", 0.0),
-                        "src": h.get("source", "REAL"),
-                        "activity": p.get("activity", "SIEMBRA"),
-                    }
-                    for h in p["harvest_breakdown"]
-                    if h.get("stems", 0) > 0
-                ]
-                harvest_breakdown_map[p_uid] = p_items
-                harvest_breakdown_map[p_uid.upper()] = p_items
-                harvest_breakdown_map[p_uid.lower()] = p_items
-            for vb in p.get("variety_breakdown", []):
-                v_name = vb.get("variety") or ""
-                if vb.get("harvest_breakdown"):
-                    vb_items = [
-                        {
-                            "hw": h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100),
-                            "sw": p.get("source_week_max_short", ""),
-                            "stems": h.get("stems", 0),
-                            "pp": h.get("stems_pp", 0.0),
-                            "dump": h.get("dump_stems", 0),
-                            "pct": h.get("pct_of_total", 0.0),
-                            "src": h.get("source", "REAL"),
-                            "activity": p.get("activity", "SIEMBRA"),
-                            "variety": v_name,
-                        }
-                        for h in vb["harvest_breakdown"]
-                        if h.get("stems", 0) > 0
-                    ]
-                    if vb_items:
-                        v_disp = format_variety_display(v_name)
-                        v_norm = normalize_text(v_name)
-                        for key_alias in {v_name, v_disp, v_norm, v_name.upper(), v_name.lower()}:
-                            if key_alias:
-                                harvest_breakdown_map[f"{p_uid}_var_{key_alias}"] = vb_items
-                                harvest_breakdown_map[f"{p_uid.upper()}_var_{key_alias}"] = vb_items
-                                harvest_breakdown_map[f"{p_uid.lower()}_var_{key_alias}"] = vb_items
-        for cb in consolidated_blocks:
-            c_uid = cb.get("uid")
-            c_blk = str(cb.get("block", "")).strip()
-            if c_uid and cb.get("productions"):
-                cb_hw_map: dict[str, dict[str, Any]] = {}
-                for p in cb["productions"]:
-                    for h in p.get("harvest_breakdown", []):
-                        if h.get("stems", 0) <= 0:
-                            continue
-                        hw_k = h.get("harvest_week_short") or str(h.get("harvest_week", 0) % 100)
-                        if hw_k not in cb_hw_map:
-                            cb_hw_map[hw_k] = {
-                                "hw": hw_k,
-                                "sw": cb.get("source_week_max_short", ""),
-                                "stems": 0,
-                                "pp": 0.0,
-                                "dump": 0,
-                                "pct": 0.0,
-                                "src": h.get("source", "REAL"),
-                                "activity": p.get("activity", "SIEMBRA"),
-                            }
-                        cb_hw_map[hw_k]["stems"] += h.get("stems", 0)
-                        cb_hw_map[hw_k]["dump"] += h.get("dump_stems", 0)
-                        if h.get("source") == "REAL":
-                            cb_hw_map[hw_k]["src"] = "REAL"
-                sorted_cb_hw = sorted(cb_hw_map.values(), key=lambda x: int(x["hw"]) if x["hw"].isdigit() else 0)
-                tot_cb_stems = sum(x["stems"] for x in sorted_cb_hw)
-                tot_cb_plants = cb.get("total_plants", 0)
-                for x in sorted_cb_hw:
-                    x["pct"] = round(x["stems"] / tot_cb_stems * 100.0, 1) if tot_cb_stems > 0 else 0.0
-                    x["pp"] = round(x["stems"] / tot_cb_plants, 2) if tot_cb_plants > 0 else 0.0
-                harvest_breakdown_map[c_uid] = sorted_cb_hw
-                harvest_breakdown_map[c_uid.upper()] = sorted_cb_hw
-                harvest_breakdown_map[c_uid.lower()] = sorted_cb_hw
-                if c_blk:
-                    harvest_breakdown_map[c_blk] = sorted_cb_hw
-                    harvest_breakdown_map[c_blk.upper()] = sorted_cb_hw
-                    harvest_breakdown_map[c_blk.lower()] = sorted_cb_hw
-                    harvest_breakdown_map[f"blk-cons-{c_blk}"] = sorted_cb_hw
-                    harvest_breakdown_map[f"blk-cons-{c_blk.upper()}"] = sorted_cb_hw
-                    harvest_breakdown_map[f"blk-cons-{c_blk.lower()}"] = sorted_cb_hw
+        # Build ultra-lean summary for Botonera cards (reduces HTML footprint from 31 MB down to ~150 KB)
+        consolidated_blocks_cards = build_consolidated_blocks_cards(consolidated_blocks)
 
         # 10. Summary Matrix of Closed Blocks: Crop & Variety Breakdown with Weighted Curves and Inline SVG Curves
         def generate_curve_svg_markup(curve: list[float], stroke_color: str = "#2563eb", fill_color: str = "rgba(37, 99, 235, 0.18)", width: int = 140, height: int = 48) -> str:
@@ -3355,9 +3433,10 @@ def get_statistics_data(
             },
             "table_rows": flat_block_rows,
             "consolidated_blocks": consolidated_blocks,
+            "consolidated_blocks_cards": consolidated_blocks_cards,
             "consolidated_productions": consolidated_productions,
             "grouped_products": grouped_products,
-            "harvest_breakdown_map": harvest_breakdown_map,
+            "harvest_breakdown_map": {},  # Lazy loaded via /api/estadistica/bloque-detalle to keep HTML < 200 KB!
             "chart_relative": {
                 "labels": curve_labels,
                 "real_curve": chart_real_curve,
@@ -3482,6 +3561,59 @@ def estadistica_api():
         week_to=week_to,
     )
     return jsonify(stats_data)
+
+
+@app.route("/api/estadistica/bloque-detalle")
+def api_estadistica_bloque_detalle():
+    raw_ident = request.args.get("bloque", "").strip()
+    if not raw_ident:
+        return jsonify({"success": False, "error": "Falta parámetro 'bloque'"}), 400
+
+    clean_id = str(raw_ident).strip()
+    norm_id = normalize_block_name(clean_id)
+
+    stats = get_statistics_data()
+    c_blocks = stats.get("consolidated_blocks", [])
+
+    target = None
+    for b in c_blocks:
+        b_blk = str(b.get("block", "")).strip()
+        b_uid = str(b.get("uid", "")).strip()
+        if (
+            b_uid.upper() == clean_id.upper()
+            or b_blk.upper() == clean_id.upper()
+            or normalize_block_name(b_blk) == norm_id
+            or b_uid.upper() == f"BLK-CONS-{clean_id.upper()}"
+            or b_uid.upper() == f"BLK-CONS-{norm_id.upper()}"
+        ):
+            target = b
+            break
+        for p in b.get("productions", []):
+            if str(p.get("uid", "")).upper() == clean_id.upper():
+                target = b
+                break
+        if target:
+            break
+
+    if not target and "-" in clean_id:
+        last_part = clean_id.split("-")[-1].strip()
+        norm_last = normalize_block_name(last_part)
+        for b in c_blocks:
+            b_blk = str(b.get("block", "")).strip()
+            if b_blk.upper() == last_part.upper() or normalize_block_name(b_blk) == norm_last:
+                target = b
+                break
+
+    if not target:
+        return jsonify({"success": False, "error": f"Bloque {clean_id} no encontrado"}), 404
+
+    b_h_map = build_block_harvest_breakdown_map(target)
+
+    return jsonify({
+        "success": True,
+        "block": target,
+        "harvest_breakdown_map": b_h_map,
+    })
 
 
 @app.route("/api/estadistica/export-csv")

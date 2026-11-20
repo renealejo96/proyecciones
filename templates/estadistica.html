@@ -3513,6 +3513,10 @@
                 display: none !important;
             }
         }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -4605,8 +4609,8 @@
                         </tbody>
                     </table>
                 </div>
-                <script id="harvest-data-json" type="application/json">{{ (stats.harvest_breakdown_map or {}) | tojson }}</script>
-                <script id="consolidated-blocks-json" type="application/json">{{ (stats.consolidated_blocks or []) | tojson }}</script>
+                <script id="harvest-data-json" type="application/json">{}</script>
+                <script id="consolidated-blocks-json" type="application/json">{{ (stats.consolidated_blocks_cards or stats.consolidated_blocks or []) | tojson }}</script>
             </div>
         </div>
         <!-- END SUBTAB 2 -->
@@ -4678,6 +4682,12 @@
 
                 <!-- BODY -->
                 <div class="block-modal-body">
+                    <!-- LOADING INDICATOR (LAZY LOADING VIA CPU) -->
+                    <div id="modal-loading-indicator" style="display: none; align-items: center; justify-content: center; gap: 10px; padding: 18px; margin-bottom: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534; font-size: 0.85rem; font-weight: 700;">
+                        <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid #16a34a; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                        <span>Cargando historial agronómico completo y curvas del bloque...</span>
+                    </div>
+
                     <!-- CHRONOLOGICAL PIPELINE OF CROPS (PRODUCT MASTERS) -->
                     <div id="modal-chronology-container" class="modal-chronology-section" style="display: none;"></div>
 
@@ -4758,6 +4768,7 @@
 
         const HARVEST_BREAKDOWN_MAP = JSON.parse(document.getElementById('harvest-data-json')?.textContent || '{}');
         const CONSOLIDATED_BLOCKS_DATA = JSON.parse(document.getElementById('consolidated-blocks-json')?.textContent || '[]');
+        const FULL_BLOCK_DOSSIERS = {};
 
         // Global State for Botonera and Modals
         let botoneraSearchQuery = '';
@@ -5765,6 +5776,10 @@
         function findBlockDossier(identifier) {
             if (!identifier) return null;
             const cleanId = String(identifier).trim();
+            // 0. Cache check in full dossiers
+            if (FULL_BLOCK_DOSSIERS[cleanId]) return FULL_BLOCK_DOSSIERS[cleanId];
+            if (FULL_BLOCK_DOSSIERS[cleanId.toUpperCase()]) return FULL_BLOCK_DOSSIERS[cleanId.toUpperCase()];
+
             // 1. Direct UID match
             let found = CONSOLIDATED_BLOCKS_DATA.find(b => b.uid === cleanId);
             if (found) return found;
@@ -5792,8 +5807,76 @@
             return null;
         }
 
-        function openBlockDetailModal(identifier, initialCropOrProd = null) {
-            const cblock = findBlockDossier(identifier);
+        async function openBlockDetailModal(identifier, initialCropOrProd = null) {
+            const modal = document.getElementById('block-detail-modal');
+            if (!modal) return;
+
+            // Open modal immediately so user sees responsiveness
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            const loadingEl = document.getElementById('modal-loading-indicator');
+            const kpisEl = document.getElementById('modal-kpis-grid');
+            const chronoEl = document.getElementById('modal-chronology-container');
+            const chartSecEl = document.getElementById('modal-chart-section');
+
+            const cleanId = String(identifier || '').trim();
+            let cblock = FULL_BLOCK_DOSSIERS[cleanId] 
+                      || FULL_BLOCK_DOSSIERS[cleanId.toUpperCase()]
+                      || (cleanId.startsWith('blk-cons-') ? FULL_BLOCK_DOSSIERS[cleanId.replace('blk-cons-', '')] : null)
+                      || FULL_BLOCK_DOSSIERS[`blk-cons-${cleanId}`];
+
+            // If we don't have the full dossier with complete productions/harvest cuts yet, fetch it via API
+            if (!cblock || !cblock.productions || !cblock.productions.some(p => p.harvest_breakdown || p.variety_breakdown)) {
+                if (loadingEl) loadingEl.style.display = 'flex';
+                if (kpisEl) kpisEl.style.opacity = '0.3';
+                if (chronoEl) chronoEl.style.opacity = '0.3';
+                if (chartSecEl) chartSecEl.style.opacity = '0.3';
+
+                // Temporarily populate title from basic card if available
+                const basicCard = findBlockDossier(identifier);
+                if (basicCard) {
+                    const titleEl = document.getElementById('modal-block-title');
+                    if (titleEl) titleEl.textContent = `Bloque ${basicCard.block}`;
+                    const pmBadge = document.getElementById('modal-pm-badge');
+                    if (pmBadge) pmBadge.textContent = basicCard.product_master || 'BLOQUE';
+                    const varBadge = document.getElementById('modal-variety-badge');
+                    if (varBadge) varBadge.textContent = basicCard.variety_display || '';
+                }
+
+                try {
+                    const res = await fetch(`/api/estadistica/bloque-detalle?bloque=${encodeURIComponent(identifier)}`);
+                    const data = await res.json();
+                    if (data && data.success && data.block) {
+                        cblock = data.block;
+                        FULL_BLOCK_DOSSIERS[cleanId] = cblock;
+                        if (cblock.block) {
+                            FULL_BLOCK_DOSSIERS[String(cblock.block)] = cblock;
+                            FULL_BLOCK_DOSSIERS[String(cblock.block).toUpperCase()] = cblock;
+                            FULL_BLOCK_DOSSIERS[`blk-cons-${cblock.block}`] = cblock;
+                        }
+                        if (cblock.uid) {
+                            FULL_BLOCK_DOSSIERS[String(cblock.uid)] = cblock;
+                            FULL_BLOCK_DOSSIERS[String(cblock.uid).toUpperCase()] = cblock;
+                        }
+                        if (data.harvest_breakdown_map) {
+                            Object.assign(HARVEST_BREAKDOWN_MAP, data.harvest_breakdown_map);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error fetching block detail:', err);
+                } finally {
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (kpisEl) kpisEl.style.opacity = '1';
+                    if (chronoEl) chronoEl.style.opacity = '1';
+                    if (chartSecEl) chartSecEl.style.opacity = '1';
+                }
+            }
+
+            if (!cblock) {
+                cblock = findBlockDossier(identifier);
+            }
+
             if (!cblock) {
                 console.warn('Block data not found for', identifier);
                 return;
@@ -5833,17 +5916,12 @@
 
             activeModalProdUid = targetProdUid;
 
-            const modal = document.getElementById('block-detail-modal');
-            if (!modal) return;
-
             // Reset block id on container to ensure a clean initial render with auto-scroll
             const tContainer = document.getElementById('modal-chronology-container');
             if (tContainer) delete tContainer.dataset.blockId;
 
             renderModalChronologyTimeline(cblock, activeModalProdUid);
             renderBlockDossier('modal', cblock, activeModalProdUid, activeModalVariety);
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
         }
 
         function closeBlockModal() {
@@ -7486,14 +7564,30 @@
             `;
         }
 
-        function ensureHarvestRowsRendered(blockUid) {
+        async function ensureHarvestRowsRendered(blockUid) {
             let harvestRows = document.querySelectorAll(`.harvest-of-${blockUid}`);
             if (harvestRows.length > 0) return harvestRows;
 
             const blockRow = document.querySelector(`[data-block-uid="${blockUid}"]`);
             if (!blockRow) return [];
 
-            const rawItems = HARVEST_BREAKDOWN_MAP[blockUid] || [];
+            let rawItems = HARVEST_BREAKDOWN_MAP[blockUid] || [];
+            if (!rawItems.length) {
+                const blk = blockRow.dataset.block || '';
+                if (blk) {
+                    try {
+                        const res = await fetch(`/api/estadistica/bloque-detalle?bloque=${encodeURIComponent(blk)}`);
+                        const data = await res.json();
+                        if (data && data.success && data.harvest_breakdown_map) {
+                            Object.assign(HARVEST_BREAKDOWN_MAP, data.harvest_breakdown_map);
+                            rawItems = HARVEST_BREAKDOWN_MAP[blockUid] || [];
+                        }
+                    } catch (e) {
+                        console.error('Error fetching harvest cuts:', e);
+                    }
+                }
+            }
+
             const items = rawItems.filter(i => (Number(i.stems) || 0) > 0);
             if (!items.length) return [];
 
@@ -7580,10 +7674,10 @@
             `;
         }
 
-        function toggleBlockWeeks(blockUid) {
-            const harvestRows = ensureHarvestRowsRendered(blockUid);
+        async function toggleBlockWeeks(blockUid) {
+            const harvestRows = await ensureHarvestRowsRendered(blockUid);
             const icon = document.getElementById(`icon-blk-${blockUid}`);
-            if (!harvestRows.length || !icon) return;
+            if (!harvestRows || !harvestRows.length || !icon) return;
 
             const isCurrentlyHidden = harvestRows[0].style.display === 'none';
             harvestRows.forEach(row => {
