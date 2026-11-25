@@ -4112,24 +4112,32 @@
             return null;
         }
 
-        // Mobile Confirm Bar Control
+        // Mobile Confirm Bar Control — only visible when active input actually has unsaved changes (_isDirty)
         let activeFocusedInput = null;
 
         function showMobileConfirmBar(input) {
             activeFocusedInput = input;
             const bar = document.getElementById('mobile-confirm-btn');
             if (!bar) return;
-            bar.style.display = 'flex';
+            bar.style.display = (input && input._isDirty) ? 'flex' : 'none';
         }
 
-        function hideMobileConfirmBar() {
+        function hideMobileConfirmBar(force = false) {
+            const bar = document.getElementById('mobile-confirm-btn');
+            if (force) {
+                if (bar) bar.style.display = 'none';
+                return;
+            }
             setTimeout(() => {
-                if (!document.activeElement || !document.activeElement.classList || (!document.activeElement.classList.contains('edit-input') && !document.activeElement.classList.contains('week-input'))) {
-                    const bar = document.getElementById('mobile-confirm-btn');
+                const active = document.activeElement;
+                const stillDirtyInput = active && active.classList && (active.classList.contains('edit-input') || active.classList.contains('week-input')) && active._isDirty;
+                if (!stillDirtyInput) {
                     if (bar) bar.style.display = 'none';
-                    activeFocusedInput = null;
+                    if (!active || (!active.classList?.contains('edit-input') && !active.classList?.contains('week-input'))) {
+                        activeFocusedInput = null;
+                    }
                 }
-            }, 300);
+            }, 120);
         }
 
         const mobileConfirmBtn = document.getElementById('mobile-confirm-btn');
@@ -4138,6 +4146,7 @@
             mobileConfirmBtn.addEventListener('touchstart', (e) => e.preventDefault());
             mobileConfirmBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                hideMobileConfirmBar(true);
                 if (activeFocusedInput) {
                     activeFocusedInput.blur();
                 }
@@ -4147,6 +4156,7 @@
         // Enhanced Auto-Select on Focus & Keyboard Navigation
         document.querySelectorAll('.edit-input, .week-input').forEach((input) => {
             input.addEventListener('focus', () => {
+                activeFocusedInput = input;
                 input._initialVal = input.value;
                 const cell = input.closest('.week-cell');
                 if (cell) {
@@ -4163,6 +4173,7 @@
             input.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    hideMobileConfirmBar(true);
                     input.blur();
 
                     const cell = input.closest('td');
@@ -4176,6 +4187,7 @@
                     }
                 } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     e.preventDefault();
+                    hideMobileConfirmBar(true);
                     const cell = input.closest('td');
                     const row = input.closest('.projection-row');
                     const direction = e.key === 'ArrowUp' ? 'up' : 'down';
@@ -4192,10 +4204,12 @@
         document.querySelectorAll('.projection-row .edit-input').forEach((input) => {
             input.addEventListener('input', () => {
                 input._isDirty = true;
+                showMobileConfirmBar(input);
                 // Never run table reflows or resizing during typing to keep mobile virtual keyboard stable!
             });
             input.addEventListener('change', async () => {
                 input._isDirty = false;
+                hideMobileConfirmBar(true);
                 const row = input.closest('.projection-row');
                 if (row) {
                     if (input._initialVal !== undefined && input._initialVal !== input.value) {
@@ -4247,6 +4261,7 @@
         document.querySelectorAll('.week-input').forEach((input) => {
             input.addEventListener('input', () => {
                 input._isDirty = true;
+                showMobileConfirmBar(input);
                 const cell = input.closest('.week-cell');
                 const row = input.closest('.projection-row');
                 if (!cell || !row || input.disabled) return;
@@ -4266,6 +4281,7 @@
 
             input.addEventListener('change', async () => {
                 input._isDirty = false;
+                hideMobileConfirmBar(true);
                 const cell = input.closest('.week-cell');
                 const row = input.closest('.projection-row');
                 if (cell && row && !input.disabled) {
