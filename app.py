@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 import time
 import unicodedata
 from datetime import date, datetime, timedelta
@@ -146,20 +147,61 @@ def normalize_optional_text(value: Any, fallback: str = "*") -> str:
 
 
 # In-memory snapshot cache synchronized across Gunicorn workers via PostgreSQL data_version
-_WORKER_CACHE: dict[str, Any] = {"version": -1, "timestamp": 0.0, "snapshot": None}
+_CACHE_LOCK = threading.RLock()
+_WORKER_CACHE: dict[str, Any] = {"version": -1, "timestamp": 0.0, "snapshot": None, "snapshots": {}}
 _STATS_CACHE: dict[tuple, Any] = {}
 _STATS_CACHE_VERSION: int = -1
 
 
+def current_actor_info() -> dict[str, str]:
+    try:
+        username = str(session.get("username") or "sistema").strip()
+        full_name = str(session.get("full_name") or username or "Sistema").strip()
+        role = str(session.get("role") or "").strip()
+        fwd = request.headers.get("X-Forwarded-For", "")
+        ip_addr = (fwd.split(",")[0].strip() if fwd else (request.remote_addr or "")).strip()[:64]
+    except RuntimeError:
+        username, full_name, role, ip_addr = "sistema", "Sistema", "", ""
+    display = f"{full_name} ({username})" if full_name and full_name.lower() != username.lower() else username
+    return {
+        "username": username[:80],
+        "user_full_name": full_name[:120],
+        "user_role": role[:50],
+        "ip_address": ip_addr,
+        "display": display[:120],
+    }
+
+
+def canonical_lot_norms(activity: Any, product_master: Any, variety: Any, block: Any) -> tuple[str, str, str, str]:
+    act_raw = normalize_text(activity)
+    act_norm = "PODA" if "PODA" in act_raw else ("SIEMBRA" if act_raw in {"SIEMBRA", ""} else act_raw)
+    pm_str = str(product_master or "").strip().upper()
+    v_raw_norm = normalize_text(variety)
+    if "GYP" in pm_str:
+        pm_norm = "GYPSOPHILA"
+    elif "VERON" in pm_str or "SPLASH" in v_raw_norm:
+        pm_norm = "VERONICA"
+    elif "HYPER" in pm_str:
+        pm_norm = "HYPERICUM"
+    else:
+        pm_norm = normalize_text(pm_str)
+    v_clean = normalize_variety_name(variety, pm_norm)
+    v_norm = normalize_text(v_clean)
+    b_clean = normalize_block_name(block)
+    b_norm = normalize_text(b_clean)
+    return act_norm, pm_norm, v_norm, b_norm
+
+
 def invalidate_snapshot_cache() -> None:
     global _STATS_CACHE_VERSION
-    bump_data_version()
-    _WORKER_CACHE["snapshots"] = {}
-    _WORKER_CACHE["snapshot"] = None
-    _WORKER_CACHE["version"] = -1
-    _WORKER_CACHE["timestamp"] = 0.0
-    _STATS_CACHE.clear()
-    _STATS_CACHE_VERSION = -1
+    new_ver = bump_data_version()
+    with _CACHE_LOCK:
+        _WORKER_CACHE["snapshots"] = {}
+        _WORKER_CACHE["snapshot"] = None
+        _WORKER_CACHE["version"] = -1
+        _WORKER_CACHE["timestamp"] = 0.0
+        _STATS_CACHE.clear()
+        _STATS_CACHE_VERSION = new_ver - 1
 
 
 def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]:
@@ -206,12 +248,8 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
         row_deactivations = row_deactivations_query.all()
         deactivated_map = {}
         for d in row_deactivations:
-            pm_norm = "VERONICA" if "VERONICA" in d.product_master_norm else d.product_master_norm
-            v_norm = normalize_variety_name(d.variety_norm, pm_norm)
-            b_norm = normalize_block_name(d.block_norm or d.block)
-            deactivated_map[(d.activity, pm_norm, v_norm, b_norm, d.source_week)] = d.reason or "Pérdida"
-            if v_norm != d.variety_norm or b_norm != (d.block_norm or d.block):
-                deactivated_map[(d.activity, pm_norm, d.variety_norm, d.block_norm, d.source_week)] = d.reason or "Pérdida"
+            d_act, d_pm, d_v, d_b = canonical_lot_norms(d.activity, d.product_master_norm, d.variety_norm, d.block_norm or d.block)
+            deactivated_map[(d_act, d_pm, d_v, d_b, d.source_week)] = d.reason or "Pérdida"
 
         cycle_map = {}
         cycle_map_by_var_act = {}
@@ -222,8 +260,8 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 for val in (c.curve or "1.0").split(",")
                 if val.strip() and float_or_zero(val) > 0
             ) or (1.0,)
+            c_act, c_pm_norm, c_var_norm, _ = canonical_lot_norms(c.activity, c.product_master, c.variety, "")
             c_pm = "VERONICA" if "VERONICA" in (c.product_master or "").upper() else c.product_master
-            c_pm_norm = "VERONICA" if "VERONICA" in c.product_master_norm else c.product_master_norm
             c_entry = {
                 "product_master": c_pm,
                 "variety": c.variety,
@@ -233,27 +271,22 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 "stems_per_plant": c.stems_per_plant,
                 "curve": curve_values,
             }
-            cycle_map[(c_pm_norm, c.variety_norm, c.activity)] = c_entry
+            cycle_map[(c_pm_norm, c_var_norm, c_act)] = c_entry
             cycle_map[(c.product_master_norm, c.variety_norm, c.activity)] = c_entry
+            cycle_map_by_var_act[(c_var_norm, c_act)] = c_entry
             cycle_map_by_var_act[(c.variety_norm, c.activity)] = c_entry
-            clean_v = c.variety_norm.rstrip("S")
+            clean_v = c_var_norm.rstrip("S")
             if len(clean_v) > 3:
-                cycle_map_by_clean_v[(clean_v, c.activity)] = c_entry
+                cycle_map_by_clean_v[(clean_v, c_act)] = c_entry
 
-        row_adjustments = {
-            (
-                r.activity,
-                "VERONICA" if "VERONICA" in r.product_master_norm else r.product_master_norm,
-                r.variety_norm,
-                r.block_norm,
-                r.source_week,
-            ): {
+        row_adjustments = {}
+        for r in row_adjs:
+            r_act, r_pm, r_v, r_b = canonical_lot_norms(r.activity, r.product_master_norm, r.variety_norm, r.block_norm or r.block)
+            row_adjustments[(r_act, r_pm, r_v, r_b, r.source_week)] = {
                 "cycle_weeks": r.cycle_weeks,
                 "waste_rate": r.waste_rate,
                 "stems_per_plant": r.stems_per_plant,
             }
-            for r in row_adjs
-        }
 
         mass_adjustments = [
             {
@@ -270,10 +303,8 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
 
         week_adjustments_by_block = defaultdict(dict)
         for w in week_adjs:
-            pm_norm = "VERONICA" if "VERONICA" in w.product_master_norm else w.product_master_norm
-            v_norm = normalize_variety_name(w.variety_norm, pm_norm)
-            b_norm = normalize_block_name(w.block_norm)
-            b_key = (w.activity, pm_norm, v_norm, b_norm, w.source_week)
+            w_act, pm_norm, v_norm, b_norm = canonical_lot_norms(w.activity, w.product_master_norm, w.variety_norm, w.block_norm or w.block)
+            b_key = (w_act, pm_norm, v_norm, b_norm, w.source_week)
             val = {
                 "agronomo_estimate": w.agronomo_estimate,
                 "real_closed": w.real_closed,
@@ -281,17 +312,23 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 "is_dump": bool(w.is_dump or (w.dump_stems and w.dump_stems > 0)),
             }
             week_adjustments_by_block[b_key][w.harvest_week] = val
-            if v_norm != w.variety_norm or b_norm != w.block_norm:
-                week_adjustments_by_block[(w.activity, pm_norm, w.variety_norm, w.block_norm, w.source_week)][w.harvest_week] = val
 
-        block_closures = {}
+        block_closures: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         for b in block_closes:
-            pm_norm = "VERONICA" if "VERONICA" in b.product_master_norm else b.product_master_norm
-            v_norm = normalize_variety_name(b.variety_norm, pm_norm)
-            b_norm = normalize_block_name(b.block_norm or b.block)
-            block_closures[(b.activity, pm_norm, v_norm, b_norm, b.source_week)] = bool(b.is_closed)
-            if v_norm != b.variety_norm or b_norm != (b.block_norm or b.block):
-                block_closures[(b.activity, pm_norm, b.variety_norm, b.block_norm, b.source_week)] = bool(b.is_closed)
+            b_act, pm_norm, v_norm, b_norm = canonical_lot_norms(b.activity, b.product_master_norm, b.variety_norm, b.block_norm or b.block)
+            c_key = (b_act, pm_norm, v_norm, b_norm, b.source_week)
+            closed_ts = b.closed_at or (b.updated_at if b.is_closed else None)
+            new_entry = {
+                "is_closed": bool(b.is_closed),
+                "closed_by": str(b.closed_by or "").strip(),
+                "closed_at": closed_ts.strftime("%Y-%m-%d %H:%M") if closed_ts else "",
+            }
+            # If duplicate rows exist in DB and one was explicitly reopened (False), preserve False
+            if c_key in block_closures and not block_closures[c_key]["is_closed"]:
+                if not new_entry["is_closed"]:
+                    block_closures[c_key] = new_entry
+            else:
+                block_closures[c_key] = new_entry
 
         # Consolidar registros TPSR a nivel de bloque único (activity, product_master, variety, block, source_week)
         consolidated_dict: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
@@ -489,21 +526,33 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 curve_meta_by_week.setdefault(harvest_week, (curve_index + 1, float(curve_pct)))
 
             closure_key = (activity, product_master_norm, variety_norm, block_norm, source_week)
+            block_week_adjs = week_adjustments_by_block.get(closure_key, {})
+            all_harvest_weeks = sorted(set(model_projection_by_week.keys()) | set(block_week_adjs.keys()))
+            max_harvest_week = max(all_harvest_weeks) if all_harvest_weeks else source_week
+
+            closed_by_str = ""
+            closed_at_str = ""
             if closure_key in block_closures:
-                block_closed = bool(block_closures[closure_key])
+                bc_info = block_closures[closure_key]
+                block_closed = bool(bc_info["is_closed"])
+                closed_by_str = bc_info.get("closed_by", "")
+                closed_at_str = bc_info.get("closed_at", "")
             else:
-                # Todo lote previo a semana 30 (202630) se marca como cerrado por defecto
-                block_closed = bool(source_week < 202630)
+                # Solo se marca cerrado histórico pre-30 si TODA su ventana de cosecha concluyó antes de 202630
+                block_closed = bool(max_harvest_week < 202630)
+                if block_closed:
+                    closed_by_str = "histórico (< sem 30)"
+
             source_rows[-1]["block_closed"] = block_closed
+            source_rows[-1]["closed_by"] = closed_by_str
+            source_rows[-1]["closed_at"] = closed_at_str
+            source_rows[-1]["has_row_override"] = bool(row_override)
 
             is_deactivated = (closure_key in deactivated_map)
             deactivation_reason = deactivated_map.get(closure_key, "")
             source_rows[-1]["is_deactivated"] = is_deactivated
             source_rows[-1]["deactivation_reason"] = deactivation_reason
             source_rows[-1]["original_plants"] = plants
-
-            block_week_adjs = week_adjustments_by_block.get(closure_key, {})
-            all_harvest_weeks = sorted(set(model_projection_by_week.keys()) | set(block_week_adjs.keys()))
 
             for harvest_week in all_harvest_weeks:
                 model_exportable = int(model_projection_by_week.get(harvest_week, 0))
@@ -513,15 +562,13 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
                 is_dump = bool(week_override.get("is_dump", False))
                 if week_override.get("real_closed") is not None:
                     exportable_stems = int(week_override["real_closed"])
-                    if exportable_stems > 0:
-                        weekly_status = "REAL"
+                    weekly_status = "REAL"
                 elif week_override.get("agronomo_estimate") is not None:
                     exportable_stems = int(week_override["agronomo_estimate"])
-                    if exportable_stems > 0:
-                        weekly_status = "AGRONOMO"
+                    weekly_status = "AGRONOMO"
                 elif block_closed:
                     exportable_stems = 0
-                    weekly_status = "REAL"
+                    weekly_status = "MODELO"
                 if is_dump:
                     weekly_status = "DUMP"
 
@@ -581,22 +628,38 @@ def build_projection_snapshot_from_db(year: int | None = 2026) -> dict[str, Any]
 def get_snapshot(force_refresh: bool = False, year: int = 2026) -> dict[str, Any]:
     current_version = get_data_version()
     now = time.time()
-    # Cache is strictly version-controlled with PostgreSQL data_version.
-    # Fallback TTL is 600s (10 min) to avoid wasteful recalculations every 30s.
-    cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 600.0
-    if force_refresh or cache_expired or _WORKER_CACHE.get("version") != current_version:
-        _WORKER_CACHE["snapshots"] = {}
-        _WORKER_CACHE["snapshot"] = None
-        _WORKER_CACHE["version"] = current_version
-        _WORKER_CACHE["timestamp"] = now
 
-    if "snapshots" not in _WORKER_CACHE:
-        _WORKER_CACHE["snapshots"] = {}
+    with _CACHE_LOCK:
+        cache_expired = (now - _WORKER_CACHE.get("timestamp", 0.0)) > 600.0
+        if not force_refresh and not cache_expired and _WORKER_CACHE.get("version") == current_version:
+            snaps = _WORKER_CACHE.get("snapshots") or {}
+            if year in snaps:
+                return snaps[year]
 
-    if year not in _WORKER_CACHE["snapshots"]:
-        _WORKER_CACHE["snapshots"][year] = build_projection_snapshot_from_db(year=year)
-    _WORKER_CACHE["snapshot"] = _WORKER_CACHE["snapshots"][year]
-    return _WORKER_CACHE["snapshots"][year]
+    # Build fresh snapshot outside lock or re-verify version atomically so concurrent threads never store stale data
+    for _attempt in range(2):
+        ver_before = get_data_version()
+        built = build_projection_snapshot_from_db(year=year)
+        ver_after = get_data_version()
+        if ver_before == ver_after:
+            with _CACHE_LOCK:
+                if _WORKER_CACHE.get("version") != ver_after:
+                    _WORKER_CACHE["snapshots"] = {}
+                    _WORKER_CACHE["version"] = ver_after
+                    _WORKER_CACHE["timestamp"] = time.time()
+                _WORKER_CACHE.setdefault("snapshots", {})[year] = built
+                _WORKER_CACHE["snapshot"] = built
+            return built
+
+    # Final fallback if concurrent writes happened back-to-back
+    built = build_projection_snapshot_from_db(year=year)
+    with _CACHE_LOCK:
+        ver_final = get_data_version()
+        _WORKER_CACHE["snapshots"] = {year: built}
+        _WORKER_CACHE["snapshot"] = built
+        _WORKER_CACHE["version"] = ver_final
+        _WORKER_CACHE["timestamp"] = time.time()
+    return built
 
 
 def available_weeks(snapshot: dict[str, Any]) -> list[int]:
@@ -949,6 +1012,9 @@ def aggregate_for_week(
                 "window_total": int(window_total_prod),
                 "total_production": lifetime_total_prod,
                 "block_closed": is_closed,
+                "closed_by": str(row.get("closed_by") or ""),
+                "closed_at": str(row.get("closed_at") or ""),
+                "has_row_override": bool(row.get("has_row_override", False)),
                 "real_stems_per_plant": lifetime_real_stems,
                 "lifetime_total_production": lifetime_total_prod,
                 "lifetime_real_stems_per_plant": lifetime_real_stems,
@@ -1165,15 +1231,30 @@ def require_login():
             if "estadistica" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo Estadístico."}), 403
         # Reales specific APIs
-        elif request.path in {"/api/bloques-cerrados", "/api/bloques-cerrados/batch", "/api/desactivar-fila"}:
+        elif request.path in {
+            "/api/bloques-cerrados",
+            "/api/bloques-cerrados/batch",
+            "/api/cierre-bloque",
+            "/api/desactivar-fila",
+            "/api/revertir-fila-fabrica",
+        }:
             if "reales" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a módulo de Datos Reales."}), 403
         # Agro specific APIs
         elif request.path == "/api/reset-week":
             if "agro" not in user_views and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a Llenado Agrónomo."}), 403
-        # Shared operational APIs (proyecciones, ajustes-fila, ajustes-semanales, semanas, exportar matriz)
-        elif request.path in {"/api/proyecciones", "/api/ajustes-fila", "/api/ajustes-semanales", "/api/semanas", "/api/matriz/exportar"}:
+        # Shared operational APIs
+        elif request.path in {
+            "/api/proyecciones",
+            "/api/ajustes-fila",
+            "/api/ajustes-semana",
+            "/api/ajustes-semanales",
+            "/api/historial-estimaciones",
+            "/api/restaurar-estimacion",
+            "/api/semanas",
+            "/api/matriz/exportar",
+        }:
             if ("agro" not in user_views and "reales" not in user_views) and user_role != "admin":
                 return jsonify({"ok": False, "message": "Acceso denegado a matriz y exportación."}), 403
 
@@ -2326,10 +2407,6 @@ def get_statistics_data(
 ) -> dict[str, Any]:
     global _STATS_CACHE_VERSION
     current_version = get_data_version()
-    if _STATS_CACHE_VERSION != current_version:
-        _STATS_CACHE.clear()
-        _STATS_CACHE_VERSION = current_version
-
     var_key = tuple(sorted(str(v) for v in (variety_filter if isinstance(variety_filter, list) else [variety_filter])))
     wk_key = tuple(sorted(str(w) for w in (weeks_filter if isinstance(weeks_filter, list) else [weeks_filter])))
     cache_key = (
@@ -2343,8 +2420,12 @@ def get_statistics_data(
         str(week_from or ""),
         str(week_to or ""),
     )
-    if cache_key in _STATS_CACHE:
-        return _STATS_CACHE[cache_key]
+    with _CACHE_LOCK:
+        if _STATS_CACHE_VERSION != current_version:
+            _STATS_CACHE.clear()
+            _STATS_CACHE_VERSION = current_version
+        if cache_key in _STATS_CACHE:
+            return _STATS_CACHE[cache_key]
 
     db = SessionLocal()
     try:
@@ -2527,17 +2608,16 @@ def get_statistics_data(
         closure_query = db.query(BlockClosureDB)
         closures_list = closure_query.all()
         closed_blocks_set: set[tuple[str, str, int, str, str]] = set()
-        closed_blocks_by_lot: set[tuple[str, int, str, str]] = set()
+        explicit_open_blocks_set: set[tuple[str, str, int, str, str]] = set()
         for c in closures_list:
+            c_ac, c_pm, c_var_norm, c_blk_norm = canonical_lot_norms(c.activity, c.product_master_norm, c.variety_norm, c.block_norm or c.block)
+            k_c = (c_pm, c_var_norm, c.source_week, c_ac, c_blk_norm)
             if c.is_closed:
-                c_pm = normalize_text(c.product_master_norm)
-                c_var = normalize_variety_name(c.variety_norm, c_pm)
-                c_ac = normalize_text(c.activity)
-                c_blk = normalize_block_name(c.block_norm or c.block)
-                closed_blocks_set.add((c_pm, c_var, c.source_week, c_ac, c_blk))
-                if c_var != c.variety_norm or c_blk != (c.block_norm or c.block):
-                    closed_blocks_set.add((c_pm, normalize_text(c.variety_norm), c.source_week, c_ac, normalize_text(c.block_norm or c.block)))
-                closed_blocks_by_lot.add((c_pm, c.source_week, c_ac, c_blk))
+                if k_c not in explicit_open_blocks_set:
+                    closed_blocks_set.add(k_c)
+            else:
+                explicit_open_blocks_set.add(k_c)
+                closed_blocks_set.discard(k_c)
 
         deactivated_query = db.query(RowDeactivationDB).filter_by(is_deactivated=True)
         deactivated_list = deactivated_query.all()
@@ -2617,7 +2697,9 @@ def get_statistics_data(
             adj_agro_map = {a.harvest_week: a.agronomo_estimate for a in adjs if a.agronomo_estimate is not None}
             adj_dump_map = {a.harvest_week: (a.dump_stems or 0) for a in adjs}
 
-            is_closed = (k_norm in closed_blocks_set) or ((pm_norm, sw, ac_norm, blk_norm) in closed_blocks_by_lot) or (sw < 202630)
+            last_curve_hw = shift_week(sw, int(effective_cycle_weeks or 0) + max(0, len(c_def["curve"]) - 1))
+            max_lot_hw = max([last_curve_hw, *adj_real_map.keys(), *adj_agro_map.keys()])
+            is_closed = (k_norm in closed_blocks_set) or (k_norm not in explicit_open_blocks_set and max_lot_hw < 202630)
 
             # Build complete curve weeks: if closed, ONLY real/agro/dump weeks are included; never fake model weeks
             all_hw_set = set()
@@ -3495,7 +3577,9 @@ def get_statistics_data(
             "variety_summary_groups": variety_summary_groups,
             "summary_farm_total": summary_farm_total,
         }
-        _STATS_CACHE[cache_key] = res
+        with _CACHE_LOCK:
+            if get_data_version() == current_version:
+                _STATS_CACHE[cache_key] = res
         return res
     finally:
         db.close()
@@ -4093,65 +4177,99 @@ def projections_api():
 @app.post("/api/ajustes-fila")
 def save_row_adjustment_api():
     payload = request.get_json(silent=True) or {}
-    activity = normalize_text(payload.get("activity"))
+    activity_raw = payload.get("activity")
     product_master = str(payload.get("product_master") or "").strip()
     variety = str(payload.get("variety") or "").strip()
     block = str(payload.get("block") or "").strip()
     source_week = parse_week_code(payload.get("source_week"))
+    page_mode = normalize_text(payload.get("mode") or "AGRONOMO")
+    if page_mode not in {"AGRONOMO", "REAL"}:
+        page_mode = "AGRONOMO"
 
     cycle_weeks = to_int_or_none(payload.get("cycle_weeks"))
     waste_rate_pct = to_float_or_none(payload.get("waste_rate_pct"))
     stems_per_plant = to_float_or_none(payload.get("stems_per_plant"))
 
+    activity, pm_norm, v_norm, b_norm = canonical_lot_norms(activity_raw, product_master, variety, block)
     if activity not in {"SIEMBRA", "PODA"}:
         return jsonify({"ok": False, "message": "Actividad invalida."}), 400
     if not product_master or not variety or not block or source_week is None:
         return jsonify({"ok": False, "message": "Faltan llaves para guardar el ajuste."}), 400
+    if pm_norm == "VERONICA":
+        product_master = "VERONICA"
 
+    actor = current_actor_info()
     db = SessionLocal()
     try:
-        v_norm = normalize_text(variety)
-        b_norm = normalize_text(block)
+        v_alt = normalize_variety_name(variety, product_master)
+        b_alt = normalize_block_name(block)
+        pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
 
-        if "VERONICA" in product_master.upper():
-            product_master = "VERONICA"
-            pm_norm = "VERONICA"
-            existing = db.query(RowAdjustmentDB).filter(
-                RowAdjustmentDB.activity == activity,
-                RowAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
-                RowAdjustmentDB.variety_norm == v_norm,
-                RowAdjustmentDB.block_norm == b_norm,
-                RowAdjustmentDB.source_week == source_week,
-            ).first()
-        else:
-            pm_norm = normalize_text(product_master)
-            existing = db.query(RowAdjustmentDB).filter_by(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block_norm=b_norm,
-                source_week=source_week,
-            ).first()
+        matches = db.query(RowAdjustmentDB).filter(
+            RowAdjustmentDB.activity == activity,
+            RowAdjustmentDB.product_master_norm.in_(pm_candidates),
+            RowAdjustmentDB.variety_norm.in_(list({v_norm, v_alt})),
+            RowAdjustmentDB.block_norm.in_(list({b_norm, b_alt})),
+            RowAdjustmentDB.source_week == source_week,
+        ).all()
 
-        if existing:
+        new_waste = waste_rate_pct / 100 if waste_rate_pct is not None else None
+        prev_desc = "Fábrica"
+        if matches:
+            existing = matches[0]
+            for extra in matches[1:]:
+                db.delete(extra)
+            prev_desc = f"Ciclo={existing.cycle_weeks}, T/pl={existing.stems_per_plant}, Desp={round((existing.waste_rate or 0)*100, 1)}%"
             existing.product_master_norm = pm_norm
+            existing.variety_norm = v_norm
+            existing.block = b_alt or block
+            existing.block_norm = b_norm
             existing.cycle_weeks = cycle_weeks
-            existing.waste_rate = waste_rate_pct / 100 if waste_rate_pct is not None else None
+            existing.waste_rate = new_waste
             existing.stems_per_plant = stems_per_plant
+            existing.updated_by = actor["display"]
             existing.updated_at = datetime.utcnow()
         else:
             new_adj = RowAdjustmentDB(
                 activity=activity,
                 product_master_norm=pm_norm,
                 variety_norm=v_norm,
-                block=block,
+                block=b_alt or block,
                 block_norm=b_norm,
                 source_week=source_week,
                 cycle_weeks=cycle_weeks,
-                waste_rate=waste_rate_pct / 100 if waste_rate_pct is not None else None,
+                waste_rate=new_waste,
                 stems_per_plant=stems_per_plant,
+                updated_by=actor["display"],
             )
             db.add(new_adj)
+
+        new_desc = f"Ciclo={cycle_weeks}, T/pl={stems_per_plant}, Desp={waste_rate_pct}%"
+        if prev_desc != new_desc:
+            db.add(
+                EstimateAuditDB(
+                    product_master=product_master,
+                    product_master_norm=pm_norm,
+                    variety=v_alt or variety,
+                    variety_norm=v_norm,
+                    block=b_alt or block,
+                    block_norm=b_norm,
+                    activity=activity,
+                    source_week=source_week,
+                    harvest_week=0,
+                    mode=page_mode,
+                    action="ROW_PARAM",
+                    previous_value=None,
+                    new_value=cycle_weeks,
+                    dump_stems=0,
+                    username=actor["username"],
+                    user_full_name=actor["user_full_name"],
+                    user_role=actor["user_role"],
+                    ip_address=actor["ip_address"],
+                    notes=f"Parámetros fila: {prev_desc} → {new_desc}"[:255],
+                    created_at=datetime.utcnow(),
+                )
+            )
 
         db.commit()
         invalidate_snapshot_cache()
@@ -4166,7 +4284,7 @@ def save_row_adjustment_api():
 @app.post("/api/ajustes-semana")
 def save_week_adjustment_api():
     payload = request.get_json(silent=True) or {}
-    activity = normalize_text(payload.get("activity"))
+    activity_raw = payload.get("activity")
     product_master = str(payload.get("product_master") or "").strip()
     variety = str(payload.get("variety") or "").strip()
     block = str(payload.get("block") or "").strip()
@@ -4174,6 +4292,7 @@ def save_week_adjustment_api():
     harvest_week = parse_week_code(payload.get("harvest_week"))
     raw_value = payload.get("value")
     value = to_int_or_none(raw_value)
+    model_hint = to_int_or_none(payload.get("model_value"))
     dump_stems_raw = payload.get("dump_stems")
     dump_stems = to_int_or_none(dump_stems_raw)
     mode = normalize_text(payload.get("mode"))
@@ -4181,42 +4300,42 @@ def save_week_adjustment_api():
     is_reset = bool(payload.get("reset")) or (raw_value in (None, "") and is_dump is None and dump_stems is None)
     reset_all = bool(payload.get("reset_all"))
 
+    activity, pm_norm, v_norm, b_norm = canonical_lot_norms(activity_raw, product_master, variety, block)
     if activity not in {"SIEMBRA", "PODA"}:
         return jsonify({"ok": False, "message": "Actividad invalida."}), 400
     if mode not in {"AGRONOMO", "REAL"}:
         return jsonify({"ok": False, "message": "Modo invalido."}), 400
     if not product_master or not variety or not block or source_week is None or harvest_week is None:
         return jsonify({"ok": False, "message": "Faltan llaves."}), 400
+    if pm_norm == "VERONICA":
+        product_master = "VERONICA"
 
+    actor = current_actor_info()
     db = SessionLocal()
     try:
-        v_norm = normalize_text(variety)
-        b_norm = normalize_text(block)
+        v_alt = normalize_variety_name(variety, product_master)
+        b_alt = normalize_block_name(block)
+        pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
 
-        if "VERONICA" in product_master.upper():
-            product_master = "VERONICA"
-            pm_norm = "VERONICA"
-            existing = db.query(WeekAdjustmentDB).filter(
-                WeekAdjustmentDB.activity == activity,
-                WeekAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
-                WeekAdjustmentDB.variety_norm == v_norm,
-                WeekAdjustmentDB.block_norm == b_norm,
-                WeekAdjustmentDB.source_week == source_week,
-                WeekAdjustmentDB.harvest_week == harvest_week,
-            ).first()
-        else:
-            pm_norm = normalize_text(product_master)
-            existing = db.query(WeekAdjustmentDB).filter_by(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block_norm=b_norm,
-                source_week=source_week,
-                harvest_week=harvest_week,
-            ).first()
+        matches = db.query(WeekAdjustmentDB).filter(
+            WeekAdjustmentDB.activity == activity,
+            WeekAdjustmentDB.product_master_norm.in_(pm_candidates),
+            WeekAdjustmentDB.variety_norm.in_(list({v_norm, v_alt})),
+            WeekAdjustmentDB.block_norm.in_(list({b_norm, b_alt})),
+            WeekAdjustmentDB.source_week == source_week,
+            WeekAdjustmentDB.harvest_week == harvest_week,
+        ).all()
 
         prev_val = None
-        if existing:
+        if matches:
+            existing = matches[0]
+            for extra in matches[1:]:
+                db.delete(extra)
+            existing.product_master_norm = pm_norm
+            existing.variety_norm = v_norm
+            existing.block = b_alt or block
+            existing.block_norm = b_norm
+
             prev_val = existing.agronomo_estimate if mode == "AGRONOMO" else existing.real_closed
             if reset_all:
                 existing.agronomo_estimate = None
@@ -4224,7 +4343,7 @@ def save_week_adjustment_api():
                 existing.dump_stems = 0
                 existing.is_dump = False
             elif mode == "AGRONOMO":
-                existing.agronomo_estimate = value
+                existing.agronomo_estimate = None if is_reset else value
                 if dump_stems is not None:
                     existing.dump_stems = dump_stems
                     existing.is_dump = (dump_stems > 0) or bool(is_dump)
@@ -4232,7 +4351,7 @@ def save_week_adjustment_api():
                     existing.is_dump = False
                     existing.dump_stems = 0
             else:
-                existing.real_closed = value
+                existing.real_closed = None if is_reset else value
                 if dump_stems is not None:
                     existing.dump_stems = dump_stems
                     existing.is_dump = (dump_stems > 0) or bool(is_dump)
@@ -4243,7 +4362,7 @@ def save_week_adjustment_api():
                 elif is_reset:
                     existing.is_dump = False
                     existing.dump_stems = 0
-            
+
             existing.updated_at = datetime.utcnow()
 
             if existing.agronomo_estimate is None and existing.real_closed is None and not existing.is_dump and (not existing.dump_stems or existing.dump_stems == 0):
@@ -4255,7 +4374,7 @@ def save_week_adjustment_api():
                         activity=activity,
                         product_master_norm=pm_norm,
                         variety_norm=v_norm,
-                        block=block,
+                        block=b_alt or block,
                         block_norm=b_norm,
                         source_week=source_week,
                         harvest_week=harvest_week,
@@ -4266,26 +4385,42 @@ def save_week_adjustment_api():
                     )
                     db.add(new_adj)
 
-        # Record action in EstimateAuditDB
+        # Record action in EstimateAuditDB with full user identity
         action_type = "RESET" if (reset_all or is_reset) else "EDIT"
         new_val = None if (reset_all or is_reset) else value
+        effective_prev = prev_val if prev_val is not None else model_hint
         if prev_val != new_val or is_dump is not None or dump_stems is not None:
+            if action_type == "RESET":
+                note_txt = f"Quitó valor manual ({prev_val if prev_val is not None else 'override'} → cálculo fábrica)"
+            elif new_val == 0:
+                note_txt = f"Colocó 0 tallos ({'desde modelo ' + str(model_hint) if (prev_val is None and model_hint is not None) else 'antes ' + str(prev_val)})"
+            elif prev_val is None and model_hint is not None:
+                note_txt = f"Colocó valor sobre modelo ({model_hint} → {new_val})"
+            else:
+                note_txt = f"Modificó valor ({prev_val if prev_val is not None else '-'} → {new_val})"
+            if dump_stems and dump_stems > 0:
+                note_txt += f" | Dump: {dump_stems}"
+
             audit_entry = EstimateAuditDB(
                 product_master=product_master,
                 product_master_norm=pm_norm,
-                variety=variety,
+                variety=v_alt or variety,
                 variety_norm=v_norm,
-                block=block,
+                block=b_alt or block,
                 block_norm=b_norm,
                 activity=activity,
                 source_week=source_week,
                 harvest_week=harvest_week,
                 mode=mode,
                 action=action_type,
-                previous_value=prev_val,
+                previous_value=effective_prev,
                 new_value=new_val,
                 dump_stems=dump_stems if dump_stems is not None else 0,
-                notes=f"Guardado {mode} ({'Reseteo' if is_reset else 'Edición'})",
+                username=actor["username"],
+                user_full_name=actor["user_full_name"],
+                user_role=actor["user_role"],
+                ip_address=actor["ip_address"],
+                notes=note_txt[:255],
                 created_at=datetime.utcnow(),
             )
             db.add(audit_entry)
@@ -4308,9 +4443,9 @@ def save_week_adjustment_api():
             if check.is_dump or (check.dump_stems and check.dump_stems > 0):
                 weekly_status = "DUMP"
                 is_dump_val = True
-            elif check.real_closed is not None and check.real_closed > 0:
+            elif check.real_closed is not None:
                 weekly_status = "REAL"
-            elif check.agronomo_estimate is not None and check.agronomo_estimate > 0:
+            elif check.agronomo_estimate is not None:
                 weekly_status = "AGRONOMO"
             else:
                 weekly_status = "MODELO"
@@ -4334,17 +4469,21 @@ def save_week_adjustment_api():
 def get_estimate_history_api():
     block_filter = request.args.get("block", "").strip()
     source_week_filter = parse_week_code(request.args.get("source_week"))
-    harvest_week_filter = parse_week_code(request.args.get("harvest_week"))
+    harvest_week_raw = request.args.get("harvest_week", "").strip()
+    harvest_week_filter = parse_week_code(harvest_week_raw) if harvest_week_raw else None
     product_filter = request.args.get("product", "").strip()
     variety_filter = request.args.get("variety", "").strip()
     mode_filter = request.args.get("mode", "").strip().upper()
-    limit = max(1, min(500, int(request.args.get("limit") or 100)))
+    action_filter = request.args.get("action", "").strip().upper()
+    user_filter = request.args.get("user", "").strip().lower()
+    limit = max(1, min(500, int(request.args.get("limit") or 150)))
 
     db = SessionLocal()
     try:
         query = db.query(EstimateAuditDB)
         if block_filter:
-            query = query.filter(EstimateAuditDB.block_norm == normalize_text(block_filter))
+            b_clean = normalize_text(normalize_block_name(block_filter))
+            query = query.filter(EstimateAuditDB.block_norm == b_clean)
         if source_week_filter:
             query = query.filter(EstimateAuditDB.source_week == source_week_filter)
         if harvest_week_filter:
@@ -4358,6 +4497,20 @@ def get_estimate_history_api():
             query = query.filter(EstimateAuditDB.variety_norm == normalize_text(variety_filter))
         if mode_filter and mode_filter in ("AGRONOMO", "REAL"):
             query = query.filter(EstimateAuditDB.mode == mode_filter)
+        if action_filter and action_filter != "ALL":
+            if action_filter == "CLOSURES":
+                query = query.filter(EstimateAuditDB.action.in_(["CLOSE_BLOCK", "REOPEN_BLOCK"]))
+            elif action_filter == "VALUES":
+                query = query.filter(EstimateAuditDB.action.in_(["EDIT", "RESET", "RESTORE", "INITIAL"]))
+            elif action_filter == "RESETS":
+                query = query.filter(EstimateAuditDB.action.in_(["FACTORY_RESET", "RESET", "DEACTIVATE_ROW", "REACTIVATE_ROW"]))
+            else:
+                query = query.filter(EstimateAuditDB.action == action_filter)
+        if user_filter:
+            query = query.filter(
+                (EstimateAuditDB.username.ilike(f"%{user_filter}%")) |
+                (EstimateAuditDB.user_full_name.ilike(f"%{user_filter}%"))
+            )
 
         audits = query.order_by(EstimateAuditDB.id.desc()).limit(limit).all()
 
@@ -4372,12 +4525,16 @@ def get_estimate_history_api():
                 "source_week": a.source_week,
                 "source_week_short": format_short_week(a.source_week),
                 "harvest_week": a.harvest_week,
-                "harvest_week_short": format_short_week(a.harvest_week),
+                "harvest_week_short": format_short_week(a.harvest_week) if (a.harvest_week and a.harvest_week > 0) else "-",
                 "mode": a.mode,
                 "action": a.action,
                 "previous_value": a.previous_value,
                 "new_value": a.new_value,
                 "dump_stems": a.dump_stems,
+                "username": a.username or "",
+                "user_full_name": a.user_full_name or a.username or "Histórico",
+                "user_role": a.user_role or "",
+                "ip_address": a.ip_address or "",
                 "notes": a.notes or "",
                 "created_at": a.created_at.strftime("%Y-%m-%d %H:%M:%S") if a.created_at else "",
             }
@@ -4394,7 +4551,7 @@ def get_estimate_history_api():
 def restore_estimate_api():
     payload = request.get_json(silent=True) or {}
     audit_id = to_int_or_none(payload.get("audit_id"))
-    
+
     activity = normalize_text(payload.get("activity"))
     product_master = str(payload.get("product_master") or "").strip()
     variety = str(payload.get("variety") or "").strip()
@@ -4406,6 +4563,7 @@ def restore_estimate_api():
     if mode not in ("AGRONOMO", "REAL"):
         mode = "AGRONOMO"
 
+    actor = current_actor_info()
     db = SessionLocal()
     try:
         if audit_id:
@@ -4420,39 +4578,37 @@ def restore_estimate_api():
             harvest_week = audit.harvest_week
             if value is None:
                 value = audit.previous_value if audit.previous_value is not None else audit.new_value
-            mode = audit.mode
+            mode = audit.mode if audit.mode in ("AGRONOMO", "REAL") else "AGRONOMO"
 
-        if not activity or not product_master or not variety or not block or source_week is None or harvest_week is None:
+        if not activity or not product_master or not variety or not block or source_week is None or not harvest_week:
             return jsonify({"ok": False, "message": "Faltan parámetros requeridos para restaurar."}), 400
 
-        v_norm = normalize_text(variety)
-        b_norm = normalize_text(block)
-
-        if "VERONICA" in product_master.upper():
+        activity, pm_norm, v_norm, b_norm = canonical_lot_norms(activity, product_master, variety, block)
+        if pm_norm == "VERONICA":
             product_master = "VERONICA"
-            pm_norm = "VERONICA"
-            existing = db.query(WeekAdjustmentDB).filter(
-                WeekAdjustmentDB.activity == activity,
-                WeekAdjustmentDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
-                WeekAdjustmentDB.variety_norm == v_norm,
-                WeekAdjustmentDB.block_norm == b_norm,
-                WeekAdjustmentDB.source_week == source_week,
-                WeekAdjustmentDB.harvest_week == harvest_week,
-            ).first()
-        else:
-            pm_norm = normalize_text(product_master)
-            existing = db.query(WeekAdjustmentDB).filter_by(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block_norm=b_norm,
-                source_week=source_week,
-                harvest_week=harvest_week,
-            ).first()
+        v_alt = normalize_variety_name(variety, product_master)
+        b_alt = normalize_block_name(block)
+        pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
+
+        matches = db.query(WeekAdjustmentDB).filter(
+            WeekAdjustmentDB.activity == activity,
+            WeekAdjustmentDB.product_master_norm.in_(pm_candidates),
+            WeekAdjustmentDB.variety_norm.in_(list({v_norm, v_alt})),
+            WeekAdjustmentDB.block_norm.in_(list({b_norm, b_alt})),
+            WeekAdjustmentDB.source_week == source_week,
+            WeekAdjustmentDB.harvest_week == harvest_week,
+        ).all()
 
         prev_val = None
-        if existing:
+        if matches:
+            existing = matches[0]
+            for extra in matches[1:]:
+                db.delete(extra)
             prev_val = existing.agronomo_estimate if mode == "AGRONOMO" else existing.real_closed
+            existing.product_master_norm = pm_norm
+            existing.variety_norm = v_norm
+            existing.block = b_alt or block
+            existing.block_norm = b_norm
             if mode == "AGRONOMO":
                 existing.agronomo_estimate = value
             else:
@@ -4463,7 +4619,7 @@ def restore_estimate_api():
                 activity=activity,
                 product_master_norm=pm_norm,
                 variety_norm=v_norm,
-                block=block,
+                block=b_alt or block,
                 block_norm=b_norm,
                 source_week=source_week,
                 harvest_week=harvest_week,
@@ -4474,13 +4630,12 @@ def restore_estimate_api():
             )
             db.add(new_adj)
 
-        # Log restoration in audit
         restore_audit = EstimateAuditDB(
             product_master=product_master,
             product_master_norm=pm_norm,
-            variety=variety,
+            variety=v_alt or variety,
             variety_norm=v_norm,
-            block=block,
+            block=b_alt or block,
             block_norm=b_norm,
             activity=activity,
             source_week=source_week,
@@ -4490,7 +4645,11 @@ def restore_estimate_api():
             previous_value=prev_val,
             new_value=value,
             dump_stems=0,
-            notes=f"Restaurado a {value} tallos",
+            username=actor["username"],
+            user_full_name=actor["user_full_name"],
+            user_role=actor["user_role"],
+            ip_address=actor["ip_address"],
+            notes=f"Restauró a {value} tallos desde historial",
             created_at=datetime.utcnow(),
         )
         db.add(restore_audit)
@@ -4503,7 +4662,7 @@ def restore_estimate_api():
             "message": f"Valor {value} tallos restaurado con éxito para bloque {block} en semana {format_short_week(harvest_week)}.",
             "value": value,
             "weekly_status": mode,
-            "block": block,
+            "block": b_alt or block,
             "source_week": source_week,
             "harvest_week": harvest_week,
             "activity": activity,
@@ -4530,65 +4689,106 @@ def save_block_closure_api():
     if not items:
         return jsonify({"ok": False, "message": "No se enviaron datos de cierre."}), 400
 
+    actor = current_actor_info()
+    now_dt = datetime.utcnow()
+    now_str = now_dt.strftime("%Y-%m-%d %H:%M")
+
     db = SessionLocal()
     try:
         updated_count = 0
         for item in items:
-            activity = normalize_text(item.get("activity"))
+            raw_act = item.get("activity")
             product_master = str(item.get("product_master") or "").strip()
             variety = str(item.get("variety") or "").strip()
             block = str(item.get("block") or "").strip()
             source_week = parse_week_code(item.get("source_week"))
             is_closed = bool(item.get("is_closed"))
 
+            activity, pm_norm, v_norm, b_norm = canonical_lot_norms(raw_act, product_master, variety, block)
             if activity not in {"SIEMBRA", "PODA"}:
                 continue
             if not product_master or not variety or not block or source_week is None:
                 continue
-
-            v_norm = normalize_variety_name(variety, product_master)
-            b_norm = normalize_block_name(block)
-
-            if "VERONICA" in product_master.upper():
+            if pm_norm == "VERONICA":
                 product_master = "VERONICA"
-                pm_norm = "VERONICA"
-                existing = db.query(BlockClosureDB).filter(
-                    BlockClosureDB.activity == activity,
-                    BlockClosureDB.product_master_norm.in_(["VERONICA", "VERONICA SPRAY"]),
-                    BlockClosureDB.variety_norm == v_norm,
-                    BlockClosureDB.block_norm == b_norm,
-                    BlockClosureDB.source_week == source_week,
-                ).first()
-            else:
-                pm_norm = normalize_text(product_master)
-                existing = db.query(BlockClosureDB).filter_by(
-                    activity=activity,
-                    product_master_norm=pm_norm,
-                    variety_norm=v_norm,
-                    block_norm=b_norm,
-                    source_week=source_week,
-                ).first()
 
-            if existing:
+            v_alt = normalize_variety_name(variety, product_master)
+            b_alt = normalize_block_name(block)
+            pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
+
+            matches = db.query(BlockClosureDB).filter(
+                BlockClosureDB.activity == activity,
+                BlockClosureDB.product_master_norm.in_(pm_candidates),
+                BlockClosureDB.variety_norm.in_(list({v_norm, v_alt})),
+                BlockClosureDB.block_norm.in_(list({b_norm, b_alt})),
+                BlockClosureDB.source_week == source_week,
+            ).all()
+
+            prev_closed = None
+            if matches:
+                existing = matches[0]
+                prev_closed = bool(existing.is_closed)
+                for extra in matches[1:]:
+                    db.delete(extra)
+                existing.product_master_norm = pm_norm
+                existing.variety_norm = v_norm
+                existing.block = b_alt or b_norm
+                existing.block_norm = b_norm
                 existing.is_closed = is_closed
-                existing.updated_at = datetime.utcnow()
+                existing.closed_by = actor["display"]
+                existing.closed_at = now_dt
+                existing.updated_at = now_dt
             else:
                 new_cls = BlockClosureDB(
                     activity=activity,
                     product_master_norm=pm_norm,
                     variety_norm=v_norm,
-                    block=b_norm,
+                    block=b_alt or b_norm,
                     block_norm=b_norm,
                     source_week=source_week,
                     is_closed=is_closed,
+                    closed_by=actor["display"],
+                    closed_at=now_dt,
                 )
                 db.add(new_cls)
+
+            if prev_closed is None or prev_closed != is_closed:
+                db.add(
+                    EstimateAuditDB(
+                        product_master=product_master,
+                        product_master_norm=pm_norm,
+                        variety=v_alt or variety,
+                        variety_norm=v_norm,
+                        block=b_alt or b_norm,
+                        block_norm=b_norm,
+                        activity=activity,
+                        source_week=source_week,
+                        harvest_week=0,
+                        mode="REAL",
+                        action="CLOSE_BLOCK" if is_closed else "REOPEN_BLOCK",
+                        previous_value=1 if prev_closed else 0,
+                        new_value=1 if is_closed else 0,
+                        dump_stems=0,
+                        username=actor["username"],
+                        user_full_name=actor["user_full_name"],
+                        user_role=actor["user_role"],
+                        ip_address=actor["ip_address"],
+                        notes=f"{'Cerró' if is_closed else 'Reabrió'} bloque {b_alt or b_norm} (Sem. Origen {format_short_week(source_week)})",
+                        created_at=now_dt,
+                    )
+                )
             updated_count += 1
 
         db.commit()
         invalidate_snapshot_cache()
-        msg = f"{updated_count} bloque(s) actualizado(s) con éxito en PostgreSQL." if updated_count > 1 else "Cierre de bloque actualizado en PostgreSQL."
-        return jsonify({"ok": True, "count": updated_count, "message": msg})
+        msg = f"{updated_count} bloque(s) actualizado(s) con éxito." if updated_count > 1 else "Estado de cierre guardado con éxito."
+        return jsonify({
+            "ok": True,
+            "count": updated_count,
+            "closed_by": actor["display"],
+            "closed_at": now_str,
+            "message": msg,
+        })
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500
@@ -4609,12 +4809,14 @@ def toggle_row_deactivation_api():
     if not items:
         return jsonify({"ok": False, "message": "No se enviaron datos de fila."}), 400
 
+    actor = current_actor_info()
+    now_dt = datetime.utcnow()
     db = SessionLocal()
     try:
         updated_count = 0
         last_state = True
         for item in items:
-            activity = normalize_text(item.get("activity"))
+            raw_act = item.get("activity")
             product_master = str(item.get("product_master") or "").strip()
             variety = str(item.get("variety") or "").strip()
             block = str(item.get("block") or "").strip()
@@ -4623,43 +4825,76 @@ def toggle_row_deactivation_api():
             reason = str(item.get("reason") or "Pérdida de siembra / Se llevó la corriente").strip()
             last_state = is_deactivated
 
+            activity, pm_norm, v_norm, b_norm = canonical_lot_norms(raw_act, product_master, variety, block)
             if activity not in {"SIEMBRA", "PODA"}:
                 continue
             if not product_master or not variety or not block or source_week is None:
                 continue
+            if pm_norm == "VERONICA":
+                product_master = "VERONICA"
 
-            v_norm = normalize_variety_name(variety, product_master)
-            b_norm = normalize_block_name(block)
+            v_alt = normalize_variety_name(variety, product_master)
+            b_alt = normalize_block_name(block)
+            pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
 
-            if "VERONICA" in product_master.upper():
-                pm_norm = "VERONICA"
-            else:
-                pm_norm = normalize_text(product_master)
+            matches = db.query(RowDeactivationDB).filter(
+                RowDeactivationDB.activity == activity,
+                RowDeactivationDB.product_master_norm.in_(pm_candidates),
+                RowDeactivationDB.variety_norm.in_(list({v_norm, v_alt})),
+                RowDeactivationDB.block_norm.in_(list({b_norm, b_alt})),
+                RowDeactivationDB.source_week == source_week,
+            ).all()
 
-            existing = db.query(RowDeactivationDB).filter_by(
-                activity=activity,
-                product_master_norm=pm_norm,
-                variety_norm=v_norm,
-                block_norm=b_norm,
-                source_week=source_week,
-            ).first()
-
-            if existing:
+            if matches:
+                existing = matches[0]
+                for extra in matches[1:]:
+                    db.delete(extra)
+                existing.product_master_norm = pm_norm
+                existing.variety_norm = v_norm
+                existing.block = b_alt or b_norm
+                existing.block_norm = b_norm
                 existing.is_deactivated = is_deactivated
                 existing.reason = reason
-                existing.updated_at = datetime.utcnow()
+                existing.updated_by = actor["display"]
+                existing.updated_at = now_dt
             else:
                 new_rec = RowDeactivationDB(
                     activity=activity,
                     product_master_norm=pm_norm,
                     variety_norm=v_norm,
-                    block=b_norm,
+                    block=b_alt or b_norm,
                     block_norm=b_norm,
                     source_week=source_week,
                     is_deactivated=is_deactivated,
                     reason=reason,
+                    updated_by=actor["display"],
                 )
                 db.add(new_rec)
+
+            db.add(
+                EstimateAuditDB(
+                    product_master=product_master,
+                    product_master_norm=pm_norm,
+                    variety=v_alt or variety,
+                    variety_norm=v_norm,
+                    block=b_alt or b_norm,
+                    block_norm=b_norm,
+                    activity=activity,
+                    source_week=source_week,
+                    harvest_week=0,
+                    mode="REAL",
+                    action="DEACTIVATE_ROW" if is_deactivated else "REACTIVATE_ROW",
+                    previous_value=None,
+                    new_value=0 if is_deactivated else None,
+                    dump_stems=0,
+                    username=actor["username"],
+                    user_full_name=actor["user_full_name"],
+                    user_role=actor["user_role"],
+                    ip_address=actor["ip_address"],
+                    notes=(f"Anuló fila (plantas en 0): {reason}" if is_deactivated else "Reactivó fila anulada")[:255],
+                    created_at=now_dt,
+                )
+            )
             updated_count += 1
 
         db.commit()
@@ -4667,6 +4902,188 @@ def toggle_row_deactivation_api():
         state_txt = "desactivada(s) (plantas en 0)" if last_state else "reactivada(s)"
         msg = f"{updated_count} fila(s) {state_txt} con éxito en PostgreSQL."
         return jsonify({"ok": True, "count": updated_count, "is_deactivated": last_state, "message": msg})
+    except SQLAlchemyError as exc:
+        db.rollback()
+        return jsonify({"ok": False, "message": str(exc)}), 500
+    finally:
+        db.close()
+
+
+@app.post("/api/revertir-fila-fabrica")
+def factory_reset_row_api():
+    payload = request.get_json(silent=True) or {}
+    raw_act = payload.get("activity")
+    product_master = str(payload.get("product_master") or "").strip()
+    variety = str(payload.get("variety") or "").strip()
+    block = str(payload.get("block") or "").strip()
+    source_week = parse_week_code(payload.get("source_week"))
+
+    activity, pm_norm, v_norm, b_norm = canonical_lot_norms(raw_act, product_master, variety, block)
+    if activity not in {"SIEMBRA", "PODA"} or not product_master or not variety or not block or source_week is None:
+        return jsonify({"ok": False, "message": "Faltan identificadores de fila válidos."}), 400
+    if pm_norm == "VERONICA":
+        product_master = "VERONICA"
+
+    actor = current_actor_info()
+    now_dt = datetime.utcnow()
+    db = SessionLocal()
+    try:
+        v_alt = normalize_variety_name(variety, product_master)
+        b_alt = normalize_block_name(block)
+        pm_candidates = ["VERONICA", "VERONICA SPRAY"] if pm_norm == "VERONICA" else [pm_norm]
+        v_candidates = list({v_norm, v_alt})
+        b_candidates = list({b_norm, b_alt})
+
+        # 1. Delete all weekly overrides (agronomo_estimate, real_closed, dumps) for this row
+        wa_rows = db.query(WeekAdjustmentDB).filter(
+            WeekAdjustmentDB.activity == activity,
+            WeekAdjustmentDB.product_master_norm.in_(pm_candidates),
+            WeekAdjustmentDB.variety_norm.in_(v_candidates),
+            WeekAdjustmentDB.block_norm.in_(b_candidates),
+            WeekAdjustmentDB.source_week == source_week,
+        ).all()
+        cleared_weeks = len(wa_rows)
+        for w in wa_rows:
+            db.delete(w)
+
+        # 2. Delete row-level parameter overrides (cycle, stems/plant, waste)
+        ra_rows = db.query(RowAdjustmentDB).filter(
+            RowAdjustmentDB.activity == activity,
+            RowAdjustmentDB.product_master_norm.in_(pm_candidates),
+            RowAdjustmentDB.variety_norm.in_(v_candidates),
+            RowAdjustmentDB.block_norm.in_(b_candidates),
+            RowAdjustmentDB.source_week == source_week,
+        ).all()
+        cleared_params = len(ra_rows)
+        for r in ra_rows:
+            db.delete(r)
+
+        # 3. Clear row deactivation if deactivated
+        rd_rows = db.query(RowDeactivationDB).filter(
+            RowDeactivationDB.activity == activity,
+            RowDeactivationDB.product_master_norm.in_(pm_candidates),
+            RowDeactivationDB.variety_norm.in_(v_candidates),
+            RowDeactivationDB.block_norm.in_(b_candidates),
+            RowDeactivationDB.source_week == source_week,
+        ).all()
+        was_deact = any(d.is_deactivated for d in rd_rows)
+        for d in rd_rows:
+            d.is_deactivated = False
+            d.updated_by = actor["display"]
+            d.updated_at = now_dt
+
+        # 4. Reopen block if closed (explicitly set is_closed=False so even pre-30 stays open if requested)
+        bc_rows = db.query(BlockClosureDB).filter(
+            BlockClosureDB.activity == activity,
+            BlockClosureDB.product_master_norm.in_(pm_candidates),
+            BlockClosureDB.variety_norm.in_(v_candidates),
+            BlockClosureDB.block_norm.in_(b_candidates),
+            BlockClosureDB.source_week == source_week,
+        ).all()
+        was_closed = any(c.is_closed for c in bc_rows)
+        if bc_rows:
+            keeper = bc_rows[0]
+            for extra in bc_rows[1:]:
+                db.delete(extra)
+            keeper.product_master_norm = pm_norm
+            keeper.variety_norm = v_norm
+            keeper.block = b_alt or b_norm
+            keeper.block_norm = b_norm
+            keeper.is_closed = False
+            keeper.closed_by = actor["display"]
+            keeper.closed_at = now_dt
+            keeper.updated_at = now_dt
+        elif source_week < 202630:
+            db.add(
+                BlockClosureDB(
+                    activity=activity,
+                    product_master_norm=pm_norm,
+                    variety_norm=v_norm,
+                    block=b_alt or b_norm,
+                    block_norm=b_norm,
+                    source_week=source_week,
+                    is_closed=False,
+                    closed_by=actor["display"],
+                    closed_at=now_dt,
+                )
+            )
+
+        # 5. Compute factory parameters and TPSR plants
+        tpsr_matches = db.query(TpsrRecord).filter(
+            TpsrRecord.source_week == source_week
+        ).all()
+        total_plants = 0
+        for rec in tpsr_matches:
+            r_act, r_pm, r_v, r_b = canonical_lot_norms(rec.activity, rec.product_master_norm or rec.product_master, rec.variety, rec.block)
+            if (r_act, r_pm, r_v, r_b) == (activity, pm_norm, v_norm, b_norm):
+                total_plants += int(rec.plants or 0)
+
+        cycles = db.query(CycleDefinitionDB).all()
+        matched_cycle = None
+        for c in cycles:
+            c_act, c_pm, c_v, _ = canonical_lot_norms(c.activity, c.product_master, c.variety, "")
+            if (c_pm, c_v, c_act) == (pm_norm, v_norm, activity):
+                matched_cycle = c
+                break
+            if matched_cycle is None and (c_v, c_act) == (v_norm, activity):
+                matched_cycle = c
+
+        ideal_cycle = int(matched_cycle.cycle_weeks if matched_cycle else 0)
+        ideal_waste = float(matched_cycle.waste_rate if matched_cycle else 0.0)
+        ideal_stems = float(matched_cycle.stems_per_plant if matched_cycle else 0.0)
+        curve_csv = str(matched_cycle.curve or "1.0") if matched_cycle else "1.0"
+        program_total = round(total_plants * ideal_stems * (1.0 - ideal_waste))
+        harvest_start_short = format_short_week(shift_week(source_week, ideal_cycle) if ideal_cycle else source_week)
+
+        # 6. Record audit entry
+        summary_parts = [f"{cleared_weeks} celdas limpiadas"]
+        if cleared_params:
+            summary_parts.append("parámetros reseteados")
+        if was_closed:
+            summary_parts.append("bloque reabierto")
+        if was_deact:
+            summary_parts.append("fila reactivada")
+
+        db.add(
+            EstimateAuditDB(
+                product_master=product_master,
+                product_master_norm=pm_norm,
+                variety=v_alt or variety,
+                variety_norm=v_norm,
+                block=b_alt or b_norm,
+                block_norm=b_norm,
+                activity=activity,
+                source_week=source_week,
+                harvest_week=0,
+                mode="REAL",
+                action="FACTORY_RESET",
+                previous_value=cleared_weeks,
+                new_value=program_total,
+                dump_stems=0,
+                username=actor["username"],
+                user_full_name=actor["user_full_name"],
+                user_role=actor["user_role"],
+                ip_address=actor["ip_address"],
+                notes=f"Revertido a valores de fábrica ({', '.join(summary_parts)})"[:255],
+                created_at=now_dt,
+            )
+        )
+
+        db.commit()
+        invalidate_snapshot_cache()
+
+        return jsonify({
+            "ok": True,
+            "plants": total_plants,
+            "cycle_weeks": ideal_cycle,
+            "stems_per_plant": ideal_stems,
+            "waste_rate_pct": round(ideal_waste * 100, 1),
+            "curve_csv": curve_csv,
+            "program_total": program_total,
+            "harvest_start_week_short": harvest_start_short,
+            "cleared_weeks": cleared_weeks,
+            "message": f"Fila del Bloque {b_alt or block} revertida a valores de cálculo de fábrica ({cleared_weeks} celdas restauradas).",
+        })
     except SQLAlchemyError as exc:
         db.rollback()
         return jsonify({"ok": False, "message": str(exc)}), 500

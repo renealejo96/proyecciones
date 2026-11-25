@@ -87,6 +87,7 @@ class RowAdjustmentDB(Base):
     cycle_weeks = Column(Integer, nullable=True)
     waste_rate = Column(Float, nullable=True)
     stems_per_plant = Column(Float, nullable=True)
+    updated_by = Column(String(120), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
@@ -140,6 +141,8 @@ class BlockClosureDB(Base):
     block_norm = Column(String(50), nullable=False)
     source_week = Column(Integer, nullable=False)
     is_closed = Column(Boolean, default=False)
+    closed_by = Column(String(120), nullable=True)
+    closed_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
@@ -159,6 +162,7 @@ class RowDeactivationDB(Base):
     source_week = Column(Integer, nullable=False)
     is_deactivated = Column(Boolean, default=True, nullable=False)
     reason = Column(String(255), nullable=True)
+    updated_by = Column(String(120), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
@@ -180,10 +184,14 @@ class EstimateAuditDB(Base):
     source_week = Column(Integer, nullable=False, index=True)
     harvest_week = Column(Integer, nullable=False, index=True)
     mode = Column(String(50), default="AGRONOMO")  # 'AGRONOMO' or 'REAL'
-    action = Column(String(50), default="EDIT")    # 'EDIT', 'RESTORE', 'RESET', 'DELETE', 'INITIAL'
+    action = Column(String(50), default="EDIT")    # 'EDIT', 'RESTORE', 'RESET', 'CLOSE_BLOCK', 'REOPEN_BLOCK', 'FACTORY_RESET', 'ROW_PARAM', 'DEACTIVATE_ROW', 'REACTIVATE_ROW'
     previous_value = Column(Integer, nullable=True)
     new_value = Column(Integer, nullable=True)
     dump_stems = Column(Integer, nullable=True, default=0)
+    username = Column(String(80), nullable=True, index=True)
+    user_full_name = Column(String(120), nullable=True)
+    user_role = Column(String(50), nullable=True)
+    ip_address = Column(String(64), nullable=True)
     notes = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
@@ -231,6 +239,22 @@ def bump_data_version(db_session=None) -> int:
         db_session = SessionLocal()
         close_session = True
     try:
+        try:
+            res = db_session.execute(
+                text(
+                    "INSERT INTO app_meta (key, value, updated_at) "
+                    "VALUES ('data_version', '1', CURRENT_TIMESTAMP) "
+                    "ON CONFLICT (key) DO UPDATE SET "
+                    "value = (COALESCE(NULLIF(app_meta.value, ''), '0')::bigint + 1)::text, "
+                    "updated_at = CURRENT_TIMESTAMP "
+                    "RETURNING value;"
+                )
+            ).scalar()
+            db_session.commit()
+            if res is not None:
+                return int(res)
+        except Exception:
+            db_session.rollback()
         meta = db_session.query(AppMetaDB).filter_by(key="data_version").first()
         if not meta:
             meta = AppMetaDB(key="data_version", value="1")
@@ -255,6 +279,55 @@ def normalize_text(value: Any) -> str:
     text = text.upper().strip()
     text = re.sub(r"[^A-Z0-9]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def normalize_block_name_db(raw_block: Any) -> str:
+    if not raw_block:
+        return ""
+    b = str(raw_block).strip().upper()
+    b = re.sub(r"^(?:BLOQUE|BL\.?)\s*", "", b, flags=re.I).strip()
+    return b
+
+
+def normalize_variety_name_db(raw_var: Any, pm: str = "") -> str:
+    if not raw_var:
+        return ""
+    v = str(raw_var).strip().upper()
+    if ("GYP" in str(pm).upper() or not pm) and ("XCELENCE" in v or "XELENCE" in v or v == "XLENCE"):
+        return "XLENCE"
+    return v
+
+
+def canonical_norms(activity: Any, product_master: Any, variety: Any, block: Any) -> tuple[str, str, str, str]:
+    act_raw = normalize_text(activity)
+    act_norm = "PODA" if "PODA" in act_raw else ("SIEMBRA" if act_raw else "")
+    pm_str = str(product_master or "").strip().upper()
+    if "GYP" in pm_str:
+        pm_norm = "GYPSOPHILA"
+    elif "VERON" in pm_str or "SPLASH" in normalize_text(variety):
+        pm_norm = "VERONICA"
+    elif "HYPER" in pm_str:
+        pm_norm = "HYPERICUM"
+    else:
+        pm_norm = normalize_text(pm_str)
+    v_clean = normalize_variety_name_db(variety, pm_norm)
+    v_norm = normalize_text(v_clean)
+    b_clean = normalize_block_name_db(block)
+    b_norm = normalize_text(b_clean)
+    return act_norm, pm_norm, v_norm, b_norm
+
+
+def _shift_week_db(week_code: int, delta_weeks: int) -> int:
+    from datetime import timedelta
+    year = week_code // 100
+    week = max(1, min(53, week_code % 100))
+    try:
+        monday = date.fromisocalendar(year, week, 1)
+    except ValueError:
+        monday = date.fromisocalendar(year, 52, 1)
+    shifted = monday + timedelta(weeks=delta_weeks)
+    iso_year, iso_week, _ = shifted.isocalendar()
+    return iso_year * 100 + iso_week
 
 
 def parse_week_code(raw_value: Any) -> int | None:
@@ -632,11 +705,118 @@ def migrate_homologate_and_pre30_closures():
             print(f"Warning en migrate_homologate_and_pre30_closures: {e}")
 
 
+def ensure_audit_schema_columns():
+    with engine.connect() as conn:
+        for alter_sql in [
+            "ALTER TABLE estimate_audits ADD COLUMN IF NOT EXISTS username VARCHAR(80);",
+            "ALTER TABLE estimate_audits ADD COLUMN IF NOT EXISTS user_full_name VARCHAR(120);",
+            "ALTER TABLE estimate_audits ADD COLUMN IF NOT EXISTS user_role VARCHAR(50);",
+            "ALTER TABLE estimate_audits ADD COLUMN IF NOT EXISTS ip_address VARCHAR(64);",
+            "CREATE INDEX IF NOT EXISTS ix_estimate_audits_username ON estimate_audits (username);",
+            "ALTER TABLE block_closures ADD COLUMN IF NOT EXISTS closed_by VARCHAR(120);",
+            "ALTER TABLE block_closures ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP;",
+            "ALTER TABLE row_deactivations ADD COLUMN IF NOT EXISTS updated_by VARCHAR(120);",
+            "ALTER TABLE row_adjustments ADD COLUMN IF NOT EXISTS updated_by VARCHAR(120);",
+        ]:
+            try:
+                conn.execute(text(alter_sql))
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
+
+def ensure_audit_and_heal_closures_v2():
+    """
+    1. Garantiza que las columnas de auditoría de usuario existan en todas las tablas operativas.
+    2. Deduplica block_closures usando claves canónicas (respetando reaperturas manuales).
+    3. Reabre automáticamente los lotes (especialmente Hypericum de ciclo 19-21 semanas)
+       cuya semana de origen era < 202630 pero cuya cosecha real ocurre en semanas >= 202642,
+       que habían sido cerrados erróneamente por el corte pre-semana 30 basado en source_week.
+    """
+    ensure_audit_schema_columns()
+
+    with SessionLocal() as db:
+        try:
+            flag = db.query(AppMetaDB).filter_by(key="migration_heal_false_pre30_closures_v2").first()
+            if flag and flag.value == "1":
+                return
+
+            # Build cycle lookup for accurate harvest_end_week computation
+            cycles = db.query(CycleDefinitionDB).all()
+            cycle_lookup: dict[tuple[str, str, str], tuple[int, int]] = {}
+            cycle_by_var: dict[tuple[str, str], tuple[int, int]] = {}
+            for c in cycles:
+                _, pm_c, v_c, _ = canonical_norms(c.activity, c.product_master, c.variety, "")
+                act_c = "PODA" if "PODA" in normalize_text(c.activity) else "SIEMBRA"
+                curve_len = max(1, len([x for x in (c.curve or "1").split(",") if x.strip()]))
+                cw = int(c.cycle_weeks or 0)
+                cycle_lookup[(pm_c, v_c, act_c)] = (cw, curve_len)
+                cycle_by_var[(v_c, act_c)] = (cw, curve_len)
+
+            all_closures = db.query(BlockClosureDB).order_by(BlockClosureDB.id.asc()).all()
+            grouped_closures: dict[tuple[str, str, str, str, int], list[BlockClosureDB]] = {}
+            for bc in all_closures:
+                act_n, pm_n, v_n, b_n = canonical_norms(bc.activity, bc.product_master_norm, bc.variety_norm, bc.block_norm or bc.block)
+                sw = int(bc.source_week or 0)
+                grouped_closures.setdefault((act_n, pm_n, v_n, b_n, sw), []).append(bc)
+
+            reopened_count = 0
+            dedup_deleted = 0
+
+            for (act_n, pm_n, v_n, b_n, sw), rows in grouped_closures.items():
+                # If multiple duplicate rows exist and ANY row was explicitly reopened (is_closed=False), honor False!
+                any_reopened = any(not bool(r.is_closed) for r in rows)
+                keeper = rows[-1]
+                for extra in rows[:-1]:
+                    db.delete(extra)
+                    dedup_deleted += 1
+
+                keeper.activity = act_n
+                keeper.product_master_norm = pm_n
+                keeper.variety_norm = v_n
+                keeper.block = normalize_block_name_db(keeper.block or b_n) or b_n
+                keeper.block_norm = b_n
+                if any_reopened:
+                    keeper.is_closed = False
+
+                # Check if this 2026 pre-30 lot actually harvests in active weeks >= 202642
+                if 202601 <= sw < 202630 and keeper.is_closed:
+                    c_info = cycle_lookup.get((pm_n, v_n, act_n)) or cycle_by_var.get((v_n, act_n))
+                    if c_info:
+                        cw, c_len = c_info
+                    else:
+                        cw = 20 if pm_n == "HYPERICUM" else 13
+                        c_len = 2
+                    harvest_end_week = _shift_week_db(sw, cw + max(0, c_len - 1))
+                    if harvest_end_week >= 202642:
+                        keeper.is_closed = False
+                        keeper.closed_by = "sistema (reapertura auto ciclo activo)"
+                        keeper.updated_at = datetime.utcnow()
+                        reopened_count += 1
+
+            if not flag:
+                db.add(AppMetaDB(key="migration_heal_false_pre30_closures_v2", value="1"))
+            else:
+                flag.value = "1"
+
+            db.commit()
+            bump_data_version(db)
+            print(f"Sanación v2 completada: {reopened_count} bloques activos reabiertos (cosecha >= 2642), {dedup_deleted} cierres duplicados limpiados.")
+        except Exception as exc:
+            db.rollback()
+            print(f"Warning en ensure_audit_and_heal_closures_v2: {exc}")
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    ensure_audit_schema_columns()
     restore_snapshot_if_needed()
     cleanup_outlier_hyp_2023_data()
     migrate_homologate_and_pre30_closures()
+    ensure_audit_and_heal_closures_v2()
 
     # 1. Fast check: if migrations and data healing have already been applied, return immediately!
     db = SessionLocal()
@@ -1136,28 +1316,44 @@ def process_tpsr_excel_upload(file_input: Any, commit: bool = True) -> Dict[str,
         # Lookup dictionary: key -> TpsrRecord object
         # Natural key: (source_week, activity_norm, product_master_norm, variety_norm, block_norm, bed_location, pruning_number)
         lookup_dict: Dict[Tuple[int, str, str, str, str, str, str], TpsrRecord] = {}
-        # Fallback dictionary without bed_location if bed_location is empty
+        # Fallback dictionary without bed_location ONLY when unambiguous (count == 1 in DB and count == 1 in Excel)
         fallback_dict: Dict[Tuple[int, str, str, str, str], TpsrRecord] = {}
+        db_fallback_counts: Dict[Tuple[int, str, str, str, str], int] = {}
 
         for rec in existing_records:
+            act_c, pm_c, v_c, b_c = canonical_norms(rec.activity, rec.product_master_norm or rec.product_master, rec.variety_norm or rec.variety, rec.block_norm or rec.block)
             nat_key = (
                 rec.source_week,
-                rec.activity,
-                rec.product_master_norm,
-                rec.variety_norm,
-                rec.block_norm,
+                act_c,
+                pm_c,
+                v_c,
+                b_c,
                 str(rec.bed_location or "").strip(),
                 str(rec.pruning_number or "").strip(),
             )
             lookup_dict[nat_key] = rec
             fallback_key = (
                 rec.source_week,
-                rec.activity,
-                rec.product_master_norm,
-                rec.variety_norm,
-                rec.block_norm,
+                act_c,
+                pm_c,
+                v_c,
+                b_c,
             )
             fallback_dict[fallback_key] = rec
+            db_fallback_counts[fallback_key] = db_fallback_counts.get(fallback_key, 0) + 1
+
+        # Pre-count 5-tuple occurrences in uploaded Excel so multi-bed blocks never collide on fallback_dict
+        excel_fallback_counts: Dict[Tuple[int, str, str, str, str], int] = {}
+        for r in range(2, ws.max_row + 1):
+            act_pre = normalize_text(ws.cell(r, 6).value)
+            sw_pre = parse_week_code(ws.cell(r, 2).value)
+            pm_pre = str(ws.cell(r, 7).value or "").strip()
+            var_pre = str(ws.cell(r, 9).value or "").strip()
+            blk_pre = str(ws.cell(r, 12).value or "").strip()
+            if act_pre in {"SIEMBRA", "PODA"} and sw_pre is not None and pm_pre and var_pre and blk_pre:
+                act_c, pm_c, v_c, b_c = canonical_norms(act_pre, pm_pre, var_pre, blk_pre)
+                fk = (sw_pre, act_c, pm_c, v_c, b_c)
+                excel_fallback_counts[fk] = excel_fallback_counts.get(fk, 0) + 1
 
         new_count = 0
         updated_count = 0
@@ -1182,32 +1378,34 @@ def process_tpsr_excel_upload(file_input: Any, commit: bool = True) -> Dict[str,
             block = str(ws.cell(r, 12).value or "").strip()
             bed_location = str(ws.cell(r, 13).value or "").strip()
             pruning_number = str(ws.cell(r, 5).value or "").strip()
-            plants = int(round(float_or_zero(ws.cell(r, 15).value)))
+            plants_cell_val = ws.cell(r, 15).value
+            plants = int(round(float_or_zero(plants_cell_val)))
 
             if not pm or not variety or not block:
                 invalid_count += 1
                 continue
 
-            if "VERONICA" in pm.upper() or "SPLASH" in normalize_text(variety):
-                pm = "VERONICA"
-                pm_norm = "VERONICA"
-            else:
-                pm_norm = normalize_text(pm)
-
-            v_norm = normalize_text(variety)
-            b_norm = normalize_text(block)
+            act, pm_norm, v_norm, b_norm = canonical_norms(act, pm, variety, block)
+            if pm_norm in {"GYPSOPHILA", "VERONICA", "HYPERICUM"}:
+                pm = pm_norm
+            variety = normalize_variety_name_db(variety, pm)
+            block = normalize_block_name_db(block)
 
             nat_key = (sw, act, pm_norm, v_norm, b_norm, bed_location, pruning_number)
             fallback_key = (sw, act, pm_norm, v_norm, b_norm)
 
-            existing_rec = lookup_dict.get(nat_key) or fallback_dict.get(fallback_key)
+            existing_rec = lookup_dict.get(nat_key)
+            if existing_rec is None:
+                if db_fallback_counts.get(fallback_key, 0) == 1 and excel_fallback_counts.get(fallback_key, 0) == 1:
+                    existing_rec = fallback_dict.get(fallback_key)
 
             if existing_rec:
                 old_plants = existing_rec.plants
                 beds_val = float_or_zero(ws.cell(r, 14).value)
                 changed = False
 
-                if existing_rec.plants != plants:
+                # Protect existing positive plant counts from blank/uncached Excel formula cells (0/None)
+                if plants > 0 and existing_rec.plants != plants:
                     if commit:
                         existing_rec.plants = plants
                     changed = True
