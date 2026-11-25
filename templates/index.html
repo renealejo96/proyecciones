@@ -4474,28 +4474,30 @@
         function bindSingleClosureCheckbox(checkbox) {
             if (!checkbox || checkbox._closureBound) return;
             checkbox._closureBound = true;
-            checkbox.addEventListener('change', async () => {
+            checkbox.addEventListener('change', () => {
                 const row = checkbox.closest('.projection-row');
                 if (!row) return;
 
-                const targetClosed = checkbox.checked;
-                const blockName = row.dataset.block || '';
-                checkbox.disabled = true;
+                const originallyClosed = (row.dataset.blockClosed === 'true');
+                const isChecked = checkbox.checked;
 
-                try {
-                    const res = await saveBlockClosures([row], targetClosed);
-                    applyRowClosedStateToDom(row, targetClosed, res.closed_by || '', res.closed_at || '');
-                    recalcAll();
-                    updateBatchClosureBar();
-                    showToast(targetClosed ? `🔒 Bloque ${blockName} cerrado y guardado.` : `🔓 Bloque ${blockName} reabierto y curva restaurada.`);
-                } catch (err) {
-                    checkbox.checked = !targetClosed;
-                    alert('Error al guardar estado del bloque: ' + err.message);
-                } finally {
-                    if (!(pageMode === 'AGRONOMO' && row.dataset.blockClosed === 'true')) {
-                        checkbox.disabled = false;
+                if (originallyClosed) {
+                    if (!isChecked) {
+                        row.classList.add('row-pending-reopen');
+                        row.classList.remove('row-pending-close');
+                    } else {
+                        row.classList.remove('row-pending-reopen', 'row-pending-close');
+                    }
+                } else {
+                    if (isChecked) {
+                        row.classList.add('row-pending-close');
+                        row.classList.remove('row-pending-reopen');
+                    } else {
+                        row.classList.remove('row-pending-close', 'row-pending-reopen');
                     }
                 }
+
+                updateBatchClosureBar();
             });
         }
 
@@ -4810,13 +4812,43 @@
             }
         }
 
+        async function flushPendingBatchClosuresIfConfirmed() {
+            const pendingClose = Array.from(document.querySelectorAll('.projection-row.row-pending-close'));
+            const pendingReopen = Array.from(document.querySelectorAll('.projection-row.row-pending-reopen'));
+            const totalPending = pendingClose.length + pendingReopen.length;
+            if (totalPending === 0) return;
+
+            const msg = `Tienes ${totalPending} bloque(s) seleccionado(s) sin confirmar en la barra inferior.\n\n¿Deseas APLICAR y GUARDAR estos cierres/reaperturas antes de continuar?`;
+            if (window.confirm(msg)) {
+                if (pendingClose.length > 0) {
+                    const res = await saveBlockClosures(pendingClose, true);
+                    pendingClose.forEach(r => applyRowClosedStateToDom(r, true, res.closed_by || '', res.closed_at || ''));
+                }
+                if (pendingReopen.length > 0) {
+                    const res = await saveBlockClosures(pendingReopen, false);
+                    pendingReopen.forEach(r => applyRowClosedStateToDom(r, false, res.closed_by || '', res.closed_at || ''));
+                }
+                updateBatchClosureBar();
+            }
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            const totalPending = document.querySelectorAll('.projection-row.row-pending-close, .projection-row.row-pending-reopen').length;
+            if (totalPending > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
         document.querySelectorAll('a.nav-matrix-switch').forEach(link => {
             link.addEventListener('click', async (e) => {
                 const active = document.activeElement;
-                if (active && active._isDirty) {
+                const hasPendingClosures = document.querySelectorAll('.projection-row.row-pending-close, .projection-row.row-pending-reopen').length > 0;
+                if ((active && active._isDirty) || hasPendingClosures) {
                     e.preventDefault();
                     const targetHref = link.href;
                     await flushActiveDirtyInput();
+                    await flushPendingBatchClosuresIfConfirmed();
                     window.location.href = targetHref;
                 }
             });
