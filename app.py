@@ -849,7 +849,7 @@ def aggregate_for_week(
             continue
 
         is_deact = bool(row.get("is_deactivated", False))
-        if page_mode in {"REAL", "CONSOLIDADO"} and is_deact:
+        if is_deact:
             continue
 
         pm = str(row.get("product_master") or "")
@@ -963,7 +963,9 @@ def aggregate_for_week(
         plants_raw = int(row.get("plants") or 0)
         is_closed = bool(row.get("block_closed", False))
 
-        if page_mode in {"REAL", "CONSOLIDADO"} and is_deact:
+        raw_program_total = int(round(float(row.get("program_total") or 0)))
+
+        if is_deact:
             plants_raw = 0
             program_total_val = 0
             window_total_prod = 0
@@ -978,7 +980,7 @@ def aggregate_for_week(
             plants_count = plants_raw if plants_raw > 0 else 1
             lifetime_total_prod = b_lifetime["total_production"]
             lifetime_real_stems = round(lifetime_total_prod / plants_count, 1) if plants_raw > 0 else 0.0
-            program_total_val = int(round(float(row.get("program_total") or 0)))
+            program_total_val = raw_program_total
 
         matrix_rows.append(
             {
@@ -1004,6 +1006,7 @@ def aggregate_for_week(
                 "waste_rate": float(row.get("waste_rate") or 0.0),
                 "ideal_waste_rate": float(row.get("ideal_waste_rate") or 0.0),
                 "program_total": program_total_val,
+                "original_program_total": raw_program_total,
                 "weekly_projection": weekly_projection,
                 "weekly_status": weekly_status,
                 "is_dump": is_dump_by_week,
@@ -2429,35 +2432,77 @@ def get_statistics_data(
 
     db = SessionLocal()
     try:
-        # Available PMs: Filter out non-commercial / cover crops (e.g. BRILLANTINA, MOSTAZA CALIENTE, VICIA-AVENA, PROD.NUEVOS)
-        valid_pm_norms = set(c[0] for c in db.query(CycleDefinitionDB.product_master_norm).distinct().all() if c[0])
-        valid_closure_pms = set(c[0] for c in db.query(BlockClosureDB.product_master_norm).distinct().all() if c[0])
-        allowed_pm_norms = valid_pm_norms.union(valid_closure_pms)
+        # 1. Commercial calibrated cycles & valid curve definitions
+        # Exclude non-commercial / experimental crops (e.g. PROD.NUEVOS, BRILLANTINA, MOSTAZA, VICIA-AVENA, etc.)
+        NON_COMMERCIAL_PREFIXES = ("PROD", "NUEVO", "BRILLANTINA", "MOSTAZA", "VICIA", "AVENA", "RUMEX", "PAGODA", "RUSCUS", "LIATRIS", "ASTER", "DELPHINIUM")
+        cycles_list = db.query(CycleDefinitionDB).all()
+        cycles_map: dict[tuple[str, str, str], dict[str, Any]] = {}
+        valid_curve_pms: set[str] = set()
+        valid_cycle_combos: set[tuple[str, str]] = set()
+        valid_cycle_pms: set[str] = set()
 
-        # 1. Base mappings for cascading selectors
-        pm_var_blk_rows = db.query(TpsrRecord.product_master, TpsrRecord.variety, TpsrRecord.block).distinct().all()
+        for c in cycles_list:
+            c_pm_norm = "VERONICA" if "VERONICA" in c.product_master_norm else c.product_master_norm
+            c_pm = "VERONICA" if "VERONICA" in (c.product_master or "").upper() else c.product_master
+            key = (c_pm_norm, c.variety_norm, normalize_text(c.activity))
+            c_curve = parse_curve_csv(c.curve)
+            cycles_map[key] = {
+                "cycle_weeks": c.cycle_weeks,
+                "waste_rate": c.waste_rate,
+                "stems_per_plant": c.stems_per_plant,
+                "curve": c_curve,
+            }
+            cycles_map[(c.product_master_norm, c.variety_norm, normalize_text(c.activity))] = cycles_map[key]
+            if c_pm and c_curve and any(x > 0 for x in c_curve):
+                valid_curve_pms.add(c_pm)
+                valid_curve_pms.add(c.product_master)
+            if not any(bad in c_pm_norm for bad in NON_COMMERCIAL_PREFIXES):
+                valid_cycle_pms.add(c_pm_norm)
+                valid_cycle_pms.add(c.product_master_norm)
+                valid_cycle_combos.add((c_pm_norm, c.variety_norm))
+                valid_cycle_combos.add((c.product_master_norm, c.variety_norm))
+                v_alias = normalize_variety_name(c.variety, c.product_master)
+                if v_alias:
+                    valid_cycle_combos.add((c_pm_norm, normalize_text(v_alias)))
+                    valid_cycle_combos.add((c.product_master_norm, normalize_text(v_alias)))
+                if not c.variety_norm:
+                    valid_cycle_combos.add((c_pm_norm, ""))
+                    valid_cycle_combos.add((c.product_master_norm, ""))
+
+        allowed_pm_norms = set(valid_cycle_pms)
+
+        # Query all TPSR records and retain strictly commercial varieties with valid curves
+        tpsr_query_all = db.query(TpsrRecord).all()
+        tpsr_records: list[TpsrRecord] = []
+        for r in tpsr_query_all:
+            pm = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else (r.product_master or "")
+            pm_norm = normalize_text(pm)
+            if not pm_norm or (pm_norm not in allowed_pm_norms and not any(norm in pm_norm for norm in allowed_pm_norms)):
+                continue
+            if any(bad in pm_norm for bad in NON_COMMERCIAL_PREFIXES):
+                continue
+            var = normalize_variety_name(r.variety, pm)
+            var_norm = normalize_text(var)
+            if (pm_norm, var_norm) not in valid_cycle_combos and (pm_norm, "") not in valid_cycle_combos:
+                continue
+            tpsr_records.append(r)
+
+        # Base mappings for cascading selectors directly from valid commercial records
         pm_varieties_map: dict[str, list[str]] = {}
         pm_blocks_map: dict[str, list[str]] = {}
-        for pm, var, blk in pm_var_blk_rows:
-            if pm:
-                pm_clean = "VERONICA" if "VERONICA" in pm.upper() else pm
-                pm_norm = normalize_text(pm_clean)
-                if pm_norm not in allowed_pm_norms and not any(norm in pm_norm for norm in allowed_pm_norms):
-                    continue
-                if var:
-                    pm_varieties_map.setdefault(pm_clean, []).append(var)
-                if blk:
-                    pm_blocks_map.setdefault(pm_clean, []).append(blk.strip())
+        for r in tpsr_records:
+            pm_clean = "VERONICA" if "VERONICA" in (r.product_master or "").upper() else (r.product_master or "")
+            if r.variety:
+                pm_varieties_map.setdefault(pm_clean, []).append(r.variety)
+            if r.block:
+                pm_blocks_map.setdefault(pm_clean, []).append(r.block.strip())
         for pm in pm_varieties_map:
             pm_varieties_map[pm] = sorted(list(set(pm_varieties_map[pm])))
         for pm in pm_blocks_map:
             pm_blocks_map[pm] = sorted(list(set(pm_blocks_map[pm])))
 
-        all_blocks_query = db.query(TpsrRecord.block).distinct().all()
-        available_blocks = sorted(list(set(b[0].strip() for b in all_blocks_query if b[0] and str(b[0]).strip())))
-
-        sws = db.query(TpsrRecord.source_week).distinct().all()
-        all_tpsr_sws = sorted(list(set(s[0] for s in sws if s[0])))
+        available_blocks = sorted(list(set(r.block.strip() for r in tpsr_records if r.block and str(r.block).strip())))
+        all_tpsr_sws = sorted(list(set(r.source_week for r in tpsr_records if r.source_week)))
 
         # Available weeks for the slicer should strictly only go up to the last closed week
         closed_sws_rows = (
@@ -2535,26 +2580,6 @@ def get_statistics_data(
         parsed_sw_to = resolve_week_filter_code(week_to, resolved_year) if week_to and str(week_to).strip() else None
         if parsed_sw_from and parsed_sw_to and parsed_sw_from > parsed_sw_to:
             parsed_sw_from, parsed_sw_to = parsed_sw_to, parsed_sw_from
-        # 2. Cycle Definitions Map & Valid Curve PMs
-        cycles_list = db.query(CycleDefinitionDB).all()
-        cycles_map: dict[tuple[str, str, str], dict[str, Any]] = {}
-        valid_curve_pms: set[str] = set()
-        for c in cycles_list:
-            c_pm_norm = "VERONICA" if "VERONICA" in c.product_master_norm else c.product_master_norm
-            c_pm = "VERONICA" if "VERONICA" in (c.product_master or "").upper() else c.product_master
-            key = (c_pm_norm, c.variety_norm, normalize_text(c.activity))
-            c_curve = parse_curve_csv(c.curve)
-            cycles_map[key] = {
-                "cycle_weeks": c.cycle_weeks,
-                "waste_rate": c.waste_rate,
-                "stems_per_plant": c.stems_per_plant,
-                "curve": c_curve,
-            }
-            cycles_map[(c.product_master_norm, c.variety_norm, normalize_text(c.activity))] = cycles_map[key]
-            if c_pm and c_curve and any(x > 0 for x in c_curve):
-                valid_curve_pms.add(c_pm)
-                valid_curve_pms.add(c.product_master)
-
         available_pms = sorted(list(set(pm_varieties_map.keys())))
         available_varieties = sorted(list(set(v for vars in pm_varieties_map.values() for v in vars)))
 
@@ -2630,8 +2655,8 @@ def get_statistics_data(
             deactivated_keys.add((d_pm, d_var, d.source_week, d_ac, d_blk))
             deactivated_keys.add((d_ac, d_pm, d_var, d_blk, d.source_week))
 
-        # 4. Query TPSR records across all crops
-        tpsr_records = db.query(TpsrRecord).all()
+        # 4. TPSR records (already filtered for commercial crops and calibrated curves)
+        # (tpsr_records defined above)
 
         # 5. Query Week Adjustments across all crops
         week_adjustments = db.query(WeekAdjustmentDB).all()

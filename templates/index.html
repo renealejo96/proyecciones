@@ -2118,7 +2118,7 @@
                         {% for variety in weekly_view.varieties %}
                             {% set all_rows = variety.siembras + variety.podas %}
                             {% for row in all_rows %}
-                                <tr class="projection-row {{ 'row-closed' if row.block_closed else '' }} {{ 'row-deactivated' if (row.is_deactivated and page_mode == 'REAL') else '' }}"
+                                <tr class="projection-row {{ 'row-closed' if row.block_closed else '' }} {{ 'row-deactivated' if row.is_deactivated else '' }}"
                                     data-activity="{{ row.activity }}"
                                     data-source-week="{{ row.source_week }}"
                                     data-source-week-short="{{ row.source_week_short }}"
@@ -2172,12 +2172,12 @@
                                     <td class="sticky-col sticky-4 block-col" title="Clic para ver historial de usuarios, estimaciones y cierres del Bloque {{ row.block }} (Sem {{ row.source_week_short }})">{{ row.block }}</td>
                                     <td class="sticky-col sticky-5" title="{{ row.variety }}">{{ row.variety_display or variety.variety_display or variety.variety }}</td>
                                     <td class="sticky-col sticky-6 harvest-start-col" title="Semana estimada en que entra a punteo / cosecha">{{ row.harvest_start_week_short }}</td>
-                                    <td class="sticky-col sticky-7 plants-cell {{ 'plants-cell-deactivated' if (row.is_deactivated and page_mode == 'REAL') else '' }}" data-val="{{ 0 if (row.is_deactivated and page_mode == 'REAL') else row.plants }}" data-original-val="{{ row.original_plants or row.plants }}">
-                                        {% if row.is_deactivated and page_mode == 'REAL' %}
+                                    <td class="sticky-col sticky-7 plants-cell {{ 'plants-cell-deactivated' if row.is_deactivated else '' }}" data-val="{{ 0 if row.is_deactivated else row.plants }}" data-original-val="{{ row.original_plants or row.plants }}">
+                                        {% if row.is_deactivated %}
                                             <div style="line-height: 1.1; text-align: center;">
                                                 <span style="color: #ef4444; font-weight: 800; font-size: 0.76rem;">0</span>
                                                 {% if row.original_plants %}
-                                                    <span style="font-size: 0.58rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Plantas originales antes de pérdida">({{ row.original_plants }})</span>
+                                                    <span style="font-size: 0.58rem; color: #94a3b8; text-decoration: line-through; display: block;" title="Siembra anulada (plantas en 0). Plantas originales: {{ row.original_plants }}">({{ row.original_plants }})</span>
                                                 {% endif %}
                                             </div>
                                         {% else %}
@@ -2185,12 +2185,12 @@
                                         {% endif %}
                                     </td>
                                     <td class="sticky-col sticky-8 param-col">{{ row.ideal_cycle_weeks or row.cycle_weeks or '' }}</td>
-                                    <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}" {{ 'disabled' if row.block_closed else '' }}></td>
+                                    <td class="sticky-col sticky-9 param-col"><input class="edit-input input-cycle" type="number" min="0" step="1" inputmode="numeric" value="{{ row.cycle_weeks or 0 }}" {{ 'disabled' if (row.block_closed or row.is_deactivated) else '' }}></td>
                                     <td class="sticky-col sticky-10 param-col">{{ '%.1f'|format(row.ideal_stems_per_plant) }}</td>
-                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ '%.1f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.0' }}" {{ 'disabled' if row.block_closed else '' }}></td>
+                                    <td class="sticky-col sticky-11 param-col"><input class="edit-input input-stems" type="number" min="0" step="0.1" inputmode="decimal" value="{{ '%.1f'|format(row.stems_per_plant) if row.stems_per_plant is not none else '0.0' }}" {{ 'disabled' if (row.block_closed or row.is_deactivated) else '' }}></td>
                                     
                                     <td class="param-col col-param-waste-ideal">{{ (row.ideal_waste_rate * 100)|round|int if (row.ideal_waste_rate * 100) == (row.ideal_waste_rate * 100)|int else (row.ideal_waste_rate * 100)|round(1) }}</td>
-                                    <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}" {{ 'disabled' if row.block_closed else '' }}></td>
+                                    <td class="param-col col-param-waste-ajust"><input class="edit-input input-waste" type="number" min="0" max="100" step="1" inputmode="decimal" value="{{ (row.waste_rate * 100)|round|int if (row.waste_rate * 100) == (row.waste_rate * 100)|int else (row.waste_rate * 100)|round(1) }}" {{ 'disabled' if (row.block_closed or row.is_deactivated) else '' }}></td>
                                     <td class="param-col cell-program-total col-param-export-stems" data-val="{{ row.program_total }}">{{ row.program_total }}</td>
                                     <td class="param-col cell-total-prod col-param-total-prod" data-val="{{ row.total_production }}">{{ row.total_production }}</td>
                                     <td class="param-col cell-real-stems col-param-real-stems" data-val="{{ row.real_stems_per_plant if row.real_stems_per_plant else '' }}">{{ '%.1f'|format(row.real_stems_per_plant) if row.real_stems_per_plant else '' }}</td>
@@ -2225,7 +2225,7 @@
                                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                                 </button>
                                             {% endif %}
-                                            <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}" {{ 'disabled' if (row.block_closed or (page_mode != 'REAL' and (cell_stat == 'REAL' or is_cell_dump))) else '' }}>
+                                            <input class="week-input" type="number" min="0" step="1" inputmode="numeric" value="{{ row.weekly_projection[week.label] if row.weekly_projection[week.label] else 0 }}" {{ 'disabled' if (row.block_closed or row.is_deactivated or (page_mode != 'REAL' and (cell_stat == 'REAL' or is_cell_dump))) else '' }}>
                                         </td>
                                     {% endfor %}
                                     <td class="cell-window-total col-total-final" data-val="{{ row.window_total }}">{{ row.window_total }}</td>
@@ -2545,7 +2545,7 @@
                 const isDeactivated = (row.dataset.isDeactivated === 'true');
                 const isClosed = (row.dataset.blockClosed === 'true');
 
-                if (isDeactivated && pageMode === 'REAL') {
+                if (isDeactivated) {
                     row.classList.add('row-deactivated');
                     row.querySelectorAll('.edit-input, .week-input').forEach(inp => {
                         inp.disabled = true;
@@ -2624,7 +2624,7 @@
 
         function recalcRow(row) {
             // Do not regenerate model curve if block is currently closed or deactivated
-            if (row.dataset.blockClosed === 'true' || (row.dataset.isDeactivated === 'true' && pageMode === 'REAL')) {
+            if (row.dataset.blockClosed === 'true' || row.dataset.isDeactivated === 'true') {
                 updateRowTotalsFromWeekInputs(row);
                 return;
             }
